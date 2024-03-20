@@ -1,0 +1,48 @@
+feat
+WebServer
+{
+public:
+	setTCP() // socket bind kqueue...
+	runTCP() // while loop and accept
+	WebServer(std::string conf_file);
+private:
+	map<int socket, std::string response> Response;
+	// Response[socket] += Http.makeResponse(string request);
+class:
+	Http
+}
+
+Http
+{
+public:
+	std::string makeResponse(std::string request);
+	Http(std::string conf_file);
+private:
+	struct request parseHttpRequest();
+class:
+	HttpResponse
+}
+
+HttpResponse
+{
+public:
+	std::string getHttpResponse(struct request);
+	HttpResponse(std::string conf_file); // create and parse => create servers 
+private:
+	map<int port, Server server> servers;
+}
+
+Server // resource and cgi process
+{
+public:
+	string getResource(struct request)
+class:
+	map<string url, Location> location;
+}
+
+Location
+{
+method:
+	string getResource(struct request)
+class:
+}
