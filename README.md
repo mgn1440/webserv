@@ -10,7 +10,9 @@
 
 * [Main reference](https://bigpel66.oopy.io/library/42/reference/21 "Jseo Doodle")
 
-### Coding convevtion
+### Coding convention
+
+[김포프 코딩 컨벤션](https://docs.popekim.com/ko/coding-standards/cpp)
 
 ### github flow
 
