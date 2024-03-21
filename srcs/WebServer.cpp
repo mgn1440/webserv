@@ -29,6 +29,16 @@ WebServer&	WebServer::operator=(const WebServer& rhs)
 	return (*this);
 }
 
+WebServer::WebServer(const WebServer& rhs)
+	: mConfig(rhs.mConfig)
+	, mPort(PORT)
+	, mListenFd(-1)
+	, mKq(-1)
+{}
+
+WebServer::~WebServer()
+{}
+
 void	WebServer::SetTCP(void)
 {
 	mListenFd = socket(AF_INET, SOCK_STREAM, 0);
@@ -102,6 +112,7 @@ void	WebServer::RunTCP(void)
 				else if (mClient.find(currEvent->ident) != mClient.end())
 				{
 					// TODO: 2048을 넘어가는 HTTP Request는 어떻게 처리를 할 것인가?
+					// 그냥 보냄
 					char buf[2048];
 					int n = read(currEvent->ident, buf, sizeof(buf));
 					if (n < 0)
@@ -113,7 +124,7 @@ void	WebServer::RunTCP(void)
 						buf[n] = '\0';
 						// TODO: mClient[currEvent->ident] += Http.makeResponse(buf);
 						mClient[currEvent->ident] += buf; //temp
-						printf("%s\n", buf); // HTTP Request 출력
+						std::cout << buf << std::endl; // HTTP Request 출력
 					}
 				}
 			}
@@ -122,10 +133,12 @@ void	WebServer::RunTCP(void)
 				std::map<int, std::string>::iterator it = mClient.find(currEvent->ident);
 				if (it != mClient.end())
 				{
+					// TODO : HTTP Response가 완성 되었는지 확인하는 logic
 					if (mClient[currEvent->ident] != "")
 					{
-						// TODO;
+						// TODO
 						// Read event 발생했을 때 Http.makeResponse(buf); 의 결과값을 write 해야 함
+						// 응답 코드가 5xx 일때 mClient에서 currEvent->ident 삭제
 						std::string httpResponse = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: 13\r\n\r\nHello, World!"; // temp
 						if (write(currEvent->ident, httpResponse.c_str(), httpResponse.size()) == -1)
 						{

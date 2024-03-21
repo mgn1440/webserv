@@ -10,12 +10,10 @@ int main(int argc, char *argv[])
 	{
 		if (argc > 2)
 			throw std::invalid_argument("Require one or two argument");
-		WebServer webServer;
+		std::string confPath("./conf/default.conf");
 		if (argc == 2)
-		{
-			WebServer tempServer(argv[1]);
-			webServer = tempServer;
-		}
+			confPath = argv[1];
+		WebServer webServer(confPath);
 		webServer.SetTCP();
 		webServer.RunTCP();
 	}
