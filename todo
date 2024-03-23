@@ -1,4 +1,3 @@
-feat
 WebServer
 {
 public:
@@ -27,7 +26,7 @@ HttpResponse
 {
 public:
 	std::string getHttpResponse(struct request);
-	HttpResponse(std::string conf_file); // create and parse => create servers 
+	HttpResponse(std::string conf_file); // create and parse => create servers
 private:
 	map<int port, Server server> servers;
 }

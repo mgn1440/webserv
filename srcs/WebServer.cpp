@@ -82,7 +82,7 @@ void	WebServer::RunTCP(void)
 	{
 		newEvents = kevent(mKq, &mChangeList[0], mChangeList.size(), mEventList, 8, NULL);
 		if (newEvents == -1)
-			throw std::runtime_error("kevent() error\n");
+			throw std::runtime_error("kevent() error");
 		mChangeList.clear();
 		for (int i = 0; i < newEvents; ++i)
 		{
