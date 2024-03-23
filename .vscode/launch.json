@@ -6,8 +6,8 @@
       "type": "lldb",
       "request": "launch",
       "args": [],
-      "cwd": "/Users/sunko/Desktop/webserv",
-      "program": "/Users/sunko/Desktop/webserv/build/Debug/outDebug"
+      "cwd": "/Users/sunko/Desktop/webserv/srcs",
+      "program": "/Users/sunko/Desktop/webserv/srcs/build/Debug/outDebug"
     }
   ]
 }

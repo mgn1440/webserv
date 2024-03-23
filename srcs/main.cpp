@@ -1,6 +1,12 @@
 #include <cstring>
 #include <stdexcept>
+#include <cstring>
+#include <stdexcept>
 #include <iostream>
+#include <string>
+#include "../includes/WebServer.hpp"
+
+int main(int argc, char *argv[])
 #include <string>
 #include "../includes/WebServer.hpp"
 
@@ -22,4 +28,3 @@ int main(int argc, char *argv[])
 		std::cerr << e.what() << '\n';
 	}
 }
-

@@ -9,6 +9,7 @@
 #include <stdio.h>
 #include <iostream>
 #include "../includes/WebServer.hpp"
+#include "../includes/Http.hpp"
 #define  PORT 8080
 
 WebServer::WebServer(const std::string& config)
@@ -37,7 +38,11 @@ WebServer::WebServer(const WebServer& rhs)
 {}
 
 WebServer::~WebServer()
-{}
+{
+	std::map<int, Http*>::iterator it = mConnection.begin();
+	for (; it != mConnection.end(); ++it)
+		delete it->second;
+}
 
 void	WebServer::SetTCP(void)
 {
@@ -88,68 +93,16 @@ void	WebServer::RunTCP(void)
 		{
 			currEvent = &mEventList[i];
 			if (currEvent->flags & EV_ERROR)
-			{
-				if (currEvent->ident == static_cast<uintptr_t>(mListenFd))
-					throw std::runtime_error("server socket error");
-				else
-				{
-					disconnectClient(currEvent->ident);
-					throw std::runtime_error("Client connection error");
-				}
-			}
+				handleErrorEvent(currEvent->ident);
 			else if (currEvent->filter == EVFILT_READ)
 			{
 				if (currEvent->ident == static_cast<uintptr_t>(mListenFd))
-				{
-					int clientSocket = accept(mListenFd, NULL, NULL);
-					if (clientSocket == -1)
-						throw std::runtime_error("accept() error");
-					fcntl(clientSocket, F_SETFL, O_NONBLOCK);
-					mClient[clientSocket] = "";
-					changeEvents(clientSocket, EVFILT_READ, EV_ADD | EV_ENABLE, 0, 0, NULL);
-					changeEvents(clientSocket, EVFILT_WRITE, EV_ADD | EV_ENABLE, 0, 0, NULL);
-				}
-				else if (mClient.find(currEvent->ident) != mClient.end())
-				{
-					// TODO: 2048을 넘어가는 HTTP Request는 어떻게 처리를 할 것인가?
-					// 그냥 보냄
-					char buf[2048];
-					int n = read(currEvent->ident, buf, sizeof(buf));
-					if (n < 0)
-						throw std::runtime_error("read() error");
-					if (n == 0)
-						disconnectClient(currEvent->ident);
-					else
-					{
-						buf[n] = '\0';
-						// TODO: mClient[currEvent->ident] += Http.makeResponse(buf);
-						mClient[currEvent->ident] += buf; //temp
-						std::cout << buf << std::endl; // HTTP Request 출력
-					}
-				}
+					acceptNewClientSocket();
+				else if (mConnection.find(currEvent->ident) != mConnection.end())
+					sendRequestToHttp(currEvent->ident);
 			}
 			else if (currEvent->filter == EVFILT_WRITE)
-			{
-				std::map<int, std::string>::iterator it = mClient.find(currEvent->ident);
-				if (it != mClient.end())
-				{
-					// TODO : HTTP Response가 완성 되었는지 확인하는 logic
-					if (mClient[currEvent->ident] != "")
-					{
-						// TODO
-						// Read event 발생했을 때 Http.makeResponse(buf); 의 결과값을 write 해야 함
-						// 응답 코드가 5xx 일때 mClient에서 currEvent->ident 삭제
-						std::string httpResponse = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: 13\r\n\r\nHello, World!"; // temp
-						if (write(currEvent->ident, httpResponse.c_str(), httpResponse.size()) == -1)
-						{
-							disconnectClient(currEvent->ident);
-							throw std::runtime_error("write() error");
-						}
-						else
-							mClient[currEvent->ident].clear();
-					}
-				}
-			}
+				writeResponseToClient(currEvent->ident);
 		}
 	}
 }
@@ -165,5 +118,70 @@ void	WebServer::changeEvents(uintptr_t ident, int16_t filter, uint16_t flags, ui
 void	WebServer::disconnectClient(int clientSocket)
 {
 	close(clientSocket);
+	mConnection.erase(clientSocket);
 	mClient.erase(clientSocket);
 }
+
+void	WebServer::acceptNewClientSocket(void)
+{
+	int clientSocket = accept(mListenFd, NULL, NULL);
+	if (clientSocket == -1)
+		throw std::runtime_error("accept() error");
+	fcntl(clientSocket, F_SETFL, O_NONBLOCK);
+	changeEvents(clientSocket, EVFILT_READ, EV_ADD | EV_ENABLE, 0, 0, NULL);
+	changeEvents(clientSocket, EVFILT_WRITE, EV_ADD | EV_ENABLE, 0, 0, NULL);
+	mConnection[clientSocket] = new Http(mConfig);
+	mClient[clientSocket] = ""; // TODO : 응답 로직 완성된 후 삭제
+}
+
+void	WebServer::sendRequestToHttp(int clientFD)
+{
+	char buf[2048];
+	int n = read(clientFD, buf, sizeof(buf));
+	if (n < 0)
+		throw std::runtime_error("read() error");
+	if (n == 0)
+		disconnectClient(clientFD);
+	else
+	{
+		buf[n] = '\0';
+		mClient[clientFD] += buf; // debug
+		mConnection[clientFD]->ReciveRequestMessage(buf);
+		std::cout << buf << std::endl; // HTTP Request 출력 debug
+	}
+}
+
+void	WebServer::writeResponseToClient(int clientFD)
+{
+	std::map<int, Http*>::iterator it = mConnection.find(clientFD);
+	if (it != mConnection.end())
+	{
+		// TODO: HTTP Response가 완성 되었는지 확인하는 함수가 필요함, Http 객체에 요청
+		// TODO: 응답 코드가 5xx 일때 mConnection에서 currEvent->ident 삭제
+		// TODO: mClient는 임시로 있는 자료구조 (HTTP Request를 받았는지 확인하기 위함, HTTP Response를 받았는지 확인해야 함)
+		if (mClient[clientFD] != "")
+		{
+			std::string httpResponse = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: 13\r\n\r\nHello, World!"; // temp
+			if (write(clientFD, httpResponse.c_str(), httpResponse.size()) == -1)
+			{
+				disconnectClient(clientFD);
+				throw std::runtime_error("write() error");
+			}
+			else
+				mClient[clientFD].clear();
+		}
+	}
+}
+
+void	WebServer::handleErrorEvent(int event)
+{
+	if (event == mListenFd)
+		throw std::runtime_error("server socket error");
+	else
+	{
+		disconnectClient(event);
+		throw std::runtime_error("Client connection error");
+	}
+}
+
+

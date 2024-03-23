@@ -5,6 +5,7 @@
 # include <map>
 # include <string>
 # include <sys/event.h>
+# include "Http.hpp"
 
 class WebServer
 {
@@ -19,12 +20,18 @@ class WebServer
 		int							mPort;
 		int							mListenFd;
 		int							mKq;
+		std::map<int, Http*>		mConnection;
 		std::map<int, std::string>	mClient;
 		std::vector<struct kevent>	mChangeList;
 		struct kevent				mEventList[8];
 		WebServer(const WebServer& rhs);
+
 		void	changeEvents(uintptr_t ident, int16_t filter, uint16_t flags, uint32_t fflags, intptr_t data, void *udata);
 		void	disconnectClient(int clientSocket);
+		void	acceptNewClientSocket(void);
+		void	sendRequestToHttp(int clientFD);
+		void	writeResponseToClient(int clientFD);
+		void	handleErrorEvent(int event);
 };
 
 #endif
