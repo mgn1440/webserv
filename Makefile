@@ -4,7 +4,8 @@ OBJS_MAND = $(addprefix objs/, $(notdir $(SRCS_MAND:.cpp=.o)))
 OBJS_BONUS = $(addprefix objs/, $(notdir $(SRCS_BONUS:.cpp=.o)))
 OBJ_DIR = objs
 NAME = webserv
-SRCS_MAND = main.cpp
+SRCS_MAND = main.cpp \
+	WebServer.cpp
 SRCS_BONUS = srcs_bonus1 \
 	srcs_bonus2 \
 	srcs_bonus3
@@ -39,11 +40,9 @@ bonus: $(OBJ_DIR) $(OBJS_BONUS)
 	$(info    \ \__/".~\_\  \ \_____\  \ \_____\  \/\_____\  \ \_____\  \ \_\ \_\  \ \__|   )
 	$(info     \/_/   \/_/   \/_____/   \/_____/   \/_____/   \/_____/   \/_/ /_/   \/_/    )
 
-$(OBJ_DIR)/%.o: %.cpp
-	$(CXX) $(CXXFLAGS) -c $< -o $@ 
 
 $(OBJ_DIR)/%.o: %.cpp
-	$(CXX) $(CXXFLAGS) -c $< -o $@ 
+	$(CXX) $(CXXFLAGS) -c $< -o $@
 
 fclean: clean
 	@rm -f $(NAME)
