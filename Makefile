@@ -45,6 +45,7 @@ bonus: $(OBJ_DIR) $(OBJS_BONUS)
 
 $(OBJ_DIR)/%.o: %.cpp
 	$(CXX) $(CXXFLAGS) -c $< -o $@
+	$(CXX) $(CXXFLAGS) -c $< -o $@
 
 fclean: clean
 	@rm -f $(NAME)
