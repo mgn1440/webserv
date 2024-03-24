@@ -9,23 +9,21 @@
 # include <map>
 # include <vector>
 
-# include "STLUtils.hpp"
+# include "STLUtils.hpp" // to debug
+# include "AConfParser.hpp"
 
-class Location
+class Location : public AConfParser
 {
-public :
+public:
 	Location();
 	~Location();
 
 	void	ParseLine(std::string& line);
-private :
-	Location&	operator = (const Location& rhs);
+private:
+	Location& operator=(const Location& rhs);
 	Location(const Location& rhs);
-	std::vector<std::string>	mHttpMethod;
-	std::string					mRoot;
-	std::set<std::string>		mIndex;
 
-	bool						mbAutoIndex;
+	// TODO: cgi var needed
 };
 
 #endif

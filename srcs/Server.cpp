@@ -1,8 +1,6 @@
 #include <iostream>
-
 #include <fstream>
 #include <sstream>
-
 #include "Server.hpp"
 #include "Location.hpp"
 #include "STLUtils.hpp"
@@ -12,20 +10,26 @@ bool	isDigits(const std::string &str)
     return str.find_first_not_of("0123456789") == std::string::npos;
 }
 
-bool	isEnd(std::stringstream& ss, std::string& word)
+
+Server::Server()
+	: mChkBracket(0)
+	, mbInLocation(false)
+	, mMaxSize()
+	, mbAutoIndex()
+{}
+
+Server::Server(std::ifstream& confFile)
+	: mChkBracket(0)
+	, mbInLocation(false)
+	, mMaxSize()
+	, mbAutoIndex()
 {
-	if (word != ";")
-		return (false);
-	else if (ss >> word)
-		throw std::exception();
-	else
-		return (true);
+	parse(confFile);
 }
 
-Server::Server() : mChkBracket(0), mbInLocation(false)
-{ }
 
-Server::~Server() { }
+
+Server::~Server(){}
 
 Server&	Server::operator=(const Server& rhs)
 {
@@ -44,6 +48,49 @@ Server&	Server::operator=(const Server& rhs)
 	mbAutoIndex = rhs.mbAutoIndex;
 	return (*this);
 }
+
+void	Server::parse(std::ifstream& confFile)
+{
+	std::string line;
+
+	if (!confFile.is_open())
+		throw std::runtime_error("can't confile open");
+	
+	while (std::getline(confFile, line))
+	{
+		// buf => add space function?
+		if (confFile.eof())
+			break;
+		std::string word;
+		std::stringstream ss;
+
+		ss << line;
+		if (!(ss >> word))
+			continue;				 
+		if (word == "location" || mbInLocation)
+			parseLocation(ss, word);
+		else if (word == "}")
+			parseClosedBracket();
+		else if (word == "listen")
+			parseListen(ss, word);
+		else if (word == "server_name")
+			parseServerName(ss, word);
+		else if (word == "error_page")
+			parseErrorPage(ss, word);
+		else if (word == "client_max_size")
+			parseClientMaxSize(ss, word);
+		else if (word == "root")
+			parseRoot(ss, word);
+		else if (word == "autoindex")
+			parseAutoIndex(ss, word);
+		else if (word == "limit_except")
+			parseLimitExcept(ss, word);
+		else if (word == "index")
+			parseIndex(ss, word);
+		throw std::exception();	// incomplete line
+	}
+}
+
 
 void	Server::PrintInfo()
 {
@@ -65,12 +112,16 @@ void	Server::PrintInfo()
 	std::cout << "AutoIndex: " << mbAutoIndex << std::endl;
 }
 
-void	Server::PutIn(std::map<int, Server>& rhs)
+void	Server::PutIn(std::map<int, Server*>& rhs)
 {
 	for(std::set<int>::iterator it = mPort.begin(); it != mPort.end(); it ++)
-		rhs[*it] = *this;
+		rhs[*it] = this;
 }
 
+// Parse()
+//{
+//  while ()
+//}
 void	Server::ParseLine(std::string line)
 {
 	std::stringstream	ss;
@@ -80,28 +131,10 @@ void	Server::ParseLine(std::string line)
 	ss << line;
 	if (!(ss >> word))
 		return ;
-	if (word == "location")
-	{
-		std::string	dir;
-		if (!mbInLocation && ss >> dir && (ss >> word && word == "{") && !(ss >> word))
-		{
-			std::cout << dir << std::endl;
-			mbInLocation = true;
-			mChkBracket ++;
-			return ;
-		}
-		else
-			throw std::exception();
-	}
+	if (word == "location" || mbInLocation)
+		parseLocation(ss, word);
 	else if (word == "}")
-	{
-		mChkBracket --;
-		if (mChkBracket == 0)
-		{
-			mbInLocation = false;
-		}
-		return ;
-	}
+		parseClosedBracket();
 	else if (mbInLocation)
 	{
 		std::cout << "inLocation" << std::endl;
@@ -109,111 +142,118 @@ void	Server::ParseLine(std::string line)
 		return ;
 	}
 	else if (word == "listen")
-	{
-		while (ss >> word)
-		{
-			if (isEnd(ss, word))
-				return ;
-			if (!isDigits(word))
-				throw std::exception();
-			mPort.insert(atoi(word.c_str()));
-		}
-	}
+		parseListen(ss, word);
 	else if (word == "server_name")
-	{
-		while (ss >> word)
-		{
-			if (isEnd(ss, word))
-				return ;
-			mServerName.push_back(word);
-		}
-	}
+		parseServerName(ss, word);
 	else if (word == "error_page")
-	{
-		std::vector<int> errNum;
-		while (ss >> word && isDigits(word))
-			errNum.push_back(atoi(word.c_str()));
-		if (errNum.empty())
-			throw std::exception();
-		// TODO: make function that chk word is valid URI(character, valid...)
-		for (std::vector<int>::iterator it = errNum.begin(); it != errNum.end(); it ++)
-			mErrorPage[*it] = word;
-		if (ss >> word && isEnd(ss, word))
-			return ;
-	}
+		parseErrorPage(ss, word);
 	else if (word == "client_max_size")
-	{
-		for (int i = 0; i < 4; i ++)
-		{
-			if (ss >> word)
-			{
-				if (word == "inf")
-					mMaxSize[i] = -1;
-				else if (word == ";" && isEnd(ss, word) && i == 3)
-					return ;
-				else
-				{
-					mMaxSize[i] = atoi(word.c_str());
-					if (mMaxSize[i] <= 0)
-						throw std::exception();
-					size_t	tmpOrd = word.find_first_not_of("0123456789");
-					if (tmpOrd != std::string::npos)
-					{
-						if (tmpOrd + 1 < word.length())
-							throw std::exception();
-						else if (word[tmpOrd] == 'K')
-							mMaxSize[i] *= 1000;
-						else if (word[tmpOrd] == 'M')
-							mMaxSize[i] *= 1000000;
-						else if (word[tmpOrd] == 'G')
-							mMaxSize[i] *= 1000000000;
-						else
-							throw std::exception();
-					}
-				}
-			}
-			else
-				throw std::exception();
-		}
-	}
+		parseClientMaxSize(ss, word);
 	else if (word == "root")
-	{
-		if (ss >> mRoot && ss >> word && isEnd(ss, word))
-			return ;
-	}
+		parseRoot(ss, word);
 	else if (word == "autoindex")
+		parseAutoIndex(ss, word);
+	else if (word == "limit_except")
+		parseLimitExcept(ss, word);
+	else if (word == "index")
+		parseIndex(ss, word);
+	throw std::exception();	// incomplete line
+}
+
+void	Server::parseLocation(std::ifstream& confFile, std::stringstream& ss, std::string& word)
+{
+	std::string	dir;
+	Location* location = new Location();
+	if (!mbInLocation && ss >> dir && (ss >> word && word == "{") && !(ss >> word))
+	{
+		// std::cout << dir << std::endl; //print debug
+		mChkBracket++;
+		location.parse(confFile);
+		mLocationMap[dir] = location;
+		return ;
+	}
+	else
+		throw std::exception();
+}
+
+void	Server::parseClosedBracket()
+{
+	mChkBracket--;
+	if (mChkBracket == 0)
+	{
+		mbInLocation = false;
+	}
+	return ;
+}
+
+void	Server::parseListen(std::stringstream& ss, std::string& word)
+{
+	while (ss >> word)
+	{
+		if (isEnd(ss, word))
+			return ;
+		if (!isDigits(word))
+			throw std::exception();
+		mPort.insert(atoi(word.c_str()));
+	}
+}
+
+void	Server::parseServerName(std::stringstream& ss, std::string& word)
+{
+	while (ss >> word)
+	{
+		if (isEnd(ss, word))
+			return ;
+		mServerName.push_back(word);
+	}
+}
+
+void	Server::parseErrorPage(std::stringstream& ss, std::string& word)
+{
+	std::vector<int> errNum;
+	while (ss >> word && isDigits(word))
+		errNum.push_back(atoi(word.c_str()));
+	if (errNum.empty())
+		throw std::exception();
+	// TODO: make function that chk word is valid URI(character, valid...)
+	for (std::vector<int>::iterator it = errNum.begin(); it != errNum.end(); it ++)
+		mErrorPage[*it] = word;
+	if (ss >> word && isEnd(ss, word))
+		return ;
+}
+
+void	Server::parseClientMaxSize(std::stringstream& ss, std::string& word)
+{
+	for (int i = 0; i < 4; i ++)
 	{
 		if (ss >> word)
 		{
-			if (word == "on")
-				mbAutoIndex = true;
-			else if (word == "off")
-				mbAutoIndex = false;
-			else
-				throw std::exception();
-			if (ss >> word && isEnd(ss, word))
+			if (word == "inf")
+				mMaxSize[i] = -1;
+			else if (word == ";" && isEnd(ss, word) && i == 3)
 				return ;
+			else
+			{
+				mMaxSize[i] = atoi(word.c_str());
+				if (mMaxSize[i] <= 0)
+					throw std::exception();
+				size_t	tmpOrd = word.find_first_not_of("0123456789");
+				if (tmpOrd != std::string::npos)
+				{
+					if (tmpOrd + 1 < word.length())
+						throw std::exception();
+					else if (word[tmpOrd] == 'K')
+						mMaxSize[i] *= 1000;
+					else if (word[tmpOrd] == 'M')
+						mMaxSize[i] *= 1000000;
+					else if (word[tmpOrd] == 'G')
+						mMaxSize[i] *= 1000000000;
+					else
+						throw std::exception();
+				}
+			}
 		}
 		else
 			throw std::exception();
 	}
-	else if (word == "limit_except")
-	{
-		while (ss >> word)
-		{
-			if (isEnd(ss, word))
-				return ;
-			mHttpMethod.push_back(word);
-		}
-	}
-	else if (word == "index")
-	{
-		while (ss >> word)
-		{
-			if (isEnd(ss, word))
-				return ;
-			mIndex.insert(word);
-		}
-	}
-	throw std::exception();	// incomplete line
 }

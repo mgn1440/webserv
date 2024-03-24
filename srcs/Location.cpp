@@ -12,21 +12,3 @@ Location::Location()
 
 Location::~Location()
 { }
-
-void	Location::ParseLine(std::string& line)
-{
-	if (word == "limit_except")
-	{
-		while (ss >> word)
-		{
-			if (isEnd(ss, word))
-				return ;
-			mHttpMethod.push_back(word);
-		}
-	}
-	else if (word == "root")
-	{
-		if (ss >> mRoot && ss >> word && isEnd(ss, word))
-			return ;
-	}
-}
