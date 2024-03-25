@@ -15,12 +15,13 @@
 class Location : public AConfParser
 {
 public:
-	Location();
+	Location(std::ifstream& confFile);
+	Location& operator=(const Location& rhs);
 	~Location();
 
-	void	ParseLine(std::string& line);
+	void ParseLocation(std::string& line);
 private:
-	Location& operator=(const Location& rhs);
+	void parse(std::ifstream& confFile);
 	Location(const Location& rhs);
 
 	// TODO: cgi var needed

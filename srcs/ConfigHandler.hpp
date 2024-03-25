@@ -13,7 +13,7 @@ class ConfigHandler
 {
 public:
 	ConfigHandler(const std::string& path);
-	ConfigHandler&		operator = (const ConfigHandler& rhs);
+	ConfigHandler& operator=(const ConfigHandler& rhs);
 	~ConfigHandler();
 private:
 	ConfigHandler(const ConfigHandler& rhs);
@@ -22,8 +22,8 @@ private:
 	void createServer(std::stringstream& ss, std::ifstream& confFile);
 	void parseClosedBracket(void);
 
-	std::map<int, Server*>	mServerMap;
-	bool					mbInBracket;
+	std::map<int, Server> mServerMap;
+	bool mbInBracket;
 };
 
 #endif

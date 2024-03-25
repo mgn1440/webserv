@@ -7,7 +7,7 @@ void ConfigHandler::parseConfig(const std::string& confPath)
 	std::ifstream confFile(confPath);
 
 	if (!confFile.is_open())
-		throw std::runtime_error("can't confile open");
+		throw std::runtime_error("can't open conf file");
 
 	std::string line;
 	std::string word;
@@ -19,8 +19,9 @@ void ConfigHandler::parseConfig(const std::string& confPath)
 			break;
 		// line => Add White Space ?? ;
 		// ss << line ;
+		// server 
 		if (!(ss >> word))
-			continue;	
+			continue;
 		else if (word == "server")
 			createServer(ss, confFile);
 		else if (word == "}")
@@ -38,8 +39,8 @@ void	ConfigHandler::createServer(std::stringstream& ss, std::ifstream& confFile)
 	if ((ss >> word && word == "{") && !(ss >> word))
 	{
 		mbInBracket = true;
-		Server *server = new Server(confFile);
-		server->PutIn(mServerMap);
+		Server server(confFile);
+		server.PutIn(mServerMap);
 	}
 	else
 		throw std::domain_error("Server Open Bracket Error");

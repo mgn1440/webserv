@@ -12,22 +12,18 @@ bool	isDigits(const std::string &str)
 
 
 Server::Server()
-	: mChkBracket(0)
+	: AConfParser()
+	, mChkBracket(0)
 	, mbInLocation(false)
-	, mMaxSize()
-	, mbAutoIndex()
 {}
 
 Server::Server(std::ifstream& confFile)
-	: mChkBracket(0)
+	: AConfParser()
+	, mChkBracket(0)
 	, mbInLocation(false)
-	, mMaxSize()
-	, mbAutoIndex()
 {
 	parse(confFile);
 }
-
-
 
 Server::~Server(){}
 
@@ -42,18 +38,14 @@ Server&	Server::operator=(const Server& rhs)
 	mErrorPage = rhs.mErrorPage;
 	for (int i = 0; i < 3; i ++)
 		mMaxSize[i] = rhs.mMaxSize[i];
-	mHttpMethod = rhs.mHttpMethod;
-	mRoot = rhs.mRoot;
-	mIndex = rhs.mIndex;
-	mbAutoIndex = rhs.mbAutoIndex;
 	return (*this);
 }
 
 void	Server::parse(std::ifstream& confFile)
 {
-	std::string word;
 	std::stringstream ss;
 	std::string line;
+	std::string word;
 
 	while (std::getline(confFile, line))
 	{
@@ -63,10 +55,10 @@ void	Server::parse(std::ifstream& confFile)
 		// ss << line;
 		if (!(ss >> word))
 			continue;				 
-		if (word == "location")
-			parseLocation(confFile, ss, word);
-		else if (word == "}")
-			parseClosedBracket();
+		// if (word == "location")
+		// 	parseLocation(confFile, ss, word);
+		if (word == "}")
+			parseClosedBracket(ss, word);
 		else if (word == "listen")
 			parseListen(ss, word);
 		else if (word == "server_name")
@@ -83,7 +75,6 @@ void	Server::parse(std::ifstream& confFile)
 			parseLimitExcept(ss, word);
 		else if (word == "index")
 			parseIndex(ss, word);
-		throw std::exception();	// incomplete line
 	}
 }
 
@@ -108,73 +99,30 @@ void	Server::PrintInfo()
 	std::cout << "AutoIndex: " << mbAutoIndex << std::endl;
 }
 
-void	Server::PutIn(std::map<int, Server*>& rhs)
+void	Server::PutIn(std::map<int, Server>& rhs)
 {
 	for(std::set<int>::iterator it = mPort.begin(); it != mPort.end(); it ++)
-		rhs[*it] = this;
+		rhs[*it] = *this;
 }
-
-// Parse()
-//{
-//  while ()
-//}
-void	Server::ParseLine(std::string line)
-{
-	std::stringstream	ss;
-	std::string			word;
-	static Location		location;
-
-	ss << line;
-	if (!(ss >> word))
-		return ;
-	if (word == "location" || mbInLocation)
-		parseLocation(ss, word);
-	else if (word == "}")
-		parseClosedBracket();
-	else if (mbInLocation)
-	{
-		std::cout << "inLocation" << std::endl;
-		location.ParseLine(line);
-		return ;
-	}
-	else if (word == "listen")
-		parseListen(ss, word);
-	else if (word == "server_name")
-		parseServerName(ss, word);
-	else if (word == "error_page")
-		parseErrorPage(ss, word);
-	else if (word == "client_max_size")
-		parseClientMaxSize(ss, word);
-	else if (word == "root")
-		parseRoot(ss, word);
-	else if (word == "autoindex")
-		parseAutoIndex(ss, word);
-	else if (word == "limit_except")
-		parseLimitExcept(ss, word);
-	else if (word == "index")
-		parseIndex(ss, word);
-	throw std::exception();	// incomplete line
-}
-
 
 void	Server::parseLocation(std::ifstream& confFile, std::stringstream& ss, std::string& word)
 {
 	std::string	dir;
-	Location* location = new Location();
 	if (!mbInLocation && ss >> dir && (ss >> word && word == "{") && !(ss >> word))
 	{
 		// std::cout << dir << std::endl; //print debug
 		mChkBracket++;
-		location.parse(confFile);
-		mLocationMap[dir] = location;
+		mLocationMap[dir] = Location(confFile);
 		return ;
 	}
 	else
 		throw std::exception();
 }
 
-void	Server::parseClosedBracket()
+void	Server::parseClosedBracket(std::stringstream& ss, std::string& word)
 {
+	if (ss >> word)
+		throw std::runtime_error("Wrong bracket form");
 	mChkBracket--;
 	if (mChkBracket == 0)
 	{
