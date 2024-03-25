@@ -2,17 +2,53 @@
 #include "ConfigHandler.hpp"
 #include "Server.hpp"
 
-void ConfigHandler::createServers(const std::string& confPath)
+void ConfigHandler::parseConfig(const std::string& confPath)
 {
 	std::ifstream confFile(confPath);
 
 	if (!confFile.is_open())
 		throw std::runtime_error("can't confile open");
-	while(true)
+
+	std::string line;
+	std::string word;
+	std::stringstream ss;
+
+	while(std::getline(confFile, line))
 	{
 		if (confFile.eof())
 			break;
+		// line => Add White Space ?? ;
+		// ss << line ;
+		if (!(ss >> word))
+			continue;	
+		else if (word == "server")
+			createServer(ss, confFile);
+		else if (word == "}")
+			parseClosedBracket();
+		else 
+			throw std::domain_error("Config File Syntax Error");
+	}
+}
+
+
+void	ConfigHandler::createServer(std::stringstream& ss, std::ifstream& confFile)
+{
+	std::string word;
+
+	if ((ss >> word && word == "{") && !(ss >> word))
+	{
+		mbInBracket = true;
 		Server *server = new Server(confFile);
 		server->PutIn(mServerMap);
-	} // doing this
+	}
+	else
+		throw std::domain_error("Server Open Bracket Error");
+}
+
+void	ConfigHandler::parseClosedBracket(void)
+{
+	if (mbInBracket)
+		mbInBracket = false;
+	else
+		throw std::domain_error("Server Close Bracket Error");
 }

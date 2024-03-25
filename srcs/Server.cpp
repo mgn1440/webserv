@@ -51,24 +51,20 @@ Server&	Server::operator=(const Server& rhs)
 
 void	Server::parse(std::ifstream& confFile)
 {
+	std::string word;
+	std::stringstream ss;
 	std::string line;
 
-	if (!confFile.is_open())
-		throw std::runtime_error("can't confile open");
-	
 	while (std::getline(confFile, line))
 	{
-		// buf => add space function?
 		if (confFile.eof())
 			break;
-		std::string word;
-		std::stringstream ss;
-
-		ss << line;
+		// buf => add White Space Function ??
+		// ss << line;
 		if (!(ss >> word))
 			continue;				 
-		if (word == "location" || mbInLocation)
-			parseLocation(ss, word);
+		if (word == "location")
+			parseLocation(confFile, ss, word);
 		else if (word == "}")
 			parseClosedBracket();
 		else if (word == "listen")
@@ -159,6 +155,7 @@ void	Server::ParseLine(std::string line)
 		parseIndex(ss, word);
 	throw std::exception();	// incomplete line
 }
+
 
 void	Server::parseLocation(std::ifstream& confFile, std::stringstream& ss, std::string& word)
 {

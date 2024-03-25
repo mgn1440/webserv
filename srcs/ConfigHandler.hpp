@@ -17,9 +17,13 @@ public:
 	~ConfigHandler();
 private:
 	ConfigHandler(const ConfigHandler& rhs);
-	void createServers(const std::string& confPath);
 
-	std::map<int, Server*> mServerMap;
+	void parseConfig(const std::string& confPath);
+	void createServer(std::stringstream& ss, std::ifstream& confFile);
+	void parseClosedBracket(void);
+
+	std::map<int, Server*>	mServerMap;
+	bool					mbInBracket;
 };
 
 #endif

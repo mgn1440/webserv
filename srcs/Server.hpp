@@ -24,6 +24,7 @@ public:
 private:
 	Server(const Server& rhs);
 	void	parse(const std::string& confPath);
+	void	parseServer(std::stringstream& ss, std::string& word)
 	void	parseLocation(std::stringstream& ss, std::string& word);
 	void	parseClosedBracket();
 	void	parseListen(std::stringstream& ss, std::string& word);
