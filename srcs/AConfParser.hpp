@@ -11,13 +11,16 @@
 class AConfParser {
 protected:
 	AConfParser();
+	AConfParser(const AConfParser& rhs);
+	AConfParser& operator=(const AConfParser& rhs);
 	virtual ~AConfParser();
 
-	void	parseRoot(std::stringstream& ss, const std::string& word);
-	void	parseIndex(std::stringstream& ss, const std::string& word);
-	void	parseAutoIndex(std::stringstream& ss, const std::string& word);
-	void	parseLimitExcept(std::stringstream& ss, const std::string& word);
-	void	parseClosedBracket();
+	void	parseRoot(std::stringstream& ss, std::string& word);
+	void	parseIndex(std::stringstream& ss, std::string& word);
+	void	parseAutoIndex(std::stringstream& ss, std::string& word);
+	void	parseLimitExcept(std::stringstream& ss, std::string& word);
+	void	parseClosedBracket(std::stringstream& ss, std::string& word);
+	virtual void 	PrintInfo() = 0; //debug
 
 	bool	isEnd(std::stringstream& ss, std::string& word);
 	virtual void	parse(std::ifstream& confFile) = 0;
@@ -27,8 +30,6 @@ protected:
 	std::string						mRoot;
 	std::set<std::string>			mIndex;
 private:
-	AConfParser&	operator=(const AConfParser& rhs);
-	AConfParser(const AConfParser& rhs);
 
 };
 

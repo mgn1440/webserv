@@ -1,9 +1,8 @@
 #include "AConfParser.hpp"
 
 AConfParser::AConfParser()
-{}
-
-AConfParser::~AConfParser()
+	: mbAutoIndex(false)
+	, mRoot("/")
 {}
 
 AConfParser::AConfParser(const AConfParser& rhs)
@@ -11,12 +10,19 @@ AConfParser::AConfParser(const AConfParser& rhs)
 	static_cast<void>(rhs);
 }
 
-AConfParser&	AConfParser::operator=(const AConfParser& rhs)
-{
-	static_cast<void>(rhs);
-	return (*this);
-}
+AConfParser::~AConfParser()
+{}
 
+AConfParser& AConfParser::operator=(const AConfParser& rhs)
+{
+	if (this == &rhs)
+		return *this;
+	mbAutoIndex = rhs.mbAutoIndex;
+	mHttpMethod = rhs.mHttpMethod;
+	mRoot = rhs.mRoot;
+	mIndex = rhs.mIndex;
+	return *this;
+}
 
 void	AConfParser::parseRoot(std::stringstream& ss, std::string& word)
 {
@@ -61,7 +67,7 @@ void	AConfParser::parseLimitExcept(std::stringstream& ss, std::string& word)
 	}
 }
 
-bool	AconfParser::isEnd(std::stringstream& ss, std::string& word)
+bool	AConfParser::isEnd(std::stringstream& ss, std::string& word)
 {
 	if (word != ";")
 		return (false);
@@ -69,4 +75,10 @@ bool	AconfParser::isEnd(std::stringstream& ss, std::string& word)
 		throw std::exception();
 	else
 		return (true);
+}
+
+void	AConfParser::parseClosedBracket(std::stringstream& ss, std::string& word)
+{
+	if (ss >> word)
+		throw std::runtime_error("Wrong bracket format");
 }

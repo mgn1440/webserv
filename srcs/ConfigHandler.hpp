@@ -1,28 +1,30 @@
-#ifndef CONFIGHANDLER_HPP
-# define CONFIGHANDLER_HPP
+#ifndef CONFIG_HANDLER_HPP
+# define CONFIG_HANDLER_HPP
 
 # include <string>
 # include <map>
 # include <set>
 # include <vector>
 
-# include "Location.hpp"
-# include "AConfParser.hpp"
+# include "Server.hpp"
 
 class ConfigHandler
 {
 public:
-	ConfigHandler(const std::string& path);
+	ConfigHandler(const std::string& confPath);
 	ConfigHandler& operator=(const ConfigHandler& rhs);
 	~ConfigHandler();
+
+	void PrintInfo(int port);
+	int* getMaxSizes();
 private:
 	ConfigHandler(const ConfigHandler& rhs);
 
 	void parseConfig(const std::string& confPath);
 	void createServer(std::stringstream& ss, std::ifstream& confFile);
-	void parseClosedBracket(void);
+	void parseClosedBracket(std::stringstream& ss, std::string& word);
 
-	std::map<int, Server> mServerMap;
+	std::map<int, Server> mServerMap; 
 	bool mbInBracket;
 };
 

@@ -1,6 +1,35 @@
+#include <iostream>
 #include <fstream>
+
 #include "ConfigHandler.hpp"
 #include "Server.hpp"
+#include "ParseUtils.hpp"
+
+void	exitWithError(std::string msg)
+{
+	std::cerr << "Error: " << msg << std::endl;
+	exit(1);
+}
+
+ConfigHandler::ConfigHandler(const std::string& confPath)
+{
+	parseConfig(confPath);
+}
+
+ConfigHandler::~ConfigHandler()
+{ }
+
+
+void ConfigHandler::PrintInfo(int port)
+{
+	std::map<int, Server>::iterator it = mServerMap.find(port);
+	if (it == mServerMap.end())
+	{
+		std::cout << "Cannot find port" << std::endl;
+		return ;
+	}
+	it->second.PrintInfo();
+}
 
 void ConfigHandler::parseConfig(const std::string& confPath)
 {
@@ -17,17 +46,18 @@ void ConfigHandler::parseConfig(const std::string& confPath)
 	{
 		if (confFile.eof())
 			break;
-		// line => Add White Space ?? ;
-		// ss << line ;
-		// server 
+		chkAndSeperateMetaChar(line, "{};");
+		ss.clear();
+		ss << line;
 		if (!(ss >> word))
 			continue;
 		else if (word == "server")
 			createServer(ss, confFile);
-		else if (word == "}")
-			parseClosedBracket();
-		else 
+		else
+		{
+			std::cout << line << std::endl;
 			throw std::domain_error("Config File Syntax Error");
+		}
 	}
 }
 
@@ -38,7 +68,6 @@ void	ConfigHandler::createServer(std::stringstream& ss, std::ifstream& confFile)
 
 	if ((ss >> word && word == "{") && !(ss >> word))
 	{
-		mbInBracket = true;
 		Server server(confFile);
 		server.PutIn(mServerMap);
 	}
@@ -46,10 +75,14 @@ void	ConfigHandler::createServer(std::stringstream& ss, std::ifstream& confFile)
 		throw std::domain_error("Server Open Bracket Error");
 }
 
-void	ConfigHandler::parseClosedBracket(void)
+void	ConfigHandler::parseClosedBracket(std::stringstream& ss, std::string& word)
 {
-	if (mbInBracket)
-		mbInBracket = false;
-	else
-		throw std::domain_error("Server Close Bracket Error");
+	if (ss >> word)
+		throw std::runtime_error("Wrong bracket form");
+	return ;
+}
+
+int* ConfigHandler::getMaxSizes()
+{
+
 }

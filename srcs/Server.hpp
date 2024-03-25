@@ -26,16 +26,12 @@ private:
 	void parse(std::ifstream& confFile);
 	void parseServer(std::stringstream& ss, std::string& word);
 	void parseLocation(std::ifstream& confFile, std::stringstream& ss, std::string& word);
-	void parseClosedBracket();
 	void parseListen(std::stringstream& ss, std::string& word);
 	void parseServerName(std::stringstream& ss, std::string& word);
 	void parseErrorPage(std::stringstream& ss, std::string& word);
 	void parseClientMaxSize(std::stringstream& ss, std::string& word);
 
-	// int	classifySymbol(std::string symbol);	
-	bool mbInLocation;
 	long long mMaxSize[3];
-	int mChkBracket;
 	std::set<int> mPort;
 	std::vector<std::string> mServerName;
 	std::map<int, std::string> mErrorPage;

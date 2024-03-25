@@ -1,9 +1,9 @@
+#include "Server.hpp"
 #include <iostream>
 #include <fstream>
 #include <sstream>
-#include "Server.hpp"
-#include "Location.hpp"
 #include "STLUtils.hpp"
+#include "ParseUtils.hpp"
 
 bool	isDigits(const std::string &str)
 {
@@ -13,31 +13,27 @@ bool	isDigits(const std::string &str)
 
 Server::Server()
 	: AConfParser()
-	, mChkBracket(0)
-	, mbInLocation(false)
 {}
 
 Server::Server(std::ifstream& confFile)
 	: AConfParser()
-	, mChkBracket(0)
-	, mbInLocation(false)
 {
 	parse(confFile);
 }
 
-Server::~Server(){}
+Server::~Server()
+{ }
 
 Server&	Server::operator=(const Server& rhs)
 {
 	if (this == &rhs)
 		return (*this);
-	mChkBracket = rhs.mChkBracket;
-	mbInLocation = rhs.mbInLocation;
 	mPort = rhs.mPort;
 	mServerName = rhs.mServerName;
 	mErrorPage = rhs.mErrorPage;
 	for (int i = 0; i < 3; i ++)
 		mMaxSize[i] = rhs.mMaxSize[i];
+	mLocationMap = rhs.mLocationMap;
 	return (*this);
 }
 
@@ -50,15 +46,16 @@ void	Server::parse(std::ifstream& confFile)
 	while (std::getline(confFile, line))
 	{
 		if (confFile.eof())
-			break;
-		// buf => add White Space Function ??
-		// ss << line;
+			throw std::runtime_error("Invalid server block");
+		chkAndSeperateMetaChar(line, "{};");
+		ss.clear();
+		ss << line;
 		if (!(ss >> word))
 			continue;				 
-		// if (word == "location")
-		// 	parseLocation(confFile, ss, word);
-		if (word == "}")
-			parseClosedBracket(ss, word);
+		if (word == "location")
+			parseLocation(confFile, ss, word);
+		else if (word == "}")
+			return (parseClosedBracket(ss, word));
 		else if (word == "listen")
 			parseListen(ss, word);
 		else if (word == "server_name")
@@ -97,6 +94,13 @@ void	Server::PrintInfo()
 	std::cout << "Index: ";
 	printSet(mIndex);
 	std::cout << "AutoIndex: " << mbAutoIndex << std::endl;
+	for (std::map<std::string, Location>::iterator it = mLocationMap.begin(); it != mLocationMap.end(); it++){
+		std::cout << "location ";
+		std::cout << it->first;
+		std::cout << " {" << std::endl;
+		it->second.PrintInfo();
+		std::cout << "}" << std::endl;
+	}
 }
 
 void	Server::PutIn(std::map<int, Server>& rhs)
@@ -108,27 +112,14 @@ void	Server::PutIn(std::map<int, Server>& rhs)
 void	Server::parseLocation(std::ifstream& confFile, std::stringstream& ss, std::string& word)
 {
 	std::string	dir;
-	if (!mbInLocation && ss >> dir && (ss >> word && word == "{") && !(ss >> word))
+	if (ss >> dir && (ss >> word && word == "{") && !(ss >> word))
 	{
 		// std::cout << dir << std::endl; //print debug
-		mChkBracket++;
-		mLocationMap[dir] = Location(confFile);
-		return ;
+		Location location(confFile);
+		mLocationMap[dir] = location;
 	}
 	else
 		throw std::exception();
-}
-
-void	Server::parseClosedBracket(std::stringstream& ss, std::string& word)
-{
-	if (ss >> word)
-		throw std::runtime_error("Wrong bracket form");
-	mChkBracket--;
-	if (mChkBracket == 0)
-	{
-		mbInLocation = false;
-	}
-	return ;
 }
 
 void	Server::parseListen(std::stringstream& ss, std::string& word)
@@ -138,9 +129,10 @@ void	Server::parseListen(std::stringstream& ss, std::string& word)
 		if (isEnd(ss, word))
 			return ;
 		if (!isDigits(word))
-			throw std::exception();
+			break;
 		mPort.insert(atoi(word.c_str()));
 	}
+	throw std::runtime_error("Wrong listen format");
 }
 
 void	Server::parseServerName(std::stringstream& ss, std::string& word)
@@ -151,6 +143,7 @@ void	Server::parseServerName(std::stringstream& ss, std::string& word)
 			return ;
 		mServerName.push_back(word);
 	}
+	throw std::runtime_error("Wrong server name format");
 }
 
 void	Server::parseErrorPage(std::stringstream& ss, std::string& word)
@@ -159,12 +152,13 @@ void	Server::parseErrorPage(std::stringstream& ss, std::string& word)
 	while (ss >> word && isDigits(word))
 		errNum.push_back(atoi(word.c_str()));
 	if (errNum.empty())
-		throw std::exception();
+		throw std::runtime_error("Wrong error page format");
 	// TODO: make function that chk word is valid URI(character, valid...)
 	for (std::vector<int>::iterator it = errNum.begin(); it != errNum.end(); it ++)
 		mErrorPage[*it] = word;
 	if (ss >> word && isEnd(ss, word))
 		return ;
+	throw std::runtime_error("Wrong error page format");
 }
 
 void	Server::parseClientMaxSize(std::stringstream& ss, std::string& word)
@@ -181,12 +175,12 @@ void	Server::parseClientMaxSize(std::stringstream& ss, std::string& word)
 			{
 				mMaxSize[i] = atoi(word.c_str());
 				if (mMaxSize[i] <= 0)
-					throw std::exception();
+					throw std::runtime_error("Wrong client max size format");
 				size_t	tmpOrd = word.find_first_not_of("0123456789");
 				if (tmpOrd != std::string::npos)
 				{
 					if (tmpOrd + 1 < word.length())
-						throw std::exception();
+					throw std::runtime_error("Wrong client max size format");
 					else if (word[tmpOrd] == 'K')
 						mMaxSize[i] *= 1000;
 					else if (word[tmpOrd] == 'M')
@@ -194,11 +188,11 @@ void	Server::parseClientMaxSize(std::stringstream& ss, std::string& word)
 					else if (word[tmpOrd] == 'G')
 						mMaxSize[i] *= 1000000000;
 					else
-						throw std::exception();
+						throw std::runtime_error("Wrong client max size format");
 				}
 			}
 		}
 		else
-			throw std::exception();
+			throw std::runtime_error("Wrong client max size format");
 	}
 }
