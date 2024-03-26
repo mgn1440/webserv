@@ -1,4 +1,3 @@
-feat
 WebServer
 {
 public:
@@ -27,15 +26,23 @@ HttpResponse
 {
 public:
 	std::string getHttpResponse(struct request);
-	HttpResponse(std::string conf_file); // create and parse => create servers 
+	HttpResponse(std::string conf_file); // create and parse => create servers
 private:
-	map<int port, Server server> servers;
+	ConfigHandler* confighandler;
 }
+
+class ConfigHandler
+{
+public:
+	void PrintInfo(int port); //debug
+	const long long* GetMaxSizes(int port); // need to request parsing
+	std::string getResourceOf(struct request); // 전치사 붙이기
+};
 
 Server // resource and cgi process
 {
 public:
-	string getResource(struct request)
+	std::string getResourceOf(struct request)
 class:
 	map<string url, Location> location;
 }
@@ -43,6 +50,6 @@ class:
 Location
 {
 method:
-	string getResource(struct request)
+	std::string getResource(struct request)
 class:
 }
