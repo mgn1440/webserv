@@ -7,10 +7,6 @@
 #include "../includes/WebServer.hpp"
 
 int main(int argc, char *argv[])
-#include <string>
-#include "../includes/WebServer.hpp"
-
-int main(int argc, char *argv[])
 {
 	try
 	{

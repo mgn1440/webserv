@@ -1,10 +1,21 @@
+#----------FLAG----------
 CXX = c++
 CXXFLAGS = -Wall -Wextra -Werror -std=c++98
-DEBUGFLAGS = -Wall _Wextra -Werror -g
+DEBUGFLAGS = -g
+DEPFLAGS = -MMD -MP
+
+#----------OBJ----------
 OBJS_MAND = $(addprefix objs/, $(notdir $(SRCS_MAND:.cpp=.o)))
 OBJS_BONUS = $(addprefix objs/, $(notdir $(SRCS_BONUS:.cpp=.o)))
 OBJ_DIR = objs
+
+#----------DEP----------
+DEPS = $(addprefix objs/, $(notdir $(SRCS_MAND:.cpp=.d)))
+
+#----------BINARY----------
 NAME = webserv
+
+#----------SRCS----------
 SRCS_MAND = main.cpp \
 	WebServer.cpp \
 	Http.cpp \
@@ -13,15 +24,22 @@ SRCS_BONUS = srcs_bonus1 \
 	srcs_bonus2 \
 	srcs_bonus3
 
+#----------VPATH----------
 vpath %.cpp srcs
 vpath %.hpp includes
 
+
 all: $(NAME)
+
+debug: CXXFLAGS += $(DEBUGFLAGS)
+debug: clean all
 
 $(NAME): $(OBJ_DIR) mandatory
 
 $(OBJ_DIR):
 	@mkdir objs
+
+-include $(DEPS)
 
 mandatory: $(OBJS_MAND)
 	rm -f mandatory bonus $(NAME)
@@ -35,7 +53,7 @@ mandatory: $(OBJS_MAND)
 
 bonus: $(OBJ_DIR) $(OBJS_BONUS)
 	@rm -f mandatory bonus $(NAME)
-	@$(CXX) $(CXXFLAGS) -o $(NAME) $(OBJS_BONUS)
+	@$(CXX) $(CXXFLAGS) $(DEPFLAGS) -o $(NAME) $(OBJS_BONUS)
 	@touch $@
 	$(info    __     __     ______     ______     ______     ______     ______     __   __  )
 	$(info   /\ \  _ \ \   /\  ___\   /\  == \   /\  ___\   /\  ___\   /\  == \   /\ \ / /  )
@@ -44,8 +62,7 @@ bonus: $(OBJ_DIR) $(OBJS_BONUS)
 	$(info     \/_/   \/_/   \/_____/   \/_____/   \/_____/   \/_____/   \/_/ /_/   \/_/    )
 
 $(OBJ_DIR)/%.o: %.cpp
-	$(CXX) $(CXXFLAGS) -c $< -o $@
-	$(CXX) $(CXXFLAGS) -c $< -o $@
+	$(CXX) $(CXXFLAGS) $(DEPFLAGS) -c $< -o $@
 
 fclean: clean
 	@rm -f $(NAME)
@@ -53,6 +70,7 @@ fclean: clean
 clean:
 	@rm -f $(OBJS_MAND)
 	@rm -f $(OBJS_BONUS)
+	@rm -f $(DEPS)
 	@rm -f mandatory bonus
 	@rm -rf $(OBJ_DIR)
 
