@@ -1,5 +1,3 @@
-# TODO: 디버그, 릴리스 룰이랑 헤더파일 의존성 부여 하기
-
 #----------FLAG----------
 CXX = c++
 CXXFLAGS = -Wall -Wextra -Werror -std=c++98
