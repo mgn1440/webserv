@@ -35,11 +35,6 @@ int	main(int ac, char** av)
 	{
 		if (ac > 2)
 			std::cerr << "Usage: " << av[0] << " <conf dir>(optional)" << std::endl;
-		else if (ac == 2)
-			configHandlerFactory(std::string(av[1]));
-		else
-			configHandlerFactory("./conf/default.conf");
-		// HttpResponse httpResponse(std::string(av[1]));
 	}
 	catch (std::exception& e) {
 		exitWithError(std::string(e.what()));

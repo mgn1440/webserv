@@ -47,7 +47,7 @@ void Location::parse(std::ifstream& confFile)
 	{
 		if (confFile.eof())
 			throw std::runtime_error("Invalid location block");
-		chkAndSeperateMetaChar(line, "{};");
+		seperateMetaChar(line, "{};");
 		ss.clear();
 		ss << line;
 		if (!(ss >> word))
@@ -63,7 +63,7 @@ void Location::parse(std::ifstream& confFile)
 		else if (word == "limit_except")
 			parseLimitExcept(ss, word);
 		else if (word == "cgi")
-			parseCgi(ss, word);
+			parseCGI(ss, word);
 		else
 			throw std::runtime_error("Invalid symbol or syntax");
 	}
@@ -77,6 +77,6 @@ void	Location::PrintInfo()
 	std::cout << "Index: ";
 	printSet(mIndex);
 	std::cout << "AutoIndex: " << mbAutoIndex << std::endl;
-	std::cout << "Cgi: ";
-	printMap(mCgi);
+	std::cout << "CGI: ";
+	printMap(mCGI);
 }

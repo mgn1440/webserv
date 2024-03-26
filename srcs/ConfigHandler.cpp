@@ -46,7 +46,7 @@ void ConfigHandler::parseConfig(const std::string& confPath)
 	{
 		if (confFile.eof())
 			break;
-		chkAndSeperateMetaChar(line, "{};");
+		seperateMetaChar(line, "{};");
 		ss.clear();
 		ss << line;
 		if (!(ss >> word))
@@ -56,7 +56,7 @@ void ConfigHandler::parseConfig(const std::string& confPath)
 		else
 		{
 			std::cout << line << std::endl;
-			throw std::domain_error("Config File Syntax Error");
+			throw std::runtime_error("Config File Syntax Error");
 		}
 	}
 }
@@ -72,7 +72,7 @@ void	ConfigHandler::createServer(std::stringstream& ss, std::ifstream& confFile)
 		server.PutIn(mServerMap);
 	}
 	else
-		throw std::domain_error("Server Open Bracket Error");
+		throw std::runtime_error("Server Open Bracket Error");
 }
 
 void	ConfigHandler::parseClosedBracket(std::stringstream& ss, std::string& word)

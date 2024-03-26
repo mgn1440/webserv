@@ -1,6 +1,6 @@
 #include "ParseUtils.hpp"
 
-std::string	chkAndSeperateMetaChar(std::string& line, std::string set)
+std::string	seperateMetaChar(std::string& line, std::string set)
 {
 	size_t	i = 0;
 	size_t	len = 0;
@@ -31,7 +31,7 @@ bool isWhitespaces(const std::string &str)
     return str.find_first_not_of("\r\v\n\t\f") == std::string::npos;
 }
 
-std::string	chkAndSeperateMetaChar(std::string line, std::string set)
+std::string	seperateMetaChar(std::string line, std::string set)
 {
 	size_t	i = 0;
 	size_t	len = 0;

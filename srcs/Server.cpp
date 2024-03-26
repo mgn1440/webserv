@@ -49,7 +49,7 @@ void	Server::parse(std::ifstream& confFile)
 	{
 		if (confFile.eof())
 			throw std::runtime_error("Invalid server block");
-		chkAndSeperateMetaChar(line, "{};");
+		seperateMetaChar(line, "{};");
 		ss.clear();
 		ss << line;
 		if (!(ss >> word))
@@ -75,7 +75,7 @@ void	Server::parse(std::ifstream& confFile)
 		else if (word == "index")
 			parseIndex(ss, word);
 		else if (word == "cgi")
-			parseCgi(ss, word);
+			parseCGI(ss, word);
 		else
 			throw std::runtime_error("Invalid symbol or syntax");
 	}
@@ -100,8 +100,8 @@ void	Server::PrintInfo()
 	std::cout << "Index: ";
 	printSet(mIndex);
 	std::cout << "AutoIndex: " << mbAutoIndex << std::endl;
-	std::cout << "Cgi: ";
-	printMap(mCgi);
+	std::cout << "CGI: ";
+	printMap(mCGI);
 	for (std::map<std::string, Location>::iterator it = mLocationMap.begin(); it != mLocationMap.end(); it++){
 		std::cout << "location ";
 		std::cout << it->first;
@@ -132,12 +132,14 @@ void	Server::parseLocation(std::ifstream& confFile, std::stringstream& ss, std::
 	std::string	dir;
 	if (ss >> dir && (ss >> word && word == "{") && !(ss >> word))
 	{
-		// std::cout << dir << std::endl; //print debug
 		Location location(confFile);
-		mLocationMap[dir] = location;
+		if (mLocationMap.find(dir) == mLocationMap.end())
+			mLocationMap[dir] = location;
+		else
+			throw std::runtime_error("Duplication of location");
 	}
 	else
-		throw std::exception();
+		throw std::runtime_error("Location Open Bracket Error");
 }
 
 void	Server::parseListen(std::stringstream& ss, std::string& word)

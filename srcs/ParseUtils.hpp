@@ -6,6 +6,6 @@
 # include <iostream>
 
 void exitWithError(const std::string& msg);
-std::string chkAndSeperateMetaChar(std::string& line, std::string set);
+std::string seperateMetaChar(std::string& line, std::string set);
 
 #endif

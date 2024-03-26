@@ -21,7 +21,7 @@ AConfParser& AConfParser::operator=(const AConfParser& rhs)
 	mHttpMethod = rhs.mHttpMethod;
 	mRoot = rhs.mRoot;
 	mIndex = rhs.mIndex;
-	mCgi = rhs.mCgi;
+	mCGI = rhs.mCGI;
 	return *this;
 }
 
@@ -41,12 +41,12 @@ void	AConfParser::parseIndex(std::stringstream& ss, std::string& word)
 	}
 }
 
-void	AConfParser::parseCgi(std::stringstream& ss, std::string& word)
+void	AConfParser::parseCGI(std::stringstream& ss, std::string& word)
 {
 	std::string cgiExec;	
 	if ((ss >> word) && (ss >> cgiExec))
 	{
-		mCgi[word] = cgiExec;
+		mCGI[word] = cgiExec;
 		if (ss >> word && isEnd(ss, word))
 			return ;
 	}
