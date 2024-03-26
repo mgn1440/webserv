@@ -1,9 +1,9 @@
 #include <iostream>
 #include <fstream>
 
-#include "ConfigHandler.hpp"
-#include "Server.hpp"
-#include "ParseUtils.hpp"
+#include "../includes/ConfigHandler.hpp"
+#include "../includes/Server.hpp"
+#include "../includes/parseUtils.hpp"
 
 void	exitWithError(std::string msg)
 {
@@ -89,4 +89,4 @@ const long long* ConfigHandler::GetMaxSizes(int port)
 	if (it == mServerMap.end())
 		return (NULL);
 	return it->second.GetMaxSize();
-} 
+}

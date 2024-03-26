@@ -13,28 +13,10 @@
 #define  PORT 8080
 
 WebServer::WebServer(const std::string& config)
-	: mConfig(config)
-	, mPort(PORT)
+	: mPort(PORT)
 	, mListenFd(-1)
 	, mKq(-1)
-{}
-
-WebServer&	WebServer::operator=(const WebServer& rhs)
-{
-	if (this == &rhs)
-		return (*this);
-	mConfig = rhs.mConfig;
-	mPort = PORT;
-	mListenFd = -1;
-	mKq = -1;
-	return (*this);
-}
-
-WebServer::WebServer(const WebServer& rhs)
-	: mConfig(rhs.mConfig)
-	, mPort(PORT)
-	, mListenFd(-1)
-	, mKq(-1)
+	, mConfigHandler(config)
 {}
 
 WebServer::~WebServer()
@@ -130,7 +112,7 @@ void	WebServer::acceptNewClientSocket(void)
 	fcntl(clientSocket, F_SETFL, O_NONBLOCK);
 	changeEvents(clientSocket, EVFILT_READ, EV_ADD | EV_ENABLE, 0, 0, NULL);
 	changeEvents(clientSocket, EVFILT_WRITE, EV_ADD | EV_ENABLE, 0, 0, NULL);
-	mConnection[clientSocket] = new Http(mConfig);
+	mConnection[clientSocket] = new Http(mConfigHandler);
 	mClient[clientSocket] = ""; // TODO : 응답 로직 완성된 후 삭제
 }
 

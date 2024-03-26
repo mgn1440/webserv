@@ -17,9 +17,14 @@ NAME = webserv
 
 #----------SRCS----------
 SRCS_MAND = main.cpp \
-	WebServer.cpp \
+	ConfigHandler.cpp \
 	Http.cpp \
-	parseUtils.cpp
+	HttpResponse.cpp \
+	Location.cpp \
+	AConfParser.cpp \
+	parseUtils.cpp \
+	Server.cpp \
+	WebServer.cpp
 SRCS_BONUS = srcs_bonus1 \
 	srcs_bonus2 \
 	srcs_bonus3

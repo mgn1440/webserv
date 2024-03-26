@@ -15,7 +15,7 @@ public:
 	ConfigHandler& operator=(const ConfigHandler& rhs);
 	~ConfigHandler();
 
-	void PrintInfo(int port);
+	void PrintInfo(int port); // Debug
 	const long long* GetMaxSizes(int port);
 private:
 	ConfigHandler(const ConfigHandler& rhs);
@@ -24,7 +24,7 @@ private:
 	void createServer(std::stringstream& ss, std::ifstream& confFile);
 	void parseClosedBracket(std::stringstream& ss, std::string& word);
 
-	std::map<int, Server> mServerMap; 
+	std::map<int, Server> mServerMap;
 	bool mbInBracket;
 };
 
