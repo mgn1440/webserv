@@ -16,7 +16,7 @@ public:
 	~ConfigHandler();
 
 	void PrintInfo(int port);
-	int* getMaxSizes();
+	const long long* GetMaxSizes(int port);
 private:
 	ConfigHandler(const ConfigHandler& rhs);
 

@@ -82,7 +82,11 @@ void	ConfigHandler::parseClosedBracket(std::stringstream& ss, std::string& word)
 	return ;
 }
 
-int* ConfigHandler::getMaxSizes()
+const long long* ConfigHandler::GetMaxSizes(int port)
 {
+	std::map<int, Server>::iterator it = mServerMap.find(port);
 
-}
+	if (it == mServerMap.end())
+		return (NULL);
+	return it->second.GetMaxSize();
+} 

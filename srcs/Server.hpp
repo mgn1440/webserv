@@ -21,6 +21,7 @@ public:
 	void PrintInfo();
 	void ParseLine(std::string  line);
 	void PutIn(std::map<int, Server>& rhs);
+	const long long* GetMaxSize();
 private:
 	Server(const Server& rhs);
 	void parse(std::ifstream& confFile);

@@ -8,7 +8,7 @@
 bool	isDigits(const std::string &str)
 {
     return str.find_first_not_of("0123456789") == std::string::npos;
-}
+} 
 
 
 Server::Server()
@@ -107,6 +107,11 @@ void	Server::PutIn(std::map<int, Server>& rhs)
 {
 	for(std::set<int>::iterator it = mPort.begin(); it != mPort.end(); it ++)
 		rhs[*it] = *this;
+}
+
+const long long* Server::GetMaxSize()
+{
+	return mMaxSize;
 }
 
 void	Server::parseLocation(std::ifstream& confFile, std::stringstream& ss, std::string& word)
