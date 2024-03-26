@@ -30,7 +30,12 @@
 *.exe
 *.out
 *.app
+webserv
 
 # Otherfiles
 .DS_Store
 .vscode/
+
+# Relink Prevention File
+mandatory 
+bonus
