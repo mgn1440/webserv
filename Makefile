@@ -33,10 +33,8 @@ vpath %.hpp includes
 
 all: $(NAME)
 
-debug:
-	CXXFLAGS += DEBUGFLAGS
-	$(NAME)
-
+debug: CXXFLAGS += $(DEBUGFLAGS)
+debug: clean all
 
 $(NAME): $(OBJ_DIR) mandatory
 
