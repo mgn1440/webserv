@@ -4,7 +4,7 @@ OBJS_MAND = $(addprefix objs/, $(notdir $(SRCS_MAND:.cpp=.o)))
 OBJS_BONUS = $(addprefix objs/, $(notdir $(SRCS_BONUS:.cpp=.o)))
 OBJ_DIR = objs
 NAME = webserv
-SRCS_MAND = ParseUtils.cpp AConfParser.cpp Location.cpp Server.cpp ConfigHandler.cpp test.cpp
+SRCS_MAND = ParseUtils.cpp AConfParser.cpp Location.cpp Server.cpp ConfigHandler.cpp main.cpp
 SRCS_BONUS = srcs_bonus1 \
 	srcs_bonus2 \
 	srcs_bonus3

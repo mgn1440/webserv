@@ -19,6 +19,8 @@ Server::Server(std::ifstream& confFile)
 	: AConfParser()
 {
 	parse(confFile);
+	if (mPort.empty())
+		throw std::runtime_error("Does not define port");
 }
 
 Server::~Server()
@@ -72,6 +74,10 @@ void	Server::parse(std::ifstream& confFile)
 			parseLimitExcept(ss, word);
 		else if (word == "index")
 			parseIndex(ss, word);
+		else if (word == "cgi")
+			parseCgi(ss, word);
+		else
+			throw std::runtime_error("Invalid symbol or syntax");
 	}
 }
 
@@ -94,6 +100,8 @@ void	Server::PrintInfo()
 	std::cout << "Index: ";
 	printSet(mIndex);
 	std::cout << "AutoIndex: " << mbAutoIndex << std::endl;
+	std::cout << "Cgi: ";
+	printMap(mCgi);
 	for (std::map<std::string, Location>::iterator it = mLocationMap.begin(); it != mLocationMap.end(); it++){
 		std::cout << "location ";
 		std::cout << it->first;
@@ -106,7 +114,12 @@ void	Server::PrintInfo()
 void	Server::PutIn(std::map<int, Server>& rhs)
 {
 	for(std::set<int>::iterator it = mPort.begin(); it != mPort.end(); it ++)
-		rhs[*it] = *this;
+	{
+		if (rhs.find(*it) == rhs.end())
+			rhs[*it] = *this;
+		else
+			throw std::runtime_error("Duplicate port");
+	}
 }
 
 const long long* Server::GetMaxSize()
@@ -129,13 +142,19 @@ void	Server::parseLocation(std::ifstream& confFile, std::stringstream& ss, std::
 
 void	Server::parseListen(std::stringstream& ss, std::string& word)
 {
+	int	port;
 	while (ss >> word)
 	{
 		if (isEnd(ss, word))
+		{
+			if (mPort.empty())
+				break;
 			return ;
+		}
 		if (!isDigits(word))
 			break;
-		mPort.insert(atoi(word.c_str()));
+		port = atoi(word.c_str());
+		mPort.insert(port);
 	}
 	throw std::runtime_error("Wrong listen format");
 }

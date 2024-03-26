@@ -62,6 +62,10 @@ void Location::parse(std::ifstream& confFile)
 			parseAutoIndex(ss, word);
 		else if (word == "limit_except")
 			parseLimitExcept(ss, word);
+		else if (word == "cgi")
+			parseCgi(ss, word);
+		else
+			throw std::runtime_error("Invalid symbol or syntax");
 	}
 }
 
@@ -73,4 +77,6 @@ void	Location::PrintInfo()
 	std::cout << "Index: ";
 	printSet(mIndex);
 	std::cout << "AutoIndex: " << mbAutoIndex << std::endl;
+	std::cout << "Cgi: ";
+	printMap(mCgi);
 }

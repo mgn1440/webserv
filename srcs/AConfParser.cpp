@@ -21,6 +21,7 @@ AConfParser& AConfParser::operator=(const AConfParser& rhs)
 	mHttpMethod = rhs.mHttpMethod;
 	mRoot = rhs.mRoot;
 	mIndex = rhs.mIndex;
+	mCgi = rhs.mCgi;
 	return *this;
 }
 
@@ -38,6 +39,18 @@ void	AConfParser::parseIndex(std::stringstream& ss, std::string& word)
 			return ;
 		mIndex.insert(word);
 	}
+}
+
+void	AConfParser::parseCgi(std::stringstream& ss, std::string& word)
+{
+	std::string cgiExec;	
+	if ((ss >> word) && (ss >> cgiExec))
+	{
+		mCgi[word] = cgiExec;
+		if (ss >> word && isEnd(ss, word))
+			return ;
+	}
+	throw std::runtime_error("Invalid cgi");
 }
 
 void	AConfParser::parseAutoIndex(std::stringstream& ss, std::string& word)

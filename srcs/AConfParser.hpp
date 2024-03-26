@@ -3,10 +3,8 @@
 # include <sstream>
 # include <string>
 # include <set>
+# include <map>
 # include <vector>
-
-
-
 
 class AConfParser {
 protected:
@@ -17,6 +15,7 @@ protected:
 
 	void	parseRoot(std::stringstream& ss, std::string& word);
 	void	parseIndex(std::stringstream& ss, std::string& word);
+	void	parseCgi(std::stringstream& ss, std::string& word);
 	void	parseAutoIndex(std::stringstream& ss, std::string& word);
 	void	parseLimitExcept(std::stringstream& ss, std::string& word);
 	void	parseClosedBracket(std::stringstream& ss, std::string& word);
@@ -29,6 +28,7 @@ protected:
 	std::vector<std::string>		mHttpMethod;
 	std::string						mRoot;
 	std::set<std::string>			mIndex;
+	std::map<std::string, std::string> mCgi;
 private:
 
 };
