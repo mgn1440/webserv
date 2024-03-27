@@ -4,6 +4,7 @@
 # include <vector>
 # include <sstream>
 # include <map>
+# include "ConfigHandler.hpp"
 
 struct request
 {
@@ -19,7 +20,7 @@ class Http
 {
 public:
 	// occf
-	Http(std::string confFile); // ConfFile is class;
+	Http(const ConfigHandler& ConfigHandler); // ConfFile is class;
 	~Http();
 
 	// interface
@@ -35,6 +36,7 @@ private:
 	struct request parsedRequest;
 	size_t savedHeaderSize;
 	int consumeBufferSize;
+	const ConfigHandler& mConfigHandler;
 
 	static const size_t maxStartLineSize = 8000; // get from conf_file
 	static const size_t maxHeaderSize = 8000; // get from conf_file

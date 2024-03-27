@@ -1,4 +1,4 @@
-#include "AConfParser.hpp"
+#include "../includes/AConfParser.hpp"
 
 AConfParser::AConfParser()
 	: mbAutoIndex(false)
@@ -43,7 +43,7 @@ void	AConfParser::parseIndex(std::stringstream& ss, std::string& word)
 
 void	AConfParser::parseCGI(std::stringstream& ss, std::string& word)
 {
-	std::string cgiExec;	
+	std::string cgiExec;
 	if ((ss >> word) && (ss >> cgiExec))
 	{
 		mCGI[word] = cgiExec;

@@ -1,14 +1,14 @@
-#include "Server.hpp"
 #include <iostream>
 #include <fstream>
 #include <sstream>
-#include "STLUtils.hpp"
-#include "ParseUtils.hpp"
+#include "../includes/Server.hpp"
+#include "../includes/STLUtils.hpp"
+#include "../includes/parseUtils.hpp"
 
 bool	isDigits(const std::string &str)
 {
     return str.find_first_not_of("0123456789") == std::string::npos;
-} 
+}
 
 
 Server::Server()
@@ -53,7 +53,7 @@ void	Server::parse(std::ifstream& confFile)
 		ss.clear();
 		ss << line;
 		if (!(ss >> word))
-			continue;				 
+			continue;
 		if (word == "location")
 			parseLocation(confFile, ss, word);
 		else if (word == "}")

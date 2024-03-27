@@ -4,32 +4,19 @@
 #include "../includes/Http.hpp"
 #include "../includes/parseUtils.hpp"
 
-Http::Http(std::string confFile) // httpResponse(confFile)
-	:mRequestBuffer(),
-	savedHeaderSize(),
-	consumeBufferSize()
+Http::Http(const ConfigHandler& configHandler) // httpResponse(confFile)
+	: mRequestBuffer()
+	, savedHeaderSize()
+	, consumeBufferSize()
+	, mConfigHandler(configHandler)
 {
-	(void)confFile; // temporary
 	// memset(&parsedRequest, 0, sizeof(struct request)); // using memset error occured
 	parsedRequest.parsedStatus = 0;
 	parsedRequest.statusCode = 0;
 }
 
 Http::~Http()
-{
-
-}
-
-Http::Http(const Http& src)
-{
-	static_cast<void>(src);
-}
-
-Http& Http::operator=(const Http& rhs)
-{
-	static_cast<void>(rhs);
-	return (*this);
-}
+{}
 
 void	Http::printParsedHttpRequest(const struct request& r)
 {

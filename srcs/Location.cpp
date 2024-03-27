@@ -1,8 +1,8 @@
 #include <fstream>
 #include <sstream>
 
-#include "Location.hpp"
-#include "ParseUtils.hpp"
+#include "../includes/Location.hpp"
+#include "../includes/parseUtils.hpp"
 // limit_except GET POST;
 // 		# root /path/to/root;
 // 		# index index.html;

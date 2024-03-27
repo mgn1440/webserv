@@ -1,27 +1,21 @@
-# pragma once 
-
 #ifndef HTTP_RESPONSE_HPP
 # define HTTP_RESPONSE_HPP
 
 # include <iostream>
 # include <map>
-
-# include "ConfigHandler"
+# include "ConfigHandler.hpp"
 
 class Server;
 
 class HttpResponse
 {
 public :
-	HttpResponse(std::string confFile = "./conf/default.conf");
+	HttpResponse(const ConfigHandler& configHandler);
 	~HttpResponse();
-
 private :
 	HttpResponse(const HttpResponse& rhs);
-	HttpResponse&	operator = (const HttpResponse& rhs);
-	void			parseNginxConfig(std::string confFile);
-
-	ConfigHandler	configHandler;
+	HttpResponse& operator = (const HttpResponse& rhs);
+	const ConfigHandler& mConfigHandler;
 };
 
 #endif
