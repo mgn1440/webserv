@@ -1,55 +1,64 @@
 WebServer
 {
 public:
-	setTCP() // socket bind kqueue...
-	runTCP() // while loop and accept
-	WebServer(std::string conf_file);
+	WebServer(std::string confFile);
 private:
-	map<int socket, std::string response> Response;
-	// Response[socket] += Http.makeResponse(string request);
-class:
-	Http
+	std::map<int clientSocket, Request> mRequestMap;
+	std::map<int clientSocket, std::queue<Response> > mResponseMap;
 }
 
-Http
+// singleton pattern
+ConfigHandler
 {
 public:
-	std::string makeResponse(std::string request);
-	Http(std::string conf_file);
+	static void MakeConfigHandler(std::string confFile);
+	static ConfigHandler* GetConfigHandler();
+	size_t* GetMaxSizes(int port, std::string serverName); // need to request parsing
+	std::queue<Response> GetResponseOf(std::vector<struct Request> requests);
 private:
-	struct request parseHttpRequest();
-class:
-	HttpResponse
+	static ConfigHandler* configHandler;
+	ConfigHandler(std::string confFile);
+	std::map<std::pair<int port, std::string serverName>, Server> mServerMap;
+	std::map<std::string format, std::string type> mTypesMap;
 }
 
-HttpResponse
+Server
 {
 public:
-	std::string getHttpResponse(struct request);
-	HttpResponse(std::string conf_file); // create and parse => create servers
+	Server(std::ifstream& ifs);
 private:
-	ConfigHandler* confighandler;
-}
-
-class ConfigHandler
-{
-public:
-	void PrintInfo(int port); //debug
-	const long long* GetMaxSizes(int port); // need to request parsing
-	std::string getResourceOf(struct request); // 전치사 붙이기
-};
-
-Server // resource and cgi process
-{
-public:
-	std::string getResourceOf(struct request)
-class:
-	map<string url, Location> location;
+	map<std::string uri, Location> location;
 }
 
 Location
 {
-method:
-	std::string getResource(struct request)
-class:
+public:
+	Location(std::ifstream& ifs);
+private:
+
 }
+
+Request
+{
+public:
+	Request(int port);
+	std::vector<struct Request> GetRequestsOf(std::string buf);
+}
+
+Response
+{
+public:
+	Response(struct Response);
+	bool IsCGI();
+	std::string GetErrorPage(int errorCode);
+	std::string GetResponse();
+private:
+	bool CGI;
+	std::string body;
+
+	int pipefd;
+}
+
+// Response 생성자
+// Response 생성자에서는 Response를 생성할 때 CGI인지 아닌지를 판단한다.
+// Response queue를 반환하면, kqueue에서 이벤트(EVFILT_READ(pipe), EVFILT_WRITE(Response), EVFILT_PROC(CGI))
