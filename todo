@@ -52,6 +52,7 @@ public:
 	bool IsCGI();
 	std::string GetErrorPage(int errorCode);
 	std::string GetResponse();
+	void setCGIBody(const std::string& CGIBody); // CGI에서 받은 body를 저장
 private:
 	bool CGI;
 	std::string body;
