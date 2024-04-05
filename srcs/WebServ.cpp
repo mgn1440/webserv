@@ -145,8 +145,8 @@ void	WebServ::processHttpRequest(struct kevent* currEvent)
 
 	if (currEvent->flags & EV_EOF)
 		addEvents(clientFD, EVFILT_READ, EV_DELETE, 0, 0, NULL);
-	std::string httpRequest = readHttpRequest(clientFD);
-
+	std::string httpRequest = readFDData(clientFD);
+	addEvents(clientFD, EVFILT_TIMER, EV_ADD | EV_ENABLE, 0, 30000, NULL); // 30초 타임아웃 (write event가 발생하면 timeout event를 삭제해줘야 함)
 	// Request 객체로부터 RequestList를 받음
 	// std::vector<Request> RequestList = mRequestMap[clientFD].GetResponseOf(httpRequest);
 
@@ -171,10 +171,15 @@ void	WebServ::processHttpRequest(struct kevent* currEvent)
 
 void	WebServ::sendCGIResource(struct kevent* currEvent)
 {
-
+	int pipeFD = currEvent->ident;
+	Response* CGIResponse = mPipeMap[pipeFD].first;
+	int clientFD = mPipeMap[pipeFD].second;
+	std::string CGIResource = readFDData(pipeFD);
+	// CGIResponse->AppendCGIBody(CGIResource);
+	addEvents(clientFD, EVFILT_WRITE, EV_ADD | EV_ENABLE, 0, 0, NULL);
 }
 
-std::string	WebServ::readHttpRequest(int clientFD)
+std::string	WebServ::readFDData(int clientFD)
 {
 	char buf[2048];
 	int n = read(clientFD, buf, sizeof(buf));
