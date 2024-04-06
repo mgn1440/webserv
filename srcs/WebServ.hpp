@@ -18,11 +18,14 @@ class WebServ
 		WebServ(std::vector<int> portList);
 	private:
 		int mKq;
-		std::map<int, Request> mRequestMap;
+		std::map<int, HttpRequest> mRequestMap;
 		std::map<int, std::deque<Response> > mResponseMap;
 		std::vector<int> mServSockList;
 		std::vector<struct kevent> mChangeList;
-		std::map<int, std::pair<Response*, int> > mPipeMap; // key: pipeFD, value: Response body(pipeFD에 읽기 요청이 들어오면 담당하는 Respons Buff에 저장한다.)
+		std::map<int, std::pair<Response*, int> > mPipeMap; // key: pipeFD, value: Response, clientFD)
+		std::map<int, std::pair<int, int> > mClientFDMap; // key: clientFD, value: pipeFD, PID
+		std::map<int, std::pair<Response*, int> > mPidMap; // key: pid, value: Response, pipeFD
+		// client fd를 key로 가져가야 하는거 아닌가?
 		struct kevent mEventList[30];
 
 		WebServ();
@@ -36,7 +39,15 @@ class WebServ
 		void acceptNewClientSocket(struct kevent* currEvent);
 		void processHttpRequest(struct kevent* currEvent);
 		void sendCGIResource(struct kevent* currEvent);
+		void writeHttpResponse(struct kevent* currEvent);
+		void waitCGIProc(struct kevent* currEvent);
+		void handleTimeOut(struct kevent* currEvent);
+		bool isFatalKeventError(void);
 		std::string readFDData(int clientFD);
 };
+
+// 이벤트 삭제 및 자료구조 삭제해야 하는 순간.
+
+// processHttpRequest()에서 EV_EOF가 되면, clientFD를 이벤트에서 삭제
 
 #endif
