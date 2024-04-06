@@ -285,4 +285,3 @@ std::string	WebServ::readFDData(int clientFD)
 	buf[n] = 0;
 	return (std::string(buf));
 }
-
