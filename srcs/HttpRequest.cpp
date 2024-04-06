@@ -35,7 +35,7 @@ void	HttpRequest::printParsedHttpRequest(const struct Request& r)
 	std::cout << std::endl;
 }
 
-std::vector<struct Request> HttpRequest::ReciveRequestMessage(const std::string& data)
+std::vector<struct Request> HttpRequest::ReceiveRequestMessage(const std::string& data)
 {
 	// 1. parse request;
 	// 2. if condition is wrong make error code response
@@ -64,7 +64,7 @@ void HttpRequest::parseHttpRequest(void)
 		parseHeader(inputStream);
 	if (mParsedRequest.parsedStatus == (PARSED_START | PARSED_HEADER))
 		parseBody(inputStream);
-} 
+}
 
 
 void HttpRequest::parseStartLine(std::istringstream& input)
@@ -95,7 +95,7 @@ void HttpRequest::parseHeader(std::istringstream& input) // TODO: savedHeaderSiz
 				return setHttpStatusCode(431); // Request Header Fields Too Large, connetction close
 			}
 		}
-		if (buf.size() == 1 && checkCRLF(buf)){ //header section is over 
+		if (buf.size() == 1 && checkCRLF(buf)){ //header section is over
 			if (!mParsedRequest.statusCode)
 				mParsedRequest.parsedStatus |= PARSED_HEADER;
 			break;
@@ -116,7 +116,7 @@ void HttpRequest::parseHeader(std::istringstream& input) // TODO: savedHeaderSiz
 		std::string fieldValue = buf.substr(colon + 1, buf.size() - 2);
 		//TODO: check mesasage type and obs-fold, content type == message obs-fold can recieve
 		trim(fieldValue, " \r"); // del ows
-		// field check -- map<std::string, function pointer> 
+		// field check -- map<std::string, function pointer>
 		if (fieldName == "Host")
 			procHost(fieldValue);
 		mParsedRequest.headers[fieldName] = fieldValue;
@@ -265,12 +265,12 @@ void HttpRequest::parseURI()
 }
 
 void HttpRequest::CheckHTTP(std::string http)
-{	
+{
 	http = http.substr(http.find("/") + 1);
 	std::vector<std::string> nums = split(http, ".");
 	if (nums.size() != 2)
 		return setHttpStatusCode(505); // HttpRequest version not supported
-	int major = convertNum(nums[0]); 
+	int major = convertNum(nums[0]);
 	int minor = convertNum(nums[1]);
 	if (major != 1 || minor != 1)
 		return setHttpStatusCode(505); // HttpRequest version not supported

@@ -14,7 +14,7 @@ public:
 	~HttpRequest();
 
 	// interface
-	std::vector<struct Request> ReciveRequestMessage(const std::string& data);
+	std::vector<struct Request> ReceiveRequestMessage(const std::string& data);
 private:
 	// occf not used
 	HttpRequest(const HttpRequest& src);
