@@ -48,7 +48,7 @@ int main() {
         }
 
         valread = read(new_socket, buffer, 30000);
-		
+
 		HttpRequest http(8080);
 		std::vector<struct Request> req = http.ReciveRequestMessage(buffer);
         printf("%s\n", buffer);

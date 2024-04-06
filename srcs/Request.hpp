@@ -34,4 +34,3 @@ enum eParsedFlags
 void initRequest(struct Request& request);
 
 #endif
->>>>>>> main
