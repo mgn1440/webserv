@@ -5,10 +5,14 @@
 
 # include <string>
 
+# include "Request.hpp"
+
+class ConfigHandler;
+
 class Response
 {
 public:
-    Response();
+    Response(struct Request& rhs);
     Response(const Response& rhs);
     Response& operator=(const Response& rhs);
     ~Response();
@@ -16,6 +20,7 @@ public:
     std::string GetErrorPage(int errorCode);
     std::string GetResponse();
 private:
+    ConfigHandler& mConfigHandler;
     bool mCGI;
     std::string body;
 

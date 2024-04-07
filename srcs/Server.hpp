@@ -28,6 +28,7 @@ public:
 	void ParseLine(std::string  line);
 	void PutIn(std::map<serverInfo, Server>& rhs);
 	const size_t* GetMaxSize();
+	std::set<int>& GetPorts();
 private:
 	Server(const Server& rhs);
 	void parse(std::ifstream& confFile);
