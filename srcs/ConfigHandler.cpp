@@ -1,9 +1,10 @@
 #include <iostream>
 #include <fstream>
 #include <sstream>
-
+#include <deque>
 #include "ConfigHandler.hpp"
 #include "Server.hpp"
+#include "Request.hpp"
 #include "parseUtils.hpp"
 
 ConfigHandler::ConfigHandler(const std::string& confPath)
@@ -35,6 +36,25 @@ const size_t* ConfigHandler::GetMaxSizes(int port, std::string serverName)
 	return it->second.GetMaxSize();
 }
 
+std::set<int>& ConfigHandler::GetPorts()
+{
+	return mPortSet;
+}
+
+// std::deque<Response> GetResponseOf(std::vector<struct Request> requests)
+// {
+// 	std::deque<Response> responseDeq;
+
+// 	for (std::vector<Request>::iterator it = requests.begin(); it != requests.end(); it ++)
+// 	{
+// 		// TODO:
+// 		// find proper location and other information from server name and port
+// 		// make response class from the method and status code
+// 		Response response = Response();
+// 		responseDeq.push_back(response);
+// 	}
+// 	return responseDeq;
+// }
 
 void ConfigHandler::parseConfig(const std::string& confPath)
 {
@@ -147,6 +167,9 @@ void ConfigHandler::createServer(std::stringstream& ss, std::ifstream& confFile)
 	{
 		Server server(confFile);
 		server.PutIn(mServerMap);
+		std::set<int>& ports = server.GetPorts();
+		for (std::set<int>::iterator it = ports.begin(); it != ports.end(); it ++)
+			mPortSet.insert(*it);
 	}
 	else
 		throw std::runtime_error("invalid server bracket");
@@ -161,7 +184,11 @@ void ConfigHandler::PrintAll()
 	printMap(mTypeMap);
 	std::cout << "~~ serverInfo ~~" << std::endl;
 	for (std::map<serverInfo, Server>::iterator it = mServerMap.begin(); it != mServerMap.end(); it ++)
+	{
 		it->second.PrintInfo();
+		std::cout << std::endl;
+	}
+	printSet(mPortSet);
 }
 
 void ConfigHandler::PrintServInfo(serverInfo info)

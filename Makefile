@@ -16,12 +16,18 @@ DEPS = $(addprefix objs/, $(notdir $(SRCS_MAND:.cpp=.d)))
 NAME = webserv
 
 #----------SRCS----------
-SRCS_MAND = request_test.cpp \
-	convertUtils.cpp \
+# SRCS_MAND = request_test.cpp \
+# 	convertUtils.cpp \
+# 	parseUtils.cpp \
+# 	Request.cpp \
+# 	autoIndex.cpp \
+# 	HttpRequest.cpp
+SRCS_MAND = ConfigHandler.cpp \
+	AConfParser.cpp \
+	Server.cpp \
+	Location.cpp \
 	parseUtils.cpp \
-	Request.cpp \
-	autoIndex.cpp \
-	HttpRequest.cpp
+	test.cpp
 SRCS_BONUS = srcs_bonus1 \
 	srcs_bonus2 \
 	srcs_bonus3

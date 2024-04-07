@@ -5,6 +5,7 @@
 
 # include <string>
 # include <map>
+# include <set>
 # include <deque>
 
 
@@ -20,6 +21,7 @@ public:
     static ConfigHandler& GetConfigHandler();
 
     const size_t* GetMaxSizes(int port, std::string serverName);
+    std::set<int>& GetPorts();
     std::deque<Response> GetResponseOf(std::vector<struct Request> requests);
     
     // for DEBUG
@@ -43,6 +45,7 @@ private:
 
     std::map<std::string, std::string> mTypeMap;
     std::map<serverInfo, Server> mServerMap;
+    std::set<int> mPortSet;
 };
 
 #endif

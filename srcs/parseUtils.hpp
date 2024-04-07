@@ -1,6 +1,5 @@
 #ifndef PARSE_UTILS_HPP
 # define PARSE_UTILS_HPP
-
 # include <string>
 # include <vector>
 
@@ -17,5 +16,5 @@ void refreshBuffer(std::string& buf, size_t& size);
 bool isDigits(const std::string& str);
 bool isAlphas(const std::string& str);
 bool isAlnums(const std::string& str);
-
 #endif
+

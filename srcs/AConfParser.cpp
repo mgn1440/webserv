@@ -3,6 +3,7 @@
 AConfParser::AConfParser()
 	: mbIsDuplicatedAutoIndex(false)
 	, mbIsDuplicatedLimitExcept(false)
+	, mbIsDuplicatedRoot(false)
 	, mbAutoIndex(false)
 	, mRoot("/")
 {}
@@ -31,11 +32,9 @@ AConfParser& AConfParser::operator=(const AConfParser& rhs)
 
 void	AConfParser::parseRoot(std::stringstream& ss, std::string& word)
 {
-	static bool isDuplicated = false;
-
-	if (isDuplicated == true)
+	if (mbIsDuplicatedRoot == true)
 		throw std::runtime_error("root duplicated");
-	isDuplicated = true;
+	mbIsDuplicatedRoot = true;
 	if (ss >> mRoot && ss >> word && isEnd(ss, word))
 		return ;
 	throw std::runtime_error("bad end logic");

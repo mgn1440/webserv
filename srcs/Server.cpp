@@ -133,6 +133,11 @@ const size_t* Server::GetMaxSize()
 	return mMaxSize;
 }
 
+std::set<int>& Server::GetPorts()
+{
+	return mPort;
+}
+
 void	Server::parseLocation(std::ifstream& confFile, std::stringstream& ss, std::string& word)
 {
 	std::string	dir;

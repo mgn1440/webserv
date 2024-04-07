@@ -26,6 +26,7 @@ protected:
 
 	bool mbIsDuplicatedAutoIndex;
 	bool mbIsDuplicatedLimitExcept;
+	bool mbIsDuplicatedRoot;
 	bool mbAutoIndex;
 	std::vector<std::string> mHttpMethod;
 	std::string mRoot;
