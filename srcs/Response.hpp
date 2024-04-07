@@ -4,7 +4,6 @@
 # define RESPONSE_HPP
 
 # include <string>
-
 # include "Request.hpp"
 
 class ConfigHandler;
@@ -23,7 +22,6 @@ private:
     ConfigHandler& mConfigHandler;
     bool mCGI;
     std::string body;
-
 };
 
 #endif

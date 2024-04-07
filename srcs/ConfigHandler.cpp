@@ -2,7 +2,6 @@
 #include <fstream>
 #include <sstream>
 #include <deque>
-
 #include "ConfigHandler.hpp"
 #include "Server.hpp"
 #include "Request.hpp"
