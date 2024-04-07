@@ -63,3 +63,10 @@ private:
 // Response 생성자
 // Response 생성자에서는 Response를 생성할 때 CGI인지 아닌지를 판단한다.
 // Response queue를 반환하면, kqueue에서 이벤트(EVFILT_READ(pipe), EVFILT_WRITE(Response), EVFILT_PROC(CGI))
+
+
+1. ResponseHandler
+2. 
+
+
+mPortList
