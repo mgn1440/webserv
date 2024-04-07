@@ -8,6 +8,7 @@
 # include <sys/event.h>
 # include "Request.hpp"
 # include "Response.hpp"
+# include "HttpRequest.hpp"
 
 // system call error 인해 webserv 프로그램이 종료되는 건 말이 안된다
 // runKqueue 내부에서 throw catch 하는 구조로 만들어야 함
@@ -15,14 +16,17 @@
 class WebServ
 {
 	public:
-		WebServ(std::vector<int> portList);
+		WebServ(const std::vector<int>& portList, const std::vector<std::string>& env);
 	private:
 		int mKq;
-		std::map<int, Request> mRequestMap;
+		std::map<int, HttpRequest> mRequestMap;
 		std::map<int, std::deque<Response> > mResponseMap;
 		std::vector<int> mServSockList;
 		std::vector<struct kevent> mChangeList;
-		std::map<int, std::pair<Response*, int> > mPipeMap; // key: pipeFD, value: Response body(pipeFD에 읽기 요청이 들어오면 담당하는 Respons Buff에 저장한다.)
+		std::vector<std::string> mEnvList;
+		std::map<int, std::pair<Response&, int> > mCGIPipeMap; // key: pipeFD, value: Response body(pipeFD에 읽기 요청이 들어오면 담당하는 Respons Buff에 저장한다.)
+		std::map<int, std::pair<int,int> > mCGIClientMap; // key: clientFD, value: pipeFD, PID
+		std::map<int, std::pair<Response&,int> > mCGIPidMap; // key: pid, value: Response, pipeFD
 		struct kevent mEventList[30];
 
 		WebServ();
@@ -36,7 +40,13 @@ class WebServ
 		void acceptNewClientSocket(struct kevent* currEvent);
 		void processHttpRequest(struct kevent* currEvent);
 		void sendCGIResource(struct kevent* currEvent);
+		void writeHttpResponse(struct kevent* currEvent);
+		void waitCGIProc(struct kevent* currEvent);
+		void handleTimeOut(struct kevent* currEvent);
+		bool isFatalKeventError(void);
 		std::string readFDData(int clientFD);
+		void processGetCGI(const Request& request, const Response& response, int clientFD); // pipe 1개
+		void processPostCGI(const Request& request, const Response& response, int clientFD); // pipe 2개, 표준입력으로 Http Request Body로 줘야 함
 };
 
 #endif
