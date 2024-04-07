@@ -16,14 +16,14 @@ class ConfigHandler
 {
 public:
     typedef std::pair<int, std::string> serverInfo;
-    
+
     static void MakeConfigHandler(const std::string& confPath);
     static ConfigHandler& GetConfigHandler();
 
     const size_t* GetMaxSizes(int port, std::string serverName);
     std::set<int>& GetPorts();
     std::deque<Response> GetResponseOf(std::vector<struct Request> requests);
-    
+
     // for DEBUG
     void PrintAll();
     void PrintServInfo(serverInfo info);

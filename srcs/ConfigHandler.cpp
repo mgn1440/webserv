@@ -7,6 +7,8 @@
 #include "Request.hpp"
 #include "parseUtils.hpp"
 
+ConfigHandler* ConfigHandler::configHandler = NULL;
+
 ConfigHandler::ConfigHandler(const std::string& confPath)
 {
     parseConfig(confPath);
@@ -110,7 +112,7 @@ void ConfigHandler::chkValidFormOf(std::string& type, std::string& form)
 {
 	size_t idx = type.find("/");
 	std::string subType = type.substr(idx + 1);
-	
+
 	if (idx == 0 || idx == std::string::npos || type.find("/", idx + 1) != std::string::npos || subType == "" || !isAlnums(form))
 		throw std::runtime_error("invalid type form");
 }
