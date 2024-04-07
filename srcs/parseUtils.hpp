@@ -1,3 +1,5 @@
+#pragma once
+
 #ifndef PARSE_UTILS_HPP
 # define PARSE_UTILS_HPP
 
