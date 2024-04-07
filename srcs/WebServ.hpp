@@ -5,6 +5,7 @@
 # include <deque>
 # include <vector>
 # include <string>
+# include <set>
 # include <sys/event.h>
 # include "Request.hpp"
 # include "Response.hpp"
@@ -16,7 +17,8 @@
 class WebServ
 {
 	public:
-		WebServ(const std::vector<int>& portList, const std::vector<std::string>& env);
+		WebServ(const std::set<int>& portList, const std::vector<std::string>& env);
+		~WebServ();
 	private:
 		int mKq;
 		std::map<int, HttpRequest> mRequestMap;
@@ -30,10 +32,9 @@ class WebServ
 		struct kevent mEventList[30];
 
 		WebServ();
-		~WebServ();
 		WebServ& operator=(const WebServ&);
 		WebServ(const WebServ&);
-		void createServerSocket(std::vector<int> portList);
+		void createServerSocket(const std::set<int>& portList);
 		void setKqueue(void);
 		void addEvents(uintptr_t ident, int16_t filter, uint16_t flags, uint32_t fflags, intptr_t data, void *udata);
 		void runKqueueLoop(void);

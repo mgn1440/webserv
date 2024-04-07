@@ -10,7 +10,7 @@
 #include <exception>
 #include "WebServ.hpp"
 
-WebServ::WebServ(const std::vector<int>& portList, const std::vector<std::string>& envList)
+WebServ::WebServ(const std::set<int>& portList, const std::vector<std::string>& envList)
 {
 	mEnvList = envList;
 	createServerSocket(portList);
@@ -18,9 +18,12 @@ WebServ::WebServ(const std::vector<int>& portList, const std::vector<std::string
 	runKqueueLoop();
 }
 
-void WebServ::createServerSocket(std::vector<int> portList)
+WebServ::~WebServ()
+{}
+
+void WebServ::createServerSocket(const std::set<int>& portList)
 {
-	std::vector<int>::iterator iter = portList.begin();
+	std::set<int>::iterator iter = portList.begin();
 	for (; iter != portList.end(); ++iter)
 	{
 		int listenFd = socket(AF_INET, SOCK_STREAM, 0);
@@ -180,7 +183,7 @@ void	WebServ::waitCGIProc(struct kevent* currEvent)
 	int pid = currEvent->ident;
 	int status;
 	int pipeFD = mCGIPidMap[pid].second;
-	Response* response = mCGIPidMap[pid].first;
+	Response response = mCGIPidMap[pid].first;
 	if (currEvent->fflags & NOTE_EXIT)
 	{
 		waitpid(pid, &status, 0);
