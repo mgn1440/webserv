@@ -36,7 +36,13 @@ void	AConfParser::parseRoot(std::stringstream& ss, std::string& word)
 		throw std::runtime_error("root duplicated");
 	mbIsDuplicatedRoot = true;
 	if (ss >> mRoot && ss >> word && isEnd(ss, word))
+	{
+		if (mRoot.find("//") != std::string::npos)
+			throw std::runtime_error("invalid root path");
+		if (mRoot[mRoot.size()-1] == '/' && mRoot.length() > 1)
+			mRoot.erase(mRoot.size()-1);
 		return ;
+	}
 	throw std::runtime_error("bad end logic");
 }
 

@@ -27,6 +27,11 @@ SRCS_MAND = ConfigHandler.cpp \
 	Server.cpp \
 	Location.cpp \
 	parseUtils.cpp \
+	Response.cpp \
+	Request.cpp \
+	HttpRequest.cpp \
+	convertUtils.cpp \
+	autoIndex.cpp \
 	test.cpp
 SRCS_BONUS = srcs_bonus1 \
 	srcs_bonus2 \

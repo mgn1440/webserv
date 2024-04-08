@@ -19,6 +19,12 @@ Server::Server(std::ifstream& confFile)
 	parse(confFile);
 	if (mPort.empty())
 		throw std::runtime_error("Does not define port");
+	if (mHttpMethod.empty())
+	{
+		mHttpMethod.push_back("GET");
+		mHttpMethod.push_back("POST");
+		mHttpMethod.push_back("DELETE");
+	}
 }
 
 Server::~Server()
@@ -117,9 +123,12 @@ void	Server::PutIn(std::map<serverInfo, Server>& rhs)
 {
 	for(std::set<int>::iterator portIt = mPort.begin(); portIt != mPort.end(); portIt ++)
 	{
+		serverInfo info = serverInfo(*portIt, "default");
+		if(rhs.find(info) == rhs.end())
+			rhs[info] = *this;
 		for(std::vector<std::string>::iterator servNameIt = mServerName.begin(); servNameIt != mServerName.end(); servNameIt ++)
 		{
-			serverInfo info = serverInfo(*portIt, *servNameIt);
+			info = serverInfo(*portIt, *servNameIt);
 			if (rhs.find(info) == rhs.end())
 				rhs[info] = *this;
 			else
@@ -136,6 +145,46 @@ const size_t* Server::GetMaxSize()
 std::set<int>& Server::GetPorts()
 {
 	return mPort;
+}
+
+struct Resource Server::GetResource(std::string URI)
+{
+	struct Resource res;
+
+	res.BAutoIndex = mbAutoIndex;
+	res.CGI = mCGI;
+	res.ErrorPage = mErrorPage;
+	res.HttpMethod = mHttpMethod;
+	res.Index = mIndex;
+	res.Root = mRoot;
+	std::string locationPath = searchLocationPath(URI);
+	if (locationPath != "")
+		mLocationMap[locationPath].SetResource(res);
+	return (res);
+}
+
+
+std::string Server::searchLocationPath(const std::string& URI)
+{
+	std::string locationPath = "";
+
+	for (std::map<std::string, Location>::iterator it = mLocationMap.begin(); it != mLocationMap.end(); it ++)
+	{
+		if (URI.find(it->first) == 0 && locationPath.length() < it->first.length())
+			locationPath = it->first;
+	}
+	return (locationPath);
+}
+
+// TODO: request에서 URI의 맨 마지막에 slash 다 제거
+std::string Server::GetABSPath(const std::string& URI)
+{
+	std::string path = mRoot;
+	std::string locationPath = searchLocationPath(URI);
+
+	if (locationPath != "")
+		mLocationMap[locationPath].GetRoot(path);
+	return path + URI;
 }
 
 void	Server::parseLocation(std::ifstream& confFile, std::stringstream& ss, std::string& word)

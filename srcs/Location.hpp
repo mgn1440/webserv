@@ -11,6 +11,7 @@
 
 # include "STLUtils.hpp" // to debug
 # include "AConfParser.hpp"
+# include "Resource.hpp"
 
 class Location : public AConfParser
 {
@@ -21,6 +22,8 @@ public:
 	Location(const Location& src);
 	~Location();
 
+	void GetRoot(std::string& path);
+	void SetResource(struct Resource& res);
 	void PrintInfo(); //debug
 	void ParseLocation(std::string& line);
 private:

@@ -19,6 +19,7 @@ Location::Location()
 Location::Location(std::ifstream& confFile)
 	: AConfParser()
 {
+	mRoot = "";
 	parse(confFile);
 }
 Location::Location(const Location& src)
@@ -36,6 +37,37 @@ Location& Location::operator=(const Location& rhs)
 
 Location::~Location()
 { }
+
+void Location::GetRoot(std::string& path)
+{
+	if (mRoot != "")
+		path = mRoot;
+}
+
+// server {
+// 	root /var;
+// 	index index.html;
+// 	cgi php /usr/bin/php7.1;
+// 	location /html {
+// 		root /var/www;
+// 		index index.php;
+// 		cgi php /usr/bin/php8.1;
+// 	}
+// }
+// URI(입력): /html/index.php => ABSPath(결과): /var/www/html/index.php(8.1)
+
+void Location::SetResource(struct Resource& res)
+{
+	res.HttpMethod = mHttpMethod;
+	if (mRoot != "")
+		res.Root = mRoot;
+	if (!mIndex.empty())
+		res.Index = mIndex;
+	for (std::map<std::string, std::string>::iterator it = mCGI.begin(); it != mCGI.end(); it ++)
+	{
+		res.CGI[it->first] = it->second;
+	}
+}
 
 void Location::parse(std::ifstream& confFile)
 {

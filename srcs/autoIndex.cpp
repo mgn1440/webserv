@@ -17,6 +17,7 @@ std::string getIndexListOf(const std::string& path)
 	ret += "</title></head><body><h1>Index of";
 	ret += path;
 	ret += "</h1><hr><pre><table>";
+	//std::cout << path << std::endl;
 	dir = opendir(path.c_str());
 	if (dir == NULL) throw std::runtime_error("directory not opend");
 	while (true){

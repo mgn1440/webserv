@@ -10,6 +10,7 @@
 
 # include "Location.hpp"
 # include "AConfParser.hpp"
+# include "Resource.hpp"
 
 # define DEF_ST_LINE_SIZE 8000
 # define DEF_HEADER_SIZE 8000
@@ -29,6 +30,8 @@ public:
 	void PutIn(std::map<serverInfo, Server>& rhs);
 	const size_t* GetMaxSize();
 	std::set<int>& GetPorts();
+	struct Resource GetResource(std::string URI);
+	std::string GetABSPath(const std::string& URI);
 private:
 	Server(const Server& rhs);
 	void parse(std::ifstream& confFile);
@@ -38,7 +41,8 @@ private:
 	void parseServerName(std::stringstream& ss, std::string& word);
 	void parseErrorPage(std::stringstream& ss, std::string& word);
 	void parseClientMaxSize(std::stringstream& ss, std::string& word);
-
+	std::string searchLocationPath(const std::string& URI);
+	
 	bool mbIsDuplicatedClientMaxSize;
 	size_t mMaxSize[3];
 	std::set<int> mPort;
