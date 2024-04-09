@@ -4,7 +4,6 @@
 # define RESPONSE_HPP
 
 # include <string>
-
 # include "Request.hpp"
 
 class ConfigHandler;
