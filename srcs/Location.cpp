@@ -66,7 +66,7 @@ void Location::SetResource(struct Resource& res)
 		res.Index = mIndex;
 	for (std::map<std::string, std::string>::iterator it = mCGI.begin(); it != mCGI.end(); it ++)
 	{
-		res.CGI[it->first] = it->second;
+		res.CGIBinaryPath[it->first] = it->second;
 	}
 }
 

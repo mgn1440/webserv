@@ -6,5 +6,6 @@
 size_t convertNum(std::string num);
 size_t convertHex(std::string num);
 void percentDecoding(std::string& URI);
+std::string intToString(size_t num);
 
 #endif

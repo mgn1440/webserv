@@ -90,17 +90,8 @@ std::deque<Response> ConfigHandler::GetResponseOf(std::vector<struct Request> re
 		// 1. vaild 한 method인지 확인 => invalid 할 시 501() return 
 		// 2. root를 따라가면서 URI를 absolute Path로 변환하고 실제 파일이 존재하는지 확인 => 404 return
 		// 3. valid 한 HTTP version인지 확인 => invalid 할 시 error() return
-		
-
-		if (it->method == "GET")
-		{
-			Response response(*it);
-			responseDeq.push_back(response);
-		}
-		else if (it->method == "")
-		{
-		
-		}
+		Response response;
+		responseDeq.push_back(response);
 		// method에 따라서 분기
 		// // 1. GET
 		// 	HTTP ver, status code, status 

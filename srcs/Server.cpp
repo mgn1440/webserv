@@ -152,8 +152,7 @@ struct Resource Server::GetResource(std::string URI)
 	struct Resource res;
 
 	res.BAutoIndex = mbAutoIndex;
-	res.CGI = mCGI;
-	res.ErrorPage = mErrorPage;
+	res.CGIBinaryPath = mCGI;
 	res.HttpMethod = mHttpMethod;
 	res.Index = mIndex;
 	res.Root = mRoot;

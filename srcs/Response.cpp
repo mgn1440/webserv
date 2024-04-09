@@ -2,13 +2,15 @@
 #include <algorithm>
 #include <iostream>
 #include <sstream>
-#include <ctime>
-#include <sys/stat.h>
 #include <fstream>
+#include <ctime>
+#include <cstdio>
+#include <sys/stat.h>
 #include <fcntl.h>
 #include <unistd.h>
 
 #include "ConfigHandler.hpp"
+#include "convertUtils.hpp"
 #include "Response.hpp"
 #include "Resource.hpp"
 #include "StatusPage.hpp"
@@ -16,9 +18,6 @@
 //  TODO: Static이라고 가정 후 Response init을 돌린다.
 //        추후 cgi를 돌릴 때 실제 ContentType과 ContentLength, status code 등을 설정한다.
 std::string getIndexListOf(const std::string& path);
-
-Response::Response()
-{}
 
 Response::~Response()
 {}
@@ -51,6 +50,7 @@ Response& Response::operator=(const Response& rhs)
     mbAutoIndex = rhs.mbAutoIndex;
     mCGIPath = rhs.mCGIPath;
     mCGIExtension = rhs.mCGIExtension;
+	mStartLine = rhs.mStartLine;
     mHeader = rhs.mHeader;
     mBody = rhs.mBody;
     mHttpVer = rhs.mHttpVer;
@@ -66,78 +66,53 @@ Response& Response::operator=(const Response& rhs)
     return *this;
 }
 
-Response::Response(struct Request& req)
-    : mbCGI(false)
-    , mbAutoIndex(false)
+Response::Response()
+    : mbCGI()
+    , mbAutoIndex()
+    , mCGIPath()
+    , mCGIExtension()
+    , mStartLine()
+    , mHeader()
+    , mBody()
     , mHttpVer("HTTP/1.1")
+    , mStatCode()
+    , mStat()
+    , mbFile()
+    , mbDir()
+    , mABSPath()
+    , mDate()
     , mServer("WebServ")
-{
-    struct Resource res = ConfigHandler::GetConfigHandler().GetResource(req.port, req.domain, req.URI);
-
-    mbAutoIndex = res.BAutoIndex;
-    
-    char buf[100];
-    std::time_t time = std::time(NULL);
-	// Date: [Day], [date] [Month] [year] [time] GMT; IMF-fixdate
-	std::strftime(buf, sizeof(buf), "%a, %d %b %Y %H:%M:%S %Z", std::localtime(&time));
-	mDate += std::string(buf);
-
-    if (req.statusCode || !isValidMethod(req, res)) // TODO: http ver, method, abs path
-        mStatCode = req.statusCode;               
-    else{
-        // TODO:
-        // find server block using the request
-        if (req.method == "GET")
-            processGET(res);
-        else if (req.method == "POST")
-            processPOST(res);
-        else if (req.method == "HEAD")
-            processHEAD(res);
-        else if (req.method == "PUT")
-            processPUT(res);
-        else if (req.method == "DELETE")
-            processDELETE(res);
-    }
-}
+    , mbContentLen()
+    , mContentType()
+{}
 
 void Response::CreateResponseHeader()
 {
     mStartLine = mHttpVer + " ";
-    std::stringstream ss;
-    ss << mStatCode;
-    mStartLine += ss.str() + " " + StatusPage::GetInstance()->GetStatusMessageOf(mStatCode) +"\r\n"; // TODO: StatCode => mStat 으로 변환하는 코드가 있어야 함
-    mHeader = "Date: " + mDate;
-    mHeader += "Server: " + mServer;
+    mStartLine += intToString(mStatCode) + " " + StatusPage::GetInstance()->GetStatusMessageOf(mStatCode) +"\r\n";
+    mHeader = "Date: " + mDate + "\r\n";
+    mHeader += "Server: " + mServer + "\r\n";
     if (mContentType != "")
-        mHeader += "Content-Type: " + mContentType;
+        mHeader += "Content-Type: " + mContentType + "\r\n";
     if (mbContentLen == true)
-        mHeader += "Content-length: ";
+        mHeader += "Content-length: " + intToString(mBody.size()) + "\r\n";
+	mHeader += "\r\n";
 }
 
 // TODO: directory가 들어왔을 때 autoindex on =>  directory listing page
 // directory가 들어왔을 때 autoindex off => index file name이 붙어야 함
 void Response::CreateResponseBody()
 {
-    // if (!mbFile) // Directory
-    // {
-    //     //mBody += getIndexListOf(mABSPath);
-    //     return ;
-    // }
-    // static file
-    std::string file = mABSPath + "test.txt"; // test
-    int fd = open(file.c_str(), O_RDONLY, 0755); // test
-    if (fd == -1)
+	std::ifstream ifs(mABSPath);
+    if (ifs.fail())
         throw std::runtime_error("file open error");
     char buf[16384];
-    ssize_t n;
     do
     {
-        n = read(fd, buf, sizeof(buf)-1);
-        std::cout << n << std::endl;
-        buf[n] = '\0';
+		ifs.read(buf, sizeof(buf) - 1);
+		buf[ifs.gcount()] = '\0';
         mBody += std::string(buf);
-    } while (n > 0);
-    mbContentLen = true;
+    } while (ifs.gcount());
 }
 
 
@@ -181,42 +156,145 @@ void Response::PrintResponse()
 // 
 void Response::processGET(struct Resource& res)
 {
-    mContentType = ConfigHandler::GetConfigHandler().GetContentType(mABSPath);
-    mCGIExtension = mABSPath.substr(mABSPath.find_last_of(".") + 1);
-    if (mbFile && res.CGIBinaryPath.find(mCGIExtension) != res.CGIBinaryPath.end())
-    {
-        mbCGI = true;
-        mCGIPath = res.CGIBinaryPath[mCGIExtension];
-    }
-    else
-        mCGIPath = "";
-    
+	struct stat statBuf;
+	if (stat(mABSPath.c_str(), &statBuf) == -1)
+	{
+		SetStatusOf(404);
+		return ;
+	}
+	if (S_ISDIR(statBuf.st_mode))
+	{
+		mbDir = true;
+		std::set<std::string>::iterator indexName = res.Index.begin();
+		for (; indexName != res.Index.end(); ++indexName)
+		{
+			if (stat((mABSPath + (*indexName)).c_str(), &statBuf) == 0){
+				mABSPath += *indexName;
+				mbDir = false;
+				mbFile = true;
+				break; // return
+			}
+		}
+		if (!mbFile){
+			if (mbAutoIndex){
+				mBody = getIndexListOf(mABSPath);
+				mContentType = "text/html";
+			}
+			else if (!mbAutoIndex)
+				SetStatusOf(404);
+		}
+	}
+	else
+		mbFile = true;
+	if (mbFile){
+		mContentType = ConfigHandler::GetConfigHandler().GetContentType(mABSPath);
+		mCGIExtension = mABSPath.substr(mABSPath.find_last_of(".") + 1);
+		if (res.CGIBinaryPath.find(mCGIExtension) != res.CGIBinaryPath.end()) // is CGI
+		{
+			mbCGI = true;
+			mCGIPath = res.CGIBinaryPath[mCGIExtension];
+		}
+		else
+			mCGIPath = "";
+	}
+	if (!mbCGI){
+		std::ifstream ifs(mABSPath);
+		CreateResponseBody();
+		CreateResponseHeader(); // doing this
+	}
 
-    //-=-------------------------
-    mABSPath = res.ABSPath;
-    struct stat statBuf;
-    if (stat(mABSPath.c_str(), &statBuf) == -1)
-        return false;
-    else if (S_ISDIR(statBuf.st_mode))
-    {
-        mbDir = true;
-        if (!res.BAutoIndex)
-        {
-            req.statusCode = 404;
-            return (false);
-        }
-    }
-    else if (S_ISREG(statBuf.st_mode))
-        mbFile = true;
-    return (true);
-    // 만약 dir이고 autoIndex ON 이면, directroy list;
-    // autoIndex Off 이면 404
-    // 없는 파일이면 404
-    // 있는 파일이면 return 
+    // //--------------------------
+    // mABSPath = res.ABSPath;
+    // struct stat statBuf;
+    // if (stat(mABSPath.c_str(), &statBuf) == -1)
+    //     return false;
+    // else if (S_ISDIR(statBuf.st_mode))
+    // {
+    //     mbDir = true;
+    //     if (!res.BAutoIndex)
+    //     {
+    //         req.statusCode = 404;
+    //         return (false);
+    //     }
+    // }
+    // else if (S_ISREG(statBuf.st_mode))
+    //     mbFile = true;
+    // return (true);
+    // // 만약 dir이고 autoIndex ON 이면, directroy list;
+    // // autoIndex Off 이면 404
+    // // 없는 파일이면 404
+    // // 있는 파일이면 return 
 }
 
 void Response::SetStatusOf(int statusCode)
 {
     mStatCode = statusCode;
-    mBody = StatusPage::GetInstance()->GetStatusPageOf(statusCode);
+	if (mErrorPage.find(statusCode) != mErrorPage.end()){
+		mABSPath = mErrorPage[statusCode];
+		CreateResponseBody();
+		CreateResponseHeader();
+	}
+	else{
+		mBody = StatusPage::GetInstance()->GetStatusPageOf(statusCode);
+		CreateResponseHeader();
+	}
+}
+
+std::string Response::GetResponse(struct Request& req)
+{
+    struct Resource res = ConfigHandler::GetConfigHandler().GetResource(req.port, req.domain, req.URI);
+
+	setFromResource(res);
+    char buf[100];
+    std::time_t time = std::time(NULL);
+	// Date: [Day], [date] [Month] [year] [time] GMT; IMF-fixdate
+	std::strftime(buf, sizeof(buf), "%a, %d %b %Y %H:%M:%S %Z", std::localtime(&time));
+	mDate += std::string(buf);
+
+    if (req.statusCode || !isValidMethod(req, res)) // TODO: http ver, method, abs path
+ 	{      
+		SetStatusOf(req.statusCode);
+		return genResponseMsg();
+	}
+        // TODO:
+        // find server block using the request
+	if (req.method == "GET")
+		processGET(res);
+	// else if (req.method == "POST")
+	// 	processPOST(res);
+	// else if (req.method == "HEAD")
+	// 	processHEAD(res);
+	// else if (req.method == "PUT")
+	// 	processPUT(res);
+	// else if (req.method == "DELETE")
+	// 	processDELETE(res);
+	return genResponseMsg();
+}
+
+
+bool Response::IsCGI()
+{
+	return mbCGI;
+}
+
+void Response::SetCGIBody(const std::string& CGIBody)
+{
+	mBody = CGIBody;
+	CreateResponseHeader();
+}
+
+std::string Response::genResponseMsg()
+{
+	std::string ret;
+	ret = mStartLine;
+	ret += mHeader;
+	ret += mBody;
+	return ret;
+}
+
+void Response::setFromResource(struct Resource res)
+{
+	mbAutoIndex = res.BAutoIndex;
+	mErrorPage = res.ErrorPage;
+	mABSPath = res.ABSPath;
 }

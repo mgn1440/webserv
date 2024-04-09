@@ -9,8 +9,9 @@ StatusPage* StatusPage::sInstance = NULL;
 StatusPage* StatusPage::GetInstance()
 {
 	if (sInstance == NULL){
-		sInstance == new StatusPage();
+		sInstance = new StatusPage();
 	}
+	return sInstance;
 }
 
 StatusPage::StatusPage()
