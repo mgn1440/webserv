@@ -22,6 +22,7 @@ void setRequest(struct Request& request)
 	request.body = "";
 	request.hostParsed = false;
 	request.connectionStop = false;
+    request.port = 80;
 }
 
 int main(int ac, char** av)

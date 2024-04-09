@@ -69,6 +69,8 @@ std::string ConfigHandler::IsCGI(const std::string& URI)
 struct Resource	ConfigHandler::GetResource(int port, const std::string& serverName, const std::string& URI)
 {
 	serverInfo info(port, serverName);
+	// std::cout << "port = " << port << '\n';
+	// std::cout << "serverName = " << serverName << '\n';
 	Server& server = mServerMap[serverInfo(port, "default")];
 	if (mServerMap.find(info) != mServerMap.end())
 		server = mServerMap[info];

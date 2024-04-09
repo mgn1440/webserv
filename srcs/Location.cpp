@@ -58,7 +58,8 @@ void Location::GetRoot(std::string& path)
 
 void Location::SetResource(struct Resource& res)
 {
-	res.HttpMethod = mHttpMethod;
+	if (mHttpMethod.size() != 0)
+		res.HttpMethod = mHttpMethod;
 	if (mRoot != "")
 		res.Root = mRoot;
 	if (!mIndex.empty())

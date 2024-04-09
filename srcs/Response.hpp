@@ -17,19 +17,25 @@ public:
     Response& operator=(const Response& rhs);
     ~Response();
     bool IsCGI();
-    std::string GetErrorPage(int errorCode);
     std::string GetResponse();
 
+    void PrintResponse();
     void CreateResponseHeader();
     void CreateResponseBody();
-    void PrintResponse();
+    void SetStatusOf(int statusCode);
 private:
 
-    bool isValidStartLine(struct Request& req, struct Resource& res);
+    bool isValidMethod(struct Request& req, struct Resource& res);
+    void processGET(struct Resource& res);
+    void processPOST(struct Resource& res);
+    void processHEAD(struct Resource& res);
+    void processPUT(struct Resource& res);
+    void processDELETE(struct Resource& res);
 
     bool mbCGI;
     bool mbAutoIndex;
-    std::string mCGI;
+    std::string mCGIPath;
+    std::string mCGIExtension;
     std::string mStartLine;
     std::string mHeader;
     std::string mBody;
