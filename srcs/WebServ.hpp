@@ -21,6 +21,7 @@ class WebServ
 		~WebServ();
 	private:
 		int mKq;
+		std::map<int, int> mServSockPortMap; // key: servSocket, val: port
 		std::map<int, HttpRequest> mRequestMap;
 		std::map<int, std::deque<Response> > mResponseMap;
 		std::vector<int> mServSockList;
@@ -49,7 +50,7 @@ class WebServ
 		std::string readFDData(int clientFD);
 		const char **makeCGIEnvList(const Response& response)
 		//void processGetCGI(const Request& request, const Response& response, int clientFD); // pipe 1개
-		// void processPostCGI(const Request& request, const Response& response, int clientFD); // pipe 2개, 표준입력으로 Http Request Body로 줘야 함
+		//void processPostCGI(const Request& request, const Response& response, int clientFD); // pipe 2개, 표준입력으로 Http Request Body로 줘야 함
 };
 
 #endif
