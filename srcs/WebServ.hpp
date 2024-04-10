@@ -48,7 +48,7 @@ class WebServ
 		bool isFatalKeventError(void);
 		std::string readFDData(int clientFD);
 		//void processGetCGI(const Request& request, const Response& response, int clientFD); // pipe 1개
-		// void processPostCGI(const Request& request, const Response& response, int clientFD); // pipe 2개, 표준입력으로 Http Request Body로 줘야 함
+		//void processPostCGI(const Request& request, const Response& response, int clientFD); // pipe 2개, 표준입력으로 Http Request Body로 줘야 함
 };
 
 #endif
