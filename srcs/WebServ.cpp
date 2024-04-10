@@ -8,6 +8,7 @@
 #include <unistd.h>
 #include <iostream>
 #include <exception>
+#include <cstdio>
 #include "WebServ.hpp"
 #include "HttpRequest.hpp"
 #include "Response.hpp"
@@ -244,36 +245,31 @@ void	WebServ::processHttpRequest(struct kevent* currEvent)
 }
 
 
-// void	WebServ::processGetCGI(const Request& request, const Response& response, int clientFD)
-// {
-// 	int p[2];
+void	WebServ::processCGI(const Response& response, int clientFD)
+{
+	FILE* tmpF = std::tmpfile();
+	if (!tmpF)
+		throw std::runtime_error("tmpfile error");
 
-// 	if (pipe(p) == -1)
-// 		throw std::runtime_error("pipe error");
-// 	addEvents(p[0], EVFILT_READ, EV_ADD | EV_ENABLE, 0, 0, NULL); // pipe 읽기 이벤트
-// 	pid_t pid = fork();
-// 	if (pid == -1)
-// 	{
-// 		close(p[0]);
-// 		close(p[1]);
-// 		throw std::runtime_error("fork error");
-// 	}
-// 	else if (pid == 0)
-// 	{
-// 		close(p[0]);
-// 		// request uri에 실행파일이 있는지 확인 해야 함
-// 		// rootPath + cgiDir
-// 		// execve(실행파일경로, argv, envp);
-// 	}
-// 	else
-// 	{
-// 		close(p[1]);
-// 		mCGIPipeMap[p[0]] = std::make_pair(response, clientFD); // Key: pipe[0]
-// 		mCGIClientMap[clientFD] = std::make_pair(p[0], pid); // Key: clientFD
-// 		mCGIPidMap[pid] = std::make_pair(response, p[0]); // Key: PID
-// 		addEvents(pid, EVFILT_PROC, EV_ADD | EV_ENABLE | EV_ONESHOT, 0, 0, NULL);
-// 	}
-// }
+	int tmpFD = fileno(tmpF);
+	pid_t pid = fork();
+	if (pid < 0)
+		throw std::runtime_error("fork error");
+	else if (pid == 0)
+	{
+		if (dup2(tmpFD, STDOUT_FILENO) == -1)
+		{
+			perror("dup2 error");
+			exit(EXIT_FAILURE);
+		}
+		const char *argv[] = {response.GetABSPath(), NULL}; // 인자는 또 없나?
+		const char **envp;
+	}
+	else
+	{
+
+	}
+}
 
 // void	WebServ::sendCGIResource(struct kevent* currEvent)
 // {

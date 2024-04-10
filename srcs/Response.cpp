@@ -282,7 +282,7 @@ bool Response::IsCGI() const
 	return mbCGI;
 }
 
-void Response::SetSetCGIBody(const std::string& CGIBody)
+void Response::SetCGIBody(const std::string& CGIBody)
 {
 	mBody = CGIBody;
 	CreateResponseHeader();

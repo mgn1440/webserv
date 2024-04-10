@@ -16,14 +16,13 @@ public:
     Response(const Response& rhs);
     Response& operator=(const Response& rhs);
     ~Response();
-    bool IsCGI();
+    bool IsCGI() const;
     void MakeResponse(struct Request& req);
-
     void PrintResponse();
 	void SetCGIBody(const std::string& CGIBody);
     void SetStatusOf(int statusCode);
-	std::string GenResponseMsg();
-    char* GetABSPath();
+	std::string GenResponseMsg() const;
+    const char* GetABSPath() const;
 private:
 
     bool isValidMethod(struct Request& req, struct Resource& res);
