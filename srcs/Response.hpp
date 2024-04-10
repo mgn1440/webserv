@@ -17,13 +17,12 @@ public:
     Response& operator=(const Response& rhs);
     ~Response();
     bool IsCGI();
-    std::string GetResponse(struct Request& req);
+    void MakeResponse(struct Request& req);
 
     void PrintResponse();
-    void CreateResponseHeader();
-    void CreateResponseBody();
 	void SetCGIBody(const std::string& CGIBody);
     void SetStatusOf(int statusCode);
+	std::string GenResponseMsg();
 private:
 
     bool isValidMethod(struct Request& req, struct Resource& res);
@@ -32,7 +31,8 @@ private:
     // void processHEAD(struct Resource& res);
     // void processPUT(struct Resource& res);
     // void processDELETE(struct Resource& res);
-	std::string genResponseMsg();
+    void CreateResponseHeader();
+    void CreateResponseBody();
 	void setFromResource(struct Resource);
 
     bool mbCGI;

@@ -12,6 +12,8 @@ Server::Server()
 Server::Server(std::ifstream& confFile)
 	: AConfParser()
 	, mbIsDuplicatedClientMaxSize(false)
+	, mbIsDuplicatedUpload(false)
+	, mUpload("/upload")
 {
 	mMaxSize[0] = DEF_ST_LINE_SIZE;
 	mMaxSize[1] = DEF_HEADER_SIZE;
@@ -25,6 +27,7 @@ Server::Server(std::ifstream& confFile)
 		mHttpMethod.push_back("POST");
 		mHttpMethod.push_back("DELETE");
 	}
+	mUpload = mRoot + mUpload;
 }
 
 Server::~Server()
@@ -45,7 +48,7 @@ Server&	Server::operator=(const Server& rhs)
 	return (*this);
 }
 
-void	Server::parse(std::ifstream& confFile)
+void Server::parse(std::ifstream& confFile)
 {
 	std::stringstream ss;
 	std::string line;
@@ -80,6 +83,8 @@ void	Server::parse(std::ifstream& confFile)
 			parseIndex(ss, word); // TODO: why couldn't saved?
 		else if (word == "cgi")
 			parseCGI(ss, word);
+		else if (word == "upload")
+			parseUpload(ss, word);
 		else
 			throw std::runtime_error("Invalid symbol or syntax, may be duplicated");
 		if (confFile.eof())
@@ -88,7 +93,7 @@ void	Server::parse(std::ifstream& confFile)
 }
 
 
-void	Server::PrintInfo()
+void Server::PrintInfo()
 {
 	std::cout << "Port: ";
 	printSet(mPort);
@@ -119,7 +124,7 @@ void	Server::PrintInfo()
 	}
 }
 
-void	Server::PutIn(std::map<serverInfo, Server>& rhs)
+void Server::PutIn(std::map<serverInfo, Server>& rhs)
 {
 	for(std::set<int>::iterator portIt = mPort.begin(); portIt != mPort.end(); portIt ++)
 	{
@@ -186,7 +191,7 @@ std::string Server::GetABSPath(const std::string& URI)
 	return path + URI;
 }
 
-void	Server::parseLocation(std::ifstream& confFile, std::stringstream& ss, std::string& word)
+void Server::parseLocation(std::ifstream& confFile, std::stringstream& ss, std::string& word)
 {
 	std::string	dir;
 	if (ss >> dir && (ss >> word && word == "{") && !(ss >> word))
@@ -201,7 +206,7 @@ void	Server::parseLocation(std::ifstream& confFile, std::stringstream& ss, std::
 		throw std::runtime_error("Location Open Bracket Error");
 }
 
-void	Server::parseListen(std::stringstream& ss, std::string& word)
+void Server::parseListen(std::stringstream& ss, std::string& word)
 {
 	int	port;
 	if (!mPort.empty())
@@ -222,7 +227,7 @@ void	Server::parseListen(std::stringstream& ss, std::string& word)
 	throw std::runtime_error("Wrong listen format");
 }
 
-void	Server::parseServerName(std::stringstream& ss, std::string& word)
+void Server::parseServerName(std::stringstream& ss, std::string& word)
 {
 	if (!mServerName.empty())
 		throw std::runtime_error("server name syntax duplicated");
@@ -239,7 +244,7 @@ void	Server::parseServerName(std::stringstream& ss, std::string& word)
 	throw std::runtime_error("Wrong server name format");
 }
 
-void	Server::parseErrorPage(std::stringstream& ss, std::string& word)
+void Server::parseErrorPage(std::stringstream& ss, std::string& word)
 {
 	std::vector<int> errNum;
 	while (ss >> word && isDigits(word))
@@ -259,7 +264,7 @@ void	Server::parseErrorPage(std::stringstream& ss, std::string& word)
 	throw std::runtime_error("Wrong error page format");
 }
 
-void	Server::parseClientMaxSize(std::stringstream& ss, std::string& word)
+void Server::parseClientMaxSize(std::stringstream& ss, std::string& word)
 {
 	if (mbIsDuplicatedClientMaxSize == true)
 		throw std::runtime_error("client max size duplicated");
@@ -295,3 +300,20 @@ void	Server::parseClientMaxSize(std::stringstream& ss, std::string& word)
 			throw std::runtime_error("wrong client max size format");
 	}
 }
+
+void Server::parseUpload(std::stringstream& ss, std::string& word)
+{
+	if (mbIsDuplicatedUpload == true)
+		throw std::runtime_error("upload duplicated");
+	mbIsDuplicatedUpload = true;
+	if (ss >> mUpload && ss >> word && isEnd(ss, word))
+	{
+		if (mUpload.find("//") != std::string::npos)
+			throw std::runtime_error("invalid upload path");
+		if (mUpload[mUpload.size()-1] == '/' && mUpload.length() > 1)
+			mUpload.erase(mUpload.size()-1);
+		return ;
+	}
+	throw std::runtime_error("bad end logic");
+}
+

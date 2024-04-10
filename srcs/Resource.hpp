@@ -11,6 +11,7 @@ struct Resource
 	bool BAutoIndex;
 	std::vector<std::string> HttpMethod;
 	std::string Root;
+	std::string Upload;
 	std::set<std::string> Index;
 	std::map<int, std::string> ErrorPage;
 	std::map<std::string, std::string> CGIBinaryPath;

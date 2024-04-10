@@ -172,7 +172,7 @@ void Response::processGET(struct Resource& res)
 				mABSPath += *indexName;
 				mbDir = false;
 				mbFile = true;
-				break; // return
+				break;
 			}
 		}
 		if (!mbFile){
@@ -240,7 +240,7 @@ void Response::SetStatusOf(int statusCode)
 	}
 }
 
-std::string Response::GetResponse(struct Request& req)
+void Response::MakeResponse(struct Request& req)
 {
     struct Resource res = ConfigHandler::GetConfigHandler().GetResource(req.port, req.domain, req.URI);
 
@@ -252,9 +252,9 @@ std::string Response::GetResponse(struct Request& req)
 	mDate += std::string(buf);
 
     if (req.statusCode || !isValidMethod(req, res)) // TODO: http ver, method, abs path
- 	{      
+ 	{
 		SetStatusOf(req.statusCode);
-		return genResponseMsg();
+        return ;
 	}
         // TODO:
         // find server block using the request
@@ -268,7 +268,6 @@ std::string Response::GetResponse(struct Request& req)
 	// 	processPUT(res);
 	// else if (req.method == "DELETE")
 	// 	processDELETE(res);
-	return genResponseMsg();
 }
 
 
@@ -283,12 +282,14 @@ void Response::SetCGIBody(const std::string& CGIBody)
 	CreateResponseHeader();
 }
 
-std::string Response::genResponseMsg()
+
+// TODO: Body를 reference로 받아서 복사되지 않도록(오버헤드 이슈) 처리해야 함.
+std::string Response::GetResponseMsg()
 {
 	std::string ret;
 	ret = mStartLine;
 	ret += mHeader;
-	ret += mBody;
+    ret += mBody;
 	return ret;
 }
 
