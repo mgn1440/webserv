@@ -277,12 +277,12 @@ void Response::MakeResponse(struct Request& req)
 }
 
 
-bool Response::IsCGI()
+bool Response::IsCGI() const
 {
 	return mbCGI;
 }
 
-void Response::SetCGIBody(const std::string& CGIBody)
+void Response::SetSetCGIBody(const std::string& CGIBody)
 {
 	mBody = CGIBody;
 	CreateResponseHeader();
@@ -290,7 +290,7 @@ void Response::SetCGIBody(const std::string& CGIBody)
 
 
 // TODO: Body를 reference로 받아서 복사되지 않도록(오버헤드 이슈) 처리해야 함.
-std::string Response::GenResponseMsg()
+std::string Response::GenResponseMsg() const
 {
 	std::string ret;
 	ret = mStartLine;
@@ -349,7 +349,7 @@ void Response::processDELETE()
 	mBody = "{\n \"message\": \"Item deleted successfully.\"\n}";
 }
 
-char* Response::GetABSPath()
+const char* Response::GetABSPath() const
 {
 	return (mABSPath.c_str());
 }
