@@ -30,6 +30,7 @@ Response::Response(const Response& rhs)
     mCGIExtension = rhs.mCGIExtension;
     mHeader = rhs.mHeader;
     mBody = rhs.mBody;
+    mParams = rhs.mParams;
     mHttpVer = rhs.mHttpVer;
     mStatCode = rhs.mStatCode;
     mStat = rhs.mStat;
@@ -53,6 +54,7 @@ Response& Response::operator=(const Response& rhs)
 	mStartLine = rhs.mStartLine;
     mHeader = rhs.mHeader;
     mBody = rhs.mBody;
+    mParams = rhs.mParams;
     mHttpVer = rhs.mHttpVer;
     mStatCode = rhs.mStatCode;
     mStat = rhs.mStat;
@@ -74,6 +76,7 @@ Response::Response()
     , mStartLine()
     , mHeader()
     , mBody()
+    , mParams()
     , mHttpVer("HTTP/1.1")
     , mStatCode()
     , mStat()
@@ -244,6 +247,7 @@ void Response::MakeResponse(struct Request& req)
 {
     struct Resource res = ConfigHandler::GetConfigHandler().GetResource(req.port, req.domain, req.URI);
 
+    mParams = req.params;
 	setFromResource(res);
     char buf[100];
     std::time_t time = std::time(NULL);
@@ -260,8 +264,8 @@ void Response::MakeResponse(struct Request& req)
         // find server block using the request
 	if (req.method == "GET")
 		processGET(res);
-	// else if (req.method == "POST")
-	// 	processPOST(res);
+	else if (req.method == "POST")
+		processPOST(res);
 	// else if (req.method == "HEAD")
 	// 	processHEAD(res);
 	// else if (req.method == "PUT")
@@ -298,4 +302,47 @@ void Response::setFromResource(struct Resource res)
 	mbAutoIndex = res.BAutoIndex;
 	mErrorPage = res.ErrorPage;
 	mABSPath = res.ABSPath;
+}
+
+void Response::processPOST(struct Resource& res)
+{
+	struct stat statBuf;
+	if (stat(mABSPath.c_str(), &statBuf) == -1)
+	{
+		SetStatusOf(204);
+		return ;
+	}
+	if (S_ISDIR(statBuf.st_mode))
+		mbDir = true;
+	else
+        mbFile = true;
+	if (mbFile){
+		mContentType = ConfigHandler::GetConfigHandler().GetContentType(mABSPath);
+		mCGIExtension = mABSPath.substr(mABSPath.find_last_of(".") + 1);
+		if (res.CGIBinaryPath.find(mCGIExtension) != res.CGIBinaryPath.end()) // is CGI
+		{
+			mbCGI = true;
+			mCGIPath = res.CGIBinaryPath[mCGIExtension];
+		}
+		else
+			mCGIPath = "";
+	}
+	if (!mbCGI){
+		SetStatusOf(204);
+		return ;
+    }
+}
+
+void Response::processDELETE(struct Resource& res)
+{
+	struct stat statBuf;
+	if (stat(mABSPath.c_str(), &statBuf) == -1 || S_ISDIR(statBuf.st_mode))
+	{
+		SetStatusOf(204);
+		return ;
+	}
+    mbFile = true;
+    std::remove(mABSPath.c_str());
+    mContentType = "application/json";
+	mBody = "{\n \"message\": \"Item deleted successfully.\"\n}";
 }
