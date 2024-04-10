@@ -12,14 +12,14 @@ public:
 	// occf
 	HttpRequest(int port); // ConfFile is class;
 	~HttpRequest();
+	HttpRequest& operator=(const HttpRequest& rhs);
+	HttpRequest(const HttpRequest& src);
+	HttpRequest();
 
 	// interface
 	std::vector<struct Request> ReceiveRequestMessage(const std::string& data);
 private:
 	// occf not used
-	HttpRequest(const HttpRequest& src);
-	HttpRequest& operator=(const HttpRequest& rhs);
-
 	// member var
 	int mPort;
 	std::string mRequestBuffer;

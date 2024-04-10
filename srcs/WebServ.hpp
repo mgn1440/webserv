@@ -40,14 +40,14 @@ class WebServ
 		void runKqueueLoop(void);
 		void acceptNewClientSocket(struct kevent* currEvent);
 		void processHttpRequest(struct kevent* currEvent);
-		void sendCGIResource(struct kevent* currEvent);
+		//void sendCGIResource(struct kevent* currEvent);
 		void writeHttpResponse(struct kevent* currEvent);
 		void waitCGIProc(struct kevent* currEvent);
 		void handleTimeOut(struct kevent* currEvent);
 		bool isFatalKeventError(void);
 		std::string readFDData(int clientFD);
-		void processGetCGI(const Request& request, const Response& response, int clientFD); // pipe 1개
-		void processPostCGI(const Request& request, const Response& response, int clientFD); // pipe 2개, 표준입력으로 Http Request Body로 줘야 함
+		// void processGetCGI(const Request& request, const Response& response, int clientFD); // pipe 1개
+		// void processPostCGI(const Request& request, const Response& response, int clientFD); // pipe 2개, 표준입력으로 Http Request Body로 줘야 함
 };
 
 #endif

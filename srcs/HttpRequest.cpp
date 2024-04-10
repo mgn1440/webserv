@@ -20,9 +20,41 @@ HttpRequest::HttpRequest(int port)
 	initRequest(mParsedRequest);
 }
 
-HttpRequest::~HttpRequest()
+HttpRequest::HttpRequest()
 {
+	std::cout << "hi\n";
+}
 
+HttpRequest::~HttpRequest()
+{}
+
+HttpRequest& HttpRequest::operator=(const HttpRequest& rhs)
+{
+	if (this == &rhs)
+		return (*this);
+	mPort = rhs.mPort;
+	mRequestBuffer = rhs.mRequestBuffer;
+	mParsedRequest = rhs.mParsedRequest;
+	mSavedHeaderSize = rhs.mSavedHeaderSize;
+	mSavedBodySize = rhs.mSavedBodySize;
+	mConsumeBufferSize = rhs.mConsumeBufferSize;
+	maxStartLineSize = rhs.maxStartLineSize;
+	maxHeaderSize = rhs.maxHeaderSize;
+	maxBodySize = rhs.maxBodySize;
+	return (*this);
+}
+
+HttpRequest::HttpRequest(const HttpRequest& rhs)
+{
+	mPort = rhs.mPort;
+	mRequestBuffer = rhs.mRequestBuffer;
+	mParsedRequest = rhs.mParsedRequest;
+	mSavedHeaderSize = rhs.mSavedHeaderSize;
+	mSavedBodySize = rhs.mSavedBodySize;
+	mConsumeBufferSize = rhs.mConsumeBufferSize;
+	maxStartLineSize = rhs.maxStartLineSize;
+	maxHeaderSize = rhs.maxHeaderSize;
+	maxBodySize = rhs.maxBodySize;
 }
 
 void	HttpRequest::printParsedHttpRequest(const struct Request& r)
