@@ -21,6 +21,7 @@ class WebServ
 		~WebServ();
 	private:
 		int mKq;
+		std::map<int, int> mServSockPortMap; // key: servSocket, val: port
 		std::map<int, HttpRequest> mRequestMap;
 		std::map<int, std::deque<Response> > mResponseMap;
 		std::vector<int> mServSockList;

@@ -48,6 +48,7 @@ void WebServ::createServerSocket(const std::set<int>& portList)
 		if (fcntl(listenFd, F_SETFL, O_NONBLOCK, FD_CLOEXEC) < 0)
 			throw std::runtime_error("fcntl error");
 		mServSockList.push_back(listenFd);
+		mServSockPortMap[listenFd] = *iter;
 	}
 }
 
@@ -202,18 +203,14 @@ void	WebServ::runKqueueLoop(void)
 
 void	WebServ::acceptNewClientSocket(struct kevent* currEvent)
 {
-	struct sockaddr tmpAddr;
-	socklen_t cliLen = sizeof(tmpAddr);
 	int servSocket = currEvent->ident;
-	int clientSocket = accept(servSocket, &tmpAddr, &cliLen);
+	int clientSocket = accept(servSocket, NULL, NULL);
 	if (clientSocket == -1)
 		throw std::runtime_error("accept() error");
-	struct sockaddr_in servAddr;
-	std::memcpy(&servAddr, &tmpAddr, sizeof(struct sockaddr_in));
 	if (fcntl(clientSocket, F_SETFL, O_NONBLOCK, FD_CLOEXEC) == -1)
 		throw std::runtime_error("fcntl() error");
 	addEvents(clientSocket, EVFILT_READ, EV_ADD | EV_ENABLE, 0, 0, NULL);
-	mRequestMap.insert(std::make_pair(clientSocket, HttpRequest(servAddr.sin_port)));
+	mRequestMap.insert(std::make_pair(clientSocket, HttpRequest(mServSockPortMap[servSocket])));
 }
 
 void	WebServ::processHttpRequest(struct kevent* currEvent)
