@@ -65,14 +65,14 @@ std::vector<std::string> split(const std::string& str, std::string delim)
     std::vector<std::string> ret;
 
     std::string token;
-    while (static_cast<const unsigned long>(cur) != std::string::npos)
+	do
     {
         cur = str.find(delim, pre);
         token = str.substr(pre, cur - pre);
         ret.push_back(token);
         pre = cur + 1;
-    }
-    ret.push_back(token);
+    } while (static_cast<const unsigned long>(cur) != std::string::npos);
+    // ret.push_back(token);
     return ret;
 }
 

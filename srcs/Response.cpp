@@ -28,6 +28,7 @@ Response::Response(const Response& rhs)
     mbAutoIndex = rhs.mbAutoIndex;
     mCGIPath = rhs.mCGIPath;
     mCGIExtension = rhs.mCGIExtension;
+	mStartLine = rhs.mStartLine;
     mHeader = rhs.mHeader;
     mBody = rhs.mBody;
     mParams = rhs.mParams;
@@ -86,11 +87,12 @@ Response::Response()
     , mDate()
     , mServer("WebServ")
     , mbContentLen()
-    , mContentType()
+    , mContentType("text/html")
 {}
 
 void Response::CreateResponseHeader()
 {
+    mbContentLen = true; // debug
     mStartLine = mHttpVer + " ";
     mStartLine += intToString(mStatCode) + " " + StatusPage::GetInstance()->GetStatusMessageOf(mStatCode) +"\r\n";
     mHeader = "Date: " + mDate + "\r\n";
@@ -151,12 +153,12 @@ void Response::PrintResponse()
     std::cout << ret << std::endl;
 }
 
-// TODO: 
+// TODO:
 // URL의 마지막 파일 or 디렉터리인지 확인
 // if (File) => mbFile = true, mbDir = fasle;
 // if (Dir)
 // std::set<std::string> index를 순회하면서 파일이 존재하는지 확인 (URL + index)
-// 
+//
 void Response::processGET(struct Resource& res)
 {
 	struct stat statBuf;
@@ -226,7 +228,7 @@ void Response::processGET(struct Resource& res)
     // // 만약 dir이고 autoIndex ON 이면, directroy list;
     // // autoIndex Off 이면 404
     // // 없는 파일이면 404
-    // // 있는 파일이면 return 
+    // // 있는 파일이면 return
 }
 
 void Response::SetStatusOf(int statusCode)
@@ -288,7 +290,7 @@ void Response::SetCGIBody(const std::string& CGIBody)
 
 
 // TODO: Body를 reference로 받아서 복사되지 않도록(오버헤드 이슈) 처리해야 함.
-std::string Response::GetResponseMsg()
+std::string Response::GenResponseMsg()
 {
 	std::string ret;
 	ret = mStartLine;
@@ -333,7 +335,7 @@ void Response::processPOST(struct Resource& res)
     }
 }
 
-void Response::processDELETE(struct Resource& res)
+void Response::processDELETE()
 {
 	struct stat statBuf;
 	if (stat(mABSPath.c_str(), &statBuf) == -1 || S_ISDIR(statBuf.st_mode))

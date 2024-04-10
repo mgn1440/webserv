@@ -30,7 +30,7 @@ private:
     void processPOST(struct Resource& res);
     // void processHEAD(struct Resource& res);
     // void processPUT(struct Resource& res);
-    void processDELETE(struct Resource& res);
+    void processDELETE();
     void CreateResponseHeader();
     void CreateResponseBody();
 	void setFromResource(struct Resource);
