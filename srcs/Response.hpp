@@ -27,10 +27,10 @@ private:
 
     bool isValidMethod(struct Request& req, struct Resource& res);
     void processGET(struct Resource& res);
-    // void processPOST(struct Resource& res);
+    void processPOST(struct Resource& res);
     // void processHEAD(struct Resource& res);
     // void processPUT(struct Resource& res);
-    // void processDELETE(struct Resource& res);
+    void processDELETE(struct Resource& res);
     void CreateResponseHeader();
     void CreateResponseBody();
 	void setFromResource(struct Resource);
@@ -42,6 +42,7 @@ private:
     std::string mStartLine;
     std::string mHeader;
     std::string mBody;
+	std::map<std::string, std::string> mParams;
 
     std::string mHttpVer;
     int mStatCode;
