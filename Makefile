@@ -48,7 +48,9 @@ vpath %.hpp includes
 all: $(NAME)
 
 debug: CXXFLAGS += $(DEBUGFLAGS)
-debug: clean all
+debug:
+	@make clean
+	@make all
 
 $(NAME): $(OBJ_DIR) mandatory
 
@@ -91,10 +93,10 @@ clean:
 	@rm -rf $(OBJ_DIR)
 
 re:
-	make fclean
-	make all
+	@make fclean
+	@make all
 
 rebonus: fclean
-	make bonus
+	@make bonus
 
 .PHONY: all clean fclean re rebonus
