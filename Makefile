@@ -22,13 +22,18 @@ NAME = webserv
 # 	Request.cpp \
 # 	autoIndex.cpp \
 # 	HttpRequest.cpp
-# SRCS_MAND = ConfigHandler.cpp \
-# 	AConfParser.cpp \
-# 	Server.cpp \
-# 	Location.cpp \
-# 	parseUtils.cpp \
-# 	test.cpp
-
+SRCS_MAND = ConfigHandler.cpp \
+	AConfParser.cpp \
+	Server.cpp \
+	Location.cpp \
+	parseUtils.cpp \
+	Response.cpp \
+	Request.cpp \
+	HttpRequest.cpp \
+	convertUtils.cpp \
+	autoIndex.cpp \
+	StatusPage.cpp \
+	main_t.cpp
 SRCS_BONUS = srcs_bonus1 \
 	srcs_bonus2 \
 	srcs_bonus3

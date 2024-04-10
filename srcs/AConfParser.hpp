@@ -31,9 +31,12 @@ protected:
 	std::vector<std::string> mHttpMethod;
 	std::string mRoot;
 	std::set<std::string> mIndex;
-	std::map<std::string, std::string> mCGI;
+	std::map<std::string, std::string> mCGI; // Key: CGI 확장자 (php, py) Value: 실행파일 경로
 private:
 
 };
+
+
+
 
 #endif

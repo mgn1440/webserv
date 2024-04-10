@@ -30,17 +30,23 @@ AConfParser& AConfParser::operator=(const AConfParser& rhs)
 	return *this;
 }
 
-void	AConfParser::parseRoot(std::stringstream& ss, std::string& word)
+void AConfParser::parseRoot(std::stringstream& ss, std::string& word)
 {
 	if (mbIsDuplicatedRoot == true)
 		throw std::runtime_error("root duplicated");
 	mbIsDuplicatedRoot = true;
 	if (ss >> mRoot && ss >> word && isEnd(ss, word))
+	{
+		if (mRoot.find("//") != std::string::npos)
+			throw std::runtime_error("invalid root path");
+		if (mRoot[mRoot.size()-1] == '/' && mRoot.length() > 1)
+			mRoot.erase(mRoot.size()-1);
 		return ;
+	}
 	throw std::runtime_error("bad end logic");
 }
 
-void	AConfParser::parseIndex(std::stringstream& ss, std::string& word)
+void AConfParser::parseIndex(std::stringstream& ss, std::string& word)
 {
 	int	tmp = 0;
 	while (ss >> word)
@@ -59,7 +65,7 @@ void	AConfParser::parseIndex(std::stringstream& ss, std::string& word)
 	}
 }
 
-void	AConfParser::parseCGI(std::stringstream& ss, std::string& word)
+void AConfParser::parseCGI(std::stringstream& ss, std::string& word)
 {
 	std::string cgiExec;
 	if ((ss >> word) && (ss >> cgiExec))
@@ -71,7 +77,7 @@ void	AConfParser::parseCGI(std::stringstream& ss, std::string& word)
 	throw std::runtime_error("invalid cgi format");
 }
 
-void	AConfParser::parseAutoIndex(std::stringstream& ss, std::string& word)
+void AConfParser::parseAutoIndex(std::stringstream& ss, std::string& word)
 {
 	if (mbIsDuplicatedAutoIndex == true)
 		throw std::runtime_error("auto index duplicated");
@@ -91,7 +97,7 @@ void	AConfParser::parseAutoIndex(std::stringstream& ss, std::string& word)
 		throw std::runtime_error("invalid auto index format");
 }
 
-void	AConfParser::parseLimitExcept(std::stringstream& ss, std::string& word)
+void AConfParser::parseLimitExcept(std::stringstream& ss, std::string& word)
 {
 	if (mbIsDuplicatedLimitExcept == true)
 		throw std::runtime_error("limit except duplicated");
@@ -114,7 +120,7 @@ bool	AConfParser::isEnd(std::stringstream& ss, std::string& word)
 		return (true);
 }
 
-void	AConfParser::parseClosedBracket(std::stringstream& ss, std::string& word)
+void AConfParser::parseClosedBracket(std::stringstream& ss, std::string& word)
 {
 	if (ss >> word)
 		throw std::runtime_error("wrong bracket format");

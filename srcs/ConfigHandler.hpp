@@ -7,6 +7,7 @@
 # include <map>
 # include <set>
 # include <deque>
+# include "Resource.hpp"
 
 
 class Server;
@@ -23,17 +24,22 @@ public:
     const size_t* GetMaxSizes(int port, std::string serverName);
     std::set<int>& GetPorts();
     std::deque<Response> GetResponseOf(std::vector<struct Request> requests);
-    
+    std::string GetContentType(const std::string& URI);
+    std::string GetABSPath(int port, const std::string& serverName ,const std::string& URI);
+    std::string IsCGI(const std::string& ContentType);
+    struct Resource GetResource(int port, const std::string& serverName, const std::string& URI);
+
+
     // for DEBUG
     void PrintAll();
     void PrintServInfo(serverInfo info);
+    ~ConfigHandler();
 private:
     static ConfigHandler* configHandler;
     ConfigHandler();
     ConfigHandler(const std::string& confPath);
     ConfigHandler(const ConfigHandler& rhs);
     ConfigHandler& operator=(const ConfigHandler& rhs);
-    ~ConfigHandler();
 
     void parseConfig(const std::string& confPath);
     bool isEnd(std::stringstream& ss, std::string& word);
