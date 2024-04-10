@@ -250,7 +250,7 @@ void	WebServ::processHttpRequest(struct kevent* currEvent)
 
 // 	if (pipe(p) == -1)
 // 		throw std::runtime_error("pipe error");
-// 	addEvents(p[0], EVFILT_READ, EV_ADD | EV_ENABLE, 0, 0, NULL);
+// 	addEvents(p[0], EVFILT_READ, EV_ADD | EV_ENABLE, 0, 0, NULL); // pipe 읽기 이벤트
 // 	pid_t pid = fork();
 // 	if (pid == -1)
 // 	{
@@ -268,9 +268,9 @@ void	WebServ::processHttpRequest(struct kevent* currEvent)
 // 	else
 // 	{
 // 		close(p[1]);
-// 		mCGIPipeMap[p[0]] = std::make_pair(response, clientFD);
-// 		mCGIClientMap[clientFD] = std::make_pair(p[0], pid);
-// 		mCGIPidMap[pid] = std::make_pair(response, p[0]);
+// 		mCGIPipeMap[p[0]] = std::make_pair(response, clientFD); // Key: pipe[0]
+// 		mCGIClientMap[clientFD] = std::make_pair(p[0], pid); // Key: clientFD
+// 		mCGIPidMap[pid] = std::make_pair(response, p[0]); // Key: PID
 // 		addEvents(pid, EVFILT_PROC, EV_ADD | EV_ENABLE | EV_ONESHOT, 0, 0, NULL);
 // 	}
 // }
