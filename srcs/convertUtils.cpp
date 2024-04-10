@@ -36,3 +36,10 @@ void percentDecoding(std::string& URI)
 		URI.insert(pos, 1, decode);
 	}
 }
+
+std::string intToString(size_t num)
+{
+    std::stringstream ss;
+    ss << num;
+	return ss.str();
+}

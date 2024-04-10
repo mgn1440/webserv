@@ -52,10 +52,10 @@ std::string	seperateMetaChar(std::string line, std::string set)
 	return line;
 }
 
-std::string trim(std::string& str)
+void trim(std::string& str, const std::string& del)
 {
-    std::string ret = str.erase((str.find_last_not_of(" \t\n\v\f\r")) + 1);
-    return (ret.erase(0, ret.find_first_not_of(" \t\n\v\f\r")));
+    str.erase((str.find_last_not_of(del)) + 1);
+    str.erase(0, str.find_first_not_of(del));
 }
 
 std::vector<std::string> split(const std::string& str, std::string delim)
@@ -81,7 +81,7 @@ bool checkCRLF(std::string& str)
     return (str.back() == '\r');
 }
 
-void refreshBuffer(std::string& buf, int& size)
+void refreshBuffer(std::string& buf, size_t& size)
 {
     buf.erase(0, size);
     size = 0;

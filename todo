@@ -48,7 +48,7 @@ public:
 Response
 {
 public:
-	Response(struct Response);
+	Response();
 	bool IsCGI();
 	std::string GetErrorPage(int errorCode);
 	std::string GetResponse();
@@ -64,9 +64,12 @@ private:
 // Response 생성자에서는 Response를 생성할 때 CGI인지 아닌지를 판단한다.
 // Response queue를 반환하면, kqueue에서 이벤트(EVFILT_READ(pipe), EVFILT_WRITE(Response), EVFILT_PROC(CGI))
 
+ConfigHandler의 GetRepsonseOf 내부에서 Response Array를 만들어 반환한다.
+이 때 GetResponseOf함수에 들어오는 Request 인자는 무결하다고 가정 후 진행한다.
+	HTTP 1.1만 처리하도록 한다.
+Http Request로부터 directory path를 보고 ConfigHandler를 순회하면서 파일을 확인한다.
+Method가 처리할 수 있는지 또한 확인한다.
 
-1. ResponseHandler
-2. 
+std::queue<Response> ConfigHandler::GetResponseOf(std::vector<struct Request> requests);
 
-
-mPortList
+마지막으로 모든 부분이 되어 있다면 status를 정상적으로 세팅한다.

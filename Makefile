@@ -27,8 +27,18 @@ SRCS_MAND = ConfigHandler.cpp \
 	Server.cpp \
 	Location.cpp \
 	parseUtils.cpp \
+<<<<<<< HEAD
 	WebServ.cpp \
 	main.cpp
+=======
+	Response.cpp \
+	Request.cpp \
+	HttpRequest.cpp \
+	convertUtils.cpp \
+	autoIndex.cpp \
+	StatusPage.cpp \
+	main_t.cpp
+>>>>>>> main
 SRCS_BONUS = srcs_bonus1 \
 	srcs_bonus2 \
 	srcs_bonus3
