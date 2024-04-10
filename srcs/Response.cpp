@@ -335,7 +335,7 @@ void Response::processPOST(struct Resource& res)
     }
 }
 
-void Response::processDELETE(struct Resource& res)
+void Response::processDELETE()
 {
 	struct stat statBuf;
 	if (stat(mABSPath.c_str(), &statBuf) == -1 || S_ISDIR(statBuf.st_mode))
