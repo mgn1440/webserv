@@ -23,6 +23,7 @@ public:
 	void SetCGIBody(const std::string& CGIBody);
     void SetStatusOf(int statusCode);
 	std::string GenResponseMsg();
+    char* GetABSPath();
 private:
 
     bool isValidMethod(struct Request& req, struct Resource& res);

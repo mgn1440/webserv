@@ -348,3 +348,8 @@ void Response::processDELETE()
     mContentType = "application/json";
 	mBody = "{\n \"message\": \"Item deleted successfully.\"\n}";
 }
+
+char* Response::GetABSPath()
+{
+	return (mABSPath.c_str());
+}
