@@ -9,7 +9,7 @@
 # include <sys/event.h>
 # include "Request.hpp"
 # include "Response.hpp"
-# include "HttpRequest.hpp"
+# include "HttpHandler.hpp"
 
 // system call error 인해 webserv 프로그램이 종료되는 건 말이 안된다
 // runKqueue 내부에서 throw catch 하는 구조로 만들어야 함
@@ -22,16 +22,16 @@ class WebServ
 	private:
 		int mKq;
 		std::map<int, int> mServSockPortMap; // key: servSocket, val: port
-		std::map<int, HttpRequest> mRequestMap;
+		std::map<int, HttpHandler> mRequestMap;
 		std::map<int, std::deque<Response> > mResponseMap; // key: clientFD
 		std::vector<int> mServSockList;
 		std::vector<struct kevent> mChangeList;
 		std::vector<std::string> mEnvList;
 		// event => pid, pipe
 		// (pid, clientFD), (pipe, clientFD)
-		std::map<int, std::pair<Response, int> > mCGIPipeMap; // key: pipeFD, value: Response, clientFD
+		std::map<int, std::pair<Response*, int> > mCGIPipeMap; // key: pipeFD, value: Response, clientFD
 		std::map<int, std::pair<int,pid_t> > mCGIClientMap; // key: clientFD, value: pipeFD, PID
-		std::map<pid_t, std::pair<Response,int> > mCGIPidMap; // key: pid, value: Response, pipeFD
+		std::map<pid_t, std::pair<Response*,int> > mCGIPidMap; // key: pid, value: Response, pipeFD
 		struct kevent mEventList[30];
 
 		WebServ();

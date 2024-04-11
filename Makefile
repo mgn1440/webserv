@@ -29,7 +29,7 @@ SRCS_MAND = ConfigHandler.cpp \
 	parseUtils.cpp \
 	Response.cpp \
 	Request.cpp \
-	HttpRequest.cpp \
+	HttpHandler.cpp \
 	convertUtils.cpp \
 	autoIndex.cpp \
 	StatusPage.cpp \

@@ -2,7 +2,7 @@
 #include <iostream>
 #include "ConfigHandler.hpp"
 #include "AConfParser.hpp"
-#include "HttpRequest.hpp"
+#include "HttpHandler.hpp"
 #include "parseUtils.hpp"
 #include "Response.hpp"
 #include "Request.hpp"

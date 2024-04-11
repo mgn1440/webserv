@@ -92,7 +92,7 @@ Response::Response()
 
 void Response::createResponseHeader()
 {
-    mbContentLen = true; // debug
+    // mbContentLen = true; // debug
     mStartLine = mHttpVer + " ";
     mStartLine += intToString(mStatCode) + " " + StatusPage::GetInstance()->GetStatusMessageOf(mStatCode) +"\r\n";
     mHeader = "Date: " + mDate + "\r\n";

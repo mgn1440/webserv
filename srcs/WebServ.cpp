@@ -10,7 +10,7 @@
 #include <exception>
 #include <cstdio>
 #include "WebServ.hpp"
-#include "HttpRequest.hpp"
+#include "HttpHandler.hpp"
 #include "Response.hpp"
 
 WebServ::WebServ(const std::set<int>& portList, const std::vector<std::string>& envList)
@@ -220,7 +220,7 @@ void	WebServ::acceptNewClientSocket(struct kevent* currEvent)
 	if (fcntl(clientSocket, F_SETFL, O_NONBLOCK, FD_CLOEXEC) == -1)
 		throw std::runtime_error("fcntl() error");
 	addEvents(clientSocket, EVFILT_READ, EV_ADD | EV_ENABLE, 0, 0, NULL);
-	mRequestMap.insert(std::make_pair(clientSocket, HttpRequest(mServSockPortMap[servSocket])));
+	mRequestMap.insert(std::make_pair(clientSocket, HttpHandler(mServSockPortMap[servSocket])));
 }
 
 void	WebServ::processHttpRequest(struct kevent* currEvent)
@@ -236,17 +236,15 @@ void	WebServ::processHttpRequest(struct kevent* currEvent)
 	addEvents(clientFD, EVFILT_TIMER, EV_ADD | EV_ENABLE | EV_ONESHOT, 0, 30000, NULL); // 30초 타임아웃 (write event가 발생하면 timeout event를 삭제해줘야 함)
 	// TODO: ConfigHandler::GetResponseOf 메서드와 중복 책임. => 하나로 병합 또는 한 쪽 삭제 요망
 	// Request 객체로부터 RequestList를 받음
-	std::vector<Request> requestList = mRequestMap[clientFD].ReceiveRequestMessage(httpRequest);
-	std::vector<Request>::iterator requestIter = requestList.begin();
-	for(; requestIter != requestList.end(); ++requestIter)
+	std::deque<Response> responseList = mRequestMap[clientFD].ReceiveRequestMessage(httpRequest);
+	std::deque<Response>::iterator responseIt = responseList.begin();
+	for(; responseIt != responseList.end(); ++responseIt)
 	{
-		Response response;
-		response.MakeResponse(*requestIter); // static이면 전부 생성 완료, CGI이면 미완성
-		mResponseMap[clientFD].push_back(response);
-		if (!response.IsCGI())
+		mResponseMap[clientFD].push_back(*responseIt);
+		if (!responseIt->IsCGI())
 			addEvents(clientFD, EVFILT_WRITE, EV_ADD | EV_ENABLE, 0, 0, NULL);
 		else
-			processCGI(response, clientFD);
+			processCGI(mResponseMap[clientFD].back(), clientFD);
 	}
 }
 
@@ -330,7 +328,6 @@ void	WebServ::writeHttpResponse(struct kevent* currEvent)
 {
 	int clientFD = currEvent->ident;
 	Response &response = mResponseMap[clientFD].front();
-	mResponseMap[clientFD].pop_front();
 
 	if (currEvent->fflags & EV_EOF)
 	{
@@ -343,6 +340,7 @@ void	WebServ::writeHttpResponse(struct kevent* currEvent)
 	addEvents(clientFD, EVFILT_TIMER, EV_DELETE, 0, 0, NULL);
 	if (mResponseMap[clientFD].size() == 0)
 		addEvents(clientFD, EVFILT_WRITE, EV_DELETE, 0, 0, NULL);
+	mResponseMap[clientFD].pop_front();
 }
 
 std::string	WebServ::readFDData(int clientFD)
