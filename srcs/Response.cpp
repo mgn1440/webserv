@@ -90,7 +90,7 @@ Response::Response()
     , mContentType("text/html")
 {}
 
-void Response::CreateResponseHeader()
+void Response::createResponseHeader()
 {
     mbContentLen = true; // debug
     mStartLine = mHttpVer + " ";
@@ -106,7 +106,7 @@ void Response::CreateResponseHeader()
 
 // TODO: directory가 들어왔을 때 autoindex on =>  directory listing page
 // directory가 들어왔을 때 autoindex off => index file name이 붙어야 함
-void Response::CreateResponseBody()
+void Response::createResponseBody()
 {
 	std::ifstream ifs(mABSPath);
     if (ifs.fail())
@@ -147,7 +147,7 @@ void Response::PrintResponse()
 	// Server: webserv
 	ret += "Server: " + mServer + "\r\n";
 	ret += "Date: " + mDate + "\r\n\r\n";
-    CreateResponseBody();
+    createResponseBody();
     ret += mBody;
     std::cout << mBody << std::endl;
     std::cout << ret << std::endl;
@@ -204,8 +204,8 @@ void Response::processGET(struct Resource& res)
 	}
 	if (!mbCGI){
 		std::ifstream ifs(mABSPath);
-		CreateResponseBody();
-		CreateResponseHeader(); // doing this
+		createResponseBody();
+		createResponseHeader(); // doing this
 	}
 
     // //--------------------------
@@ -236,12 +236,12 @@ void Response::SetStatusOf(int statusCode)
     mStatCode = statusCode;
 	if (mErrorPage.find(statusCode) != mErrorPage.end()){
 		mABSPath = mErrorPage[statusCode];
-		CreateResponseBody();
-		CreateResponseHeader();
+		createResponseBody();
+		createResponseHeader();
 	}
 	else{
 		mBody = StatusPage::GetInstance()->GetStatusPageOf(statusCode);
-		CreateResponseHeader();
+		createResponseHeader();
 	}
 }
 
@@ -282,10 +282,14 @@ bool Response::IsCGI() const
 	return mbCGI;
 }
 
-void Response::SetCGIBody(const std::string& CGIBody)
+void Response::AppendCGIBody(const std::string& CGIBody)
 {
-	mBody = CGIBody;
-	CreateResponseHeader();
+	mBody += CGIBody;
+}
+
+void Response::GenCGIBody()
+{
+	createResponseHeader();
 }
 
 

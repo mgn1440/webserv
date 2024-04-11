@@ -19,11 +19,12 @@ public:
     bool IsCGI() const;
     void MakeResponse(struct Request& req);
     void PrintResponse();
-	void SetCGIBody(const std::string& CGIBody);
+	void AppendCGIBody(const std::string& CGIBody);
     void SetStatusOf(int statusCode);
 	std::string GenResponseMsg() const;
     const char* GetABSPath() const;
     std::map<std::string, std::string> GetParams() const;
+    void GenCGIBody();
 private:
     bool isValidMethod(struct Request& req, struct Resource& res);
     void processGET(struct Resource& res);
@@ -31,8 +32,8 @@ private:
     // void processHEAD(struct Resource& res);
     // void processPUT(struct Resource& res);
     void processDELETE();
-    void CreateResponseHeader();
-    void CreateResponseBody();
+    void createResponseHeader();
+    void createResponseBody();
 	void setFromResource(struct Resource);
 
     bool mbCGI;
