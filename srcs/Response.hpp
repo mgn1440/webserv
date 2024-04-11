@@ -25,6 +25,7 @@ public:
     const char* GetABSPath() const;
     std::map<std::string, std::string> GetParams() const;
     void GenCGIBody();
+    std::string GetCGIPath() const;
 private:
     bool isValidMethod(struct Request& req, struct Resource& res);
     void processGET(struct Resource& res);

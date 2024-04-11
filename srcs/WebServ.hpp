@@ -23,10 +23,12 @@ class WebServ
 		int mKq;
 		std::map<int, int> mServSockPortMap; // key: servSocket, val: port
 		std::map<int, HttpRequest> mRequestMap;
-		std::map<int, std::deque<Response> > mResponseMap;
+		std::map<int, std::deque<Response> > mResponseMap; // key: clientFD
 		std::vector<int> mServSockList;
 		std::vector<struct kevent> mChangeList;
 		std::vector<std::string> mEnvList;
+		// event => pid, pipe
+		// (pid, clientFD), (pipe, clientFD)
 		std::map<int, std::pair<Response, int> > mCGIPipeMap; // key: pipeFD, value: Response, clientFD
 		std::map<int, std::pair<int,pid_t> > mCGIClientMap; // key: clientFD, value: pipeFD, PID
 		std::map<pid_t, std::pair<Response,int> > mCGIPidMap; // key: pid, value: Response, pipeFD
@@ -41,7 +43,7 @@ class WebServ
 		void runKqueueLoop(void);
 		void acceptNewClientSocket(struct kevent* currEvent);
 		void processHttpRequest(struct kevent* currEvent);
-		void processCGI(const Response& response, int clinetFD);
+		void processCGI(Response& response, int clinetFD);
 		//void sendCGIResource(struct kevent* currEvent);
 		void writeHttpResponse(struct kevent* currEvent);
 		void waitCGIProc(struct kevent* currEvent);
@@ -49,7 +51,7 @@ class WebServ
 		bool isFatalKeventError(void);
 		std::string readFDData(int clientFD);
 		char *const *makeCGIEnvList(const Response& response);
-		char *const *makeArgvList(const std::string& ABSPath);
+		char *const *makeArgvList(const std::string& CGIPath, const std::string& ABSPath);
 		void sendPipeData(struct kevent* currEvent);
 		//void processGetCGI(const Request& request, const Response& response, int clientFD); // pipe 1개
 		//void processPostCGI(const Request& request, const Response& response, int clientFD); // pipe 2개, 표준입력으로 Http Request Body로 줘야 함

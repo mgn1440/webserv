@@ -292,6 +292,11 @@ void Response::GenCGIBody()
 	createResponseHeader();
 }
 
+std::string Response::GetCGIPath() const
+{
+	return (mCGIPath);
+}
+
 
 // TODO: Body를 reference로 받아서 복사되지 않도록(오버헤드 이슈) 처리해야 함.
 std::string Response::GenResponseMsg() const

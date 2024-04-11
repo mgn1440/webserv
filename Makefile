@@ -1,6 +1,6 @@
 #----------FLAG----------
 CXX = c++
-CXXFLAGS = -Wall -Wextra -Werror -std=c++98 -g
+CXXFLAGS = -Wall -Wextra -Werror -std=c++98 -fsanitize=address -g
 DEBUGFLAGS = -g
 DEPFLAGS = -MMD -MP
 
