@@ -63,7 +63,7 @@ void	WebServ::setKqueue(void)
 	for (; iter != mServSockList.end(); iter++)
 		addEvents(*iter, EVFILT_READ, EV_ADD | EV_ENABLE, 0, 0, NULL);
 	if (kevent(mKq, &mChangeList[0], mChangeList.size(), NULL, 0, NULL) == -1)
-		throw std::runtime_error("kevent error");
+		throw std::runtime_error("kevent error0");
 	mChangeList.clear();
 }
 
@@ -123,7 +123,7 @@ void	WebServ::runKqueueLoop(void)
 				{
 					currEvent = &mEventList[i];
 					if (currEvent->fflags & EV_ERROR)
-						throw std::runtime_error("kevent error");
+						throw std::runtime_error("kevent error1");
 					else if (currEvent->filter == EVFILT_READ)
 					{
 						if (std::find(mServSockList.begin(), mServSockList.end(), currEvent->ident) != mServSockList.end())
@@ -147,7 +147,10 @@ void	WebServ::runKqueueLoop(void)
 				}
 			}
 			if (kevent(mKq, &mChangeList[0], mChangeList.size(), NULL, 0, NULL) == -1)
-				throw std::runtime_error("kevent error");
+			{
+				//perror("kevent error");
+				throw std::runtime_error("kevent error2");
+			}
 			mChangeList.clear();
 		}
 		catch(const std::exception& e)
@@ -277,10 +280,15 @@ void	WebServ::processCGI(const Response& response, int clientFD)
 			exit(EXIT_FAILURE);
 		}
 	}
-	else // parent
+	else // parentq
 	{
 		close(pipeFD[1]);
+		std::cout << "pid = " << pid << ", " << "pipe[0] = " << pipeFD[0] << std::endl;
 		addEvents(pid, EVFILT_PROC, EV_ADD | EV_ENABLE | EV_ONESHOT, NOTE_EXIT, 0, NULL);
+		if (kevent(mKq, &mChangeList[0], mChangeList.size(), NULL, 0, NULL) == -1)
+		{
+			std::cout << "error\n";
+		}
 		addEvents(pipeFD[0], EVFILT_READ, EV_ADD | EV_ENABLE, 0, 0, NULL);
 		mCGIClientMap[clientFD] = std::make_pair(pipeFD[0], pid);
 		mCGIPipeMap[pipeFD[0]] = std::make_pair(response, clientFD);
