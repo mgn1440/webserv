@@ -353,3 +353,8 @@ const char* Response::GetABSPath() const
 {
 	return (mABSPath.c_str());
 }
+
+std::map<std::string, std::string> Response::GetParams() const
+{
+	return (mParams);
+}

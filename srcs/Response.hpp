@@ -23,8 +23,8 @@ public:
     void SetStatusOf(int statusCode);
 	std::string GenResponseMsg() const;
     const char* GetABSPath() const;
+    std::map<std::string, std::string> GetParams() const;
 private:
-
     bool isValidMethod(struct Request& req, struct Resource& res);
     void processGET(struct Resource& res);
     void processPOST(struct Resource& res);
