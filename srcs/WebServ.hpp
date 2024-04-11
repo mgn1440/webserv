@@ -27,9 +27,9 @@ class WebServ
 		std::vector<int> mServSockList;
 		std::vector<struct kevent> mChangeList;
 		std::vector<std::string> mEnvList;
-		std::map<int, std::pair<Response&, int> > mCGIPipeMap; // key: pipeFD, value: Response, clientFD
+		std::map<int, std::pair<Response, int> > mCGIPipeMap; // key: pipeFD, value: Response, clientFD
 		std::map<int, std::pair<int,pid_t> > mCGIClientMap; // key: clientFD, value: pipeFD, PID
-		std::map<pid_t, std::pair<Response&,int> > mCGIPidMap; // key: pid, value: Response, pipeFD
+		std::map<pid_t, std::pair<Response,int> > mCGIPidMap; // key: pid, value: Response, pipeFD
 		struct kevent mEventList[30];
 
 		WebServ();
@@ -50,7 +50,6 @@ class WebServ
 		std::string readFDData(int clientFD);
 		char *const *makeCGIEnvList(const Response& response);
 		char *const *makeArgvList(const std::string& ABSPath);
-		void deleteList(char *const *list);
 		void sendPipeData(struct kevent* currEvent);
 		//void processGetCGI(const Request& request, const Response& response, int clientFD); // pipe 1개
 		//void processPostCGI(const Request& request, const Response& response, int clientFD); // pipe 2개, 표준입력으로 Http Request Body로 줘야 함

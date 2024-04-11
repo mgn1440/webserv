@@ -200,10 +200,10 @@ void	WebServ::waitCGIProc(struct kevent* currEvent)
 			response.SetStatusOf(502);
 		else
 		{
-			addEvents(clientFD, EVFILT_WRITE, EV_ADD | EV_ENABLE, 0, 0, NULL);
 			response.GenCGIBody();
+			addEvents(clientFD, EVFILT_WRITE, EV_ADD | EV_ENABLE, 0, 0, NULL);
 		}
-		close(pid);
+		close(pipeFD);
 		mCGIPidMap.erase(pid);
 		mCGIClientMap.erase(clientFD);
 		mCGIPipeMap.erase(pipeFD);
@@ -235,6 +235,7 @@ void	WebServ::processHttpRequest(struct kevent* currEvent)
 	std::string httpRequest = readFDData(clientFD);
 	addEvents(clientFD, EVFILT_TIMER, EV_ADD | EV_ENABLE | EV_ONESHOT, 0, 30000, NULL); // 30초 타임아웃 (write event가 발생하면 timeout event를 삭제해줘야 함)
 
+	// TODO: ConfigHandler::GetResponseOf 메서드와 중복 책임. => 하나로 병합 또는 한 쪽 삭제 요망
 	// Request 객체로부터 RequestList를 받음
 	std::vector<Request> requestList = mRequestMap[clientFD].ReceiveRequestMessage(httpRequest);
 	std::vector<Request>::iterator requestIter = requestList.begin();
@@ -246,7 +247,7 @@ void	WebServ::processHttpRequest(struct kevent* currEvent)
 		if (!response.IsCGI())
 			addEvents(clientFD, EVFILT_WRITE, EV_ADD | EV_ENABLE, 0, 0, NULL);
 		else
-			; // processCGI();
+			processCGI(response, clientFD);
 	}
 }
 
@@ -260,7 +261,7 @@ void	WebServ::processCGI(const Response& response, int clientFD)
 	pid_t pid = fork();
 	if (pid < 0)
 		throw std::runtime_error("fork error");
-	else if (pid == 0)
+	else if (pid == 0) // child
 	{
 		close(pipeFD[0]);
 		if (dup2(pipeFD[1], STDOUT_FILENO) == -1)
@@ -275,10 +276,8 @@ void	WebServ::processCGI(const Response& response, int clientFD)
 			perror("execve failed");
 			exit(EXIT_FAILURE);
 		}
-		deleteList(argv); // 없어도 됨
-		deleteList(envp);
 	}
-	else
+	else // parent
 	{
 		close(pipeFD[1]);
 		addEvents(pid, EVFILT_PROC, EV_ADD | EV_ENABLE | EV_ONESHOT, NOTE_EXIT, 0, NULL);
@@ -289,15 +288,6 @@ void	WebServ::processCGI(const Response& response, int clientFD)
 	}
 }
 
-void WebServ::deleteList(char *const *list)
-{
-	if (list != NULL)
-	{
-		for (size_t i = 0; list[i] != NULL; ++i)
-			delete[] list[i];
-		delete[] list;
-	}
-}
 
 char *const *WebServ::makeArgvList(const std::string& ABSPath)
 {
@@ -311,7 +301,7 @@ char *const *WebServ::makeArgvList(const std::string& ABSPath)
 char *const *WebServ::makeCGIEnvList(const Response& response)
 {
 	std::map<std::string, std::string> params = response.GetParams();
-	for (std::map<std::string, std::string>::iterator iter = params.begin();; iter != params.end(); ++iter)
+	for (std::map<std::string, std::string>::iterator iter = params.begin(); iter != params.end(); ++iter)
 	{
 		std::string s = iter->first + "=" + iter->second;
 		mEnvList.push_back(s);
@@ -330,7 +320,6 @@ void	WebServ::sendPipeData(struct kevent* currEvent)
 {
 	int pipeFD = currEvent->ident;
 	Response CGIResponse = mCGIPipeMap[pipeFD].first;
-	int clientFD = mCGIPipeMap[pipeFD].second;
 	CGIResponse.AppendCGIBody(readFDData(pipeFD));
 }
 
