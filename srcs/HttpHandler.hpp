@@ -6,6 +6,7 @@
 # include <sstream>
 # include <map>
 # include "Request.hpp"
+# include "Response.hpp"
 
 class HttpHandler
 {
