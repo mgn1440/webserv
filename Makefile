@@ -1,6 +1,6 @@
 #----------FLAG----------
 CXX = c++
-CXXFLAGS = -Wall -Wextra -Werror -std=c++98
+CXXFLAGS = -Wall -Wextra -Werror -std=c++98 #-fsanitize=address -g
 DEBUGFLAGS = -g
 DEPFLAGS = -MMD -MP
 ADDRESS = -fsanitize=address
@@ -30,7 +30,7 @@ SRCS_MAND = ConfigHandler.cpp \
 	parseUtils.cpp \
 	Response.cpp \
 	Request.cpp \
-	HttpRequest.cpp \
+	HttpHandler.cpp \
 	convertUtils.cpp \
 	autoIndex.cpp \
 	StatusPage.cpp \

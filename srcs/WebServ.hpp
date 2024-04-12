@@ -9,7 +9,7 @@
 # include <sys/event.h>
 # include "Request.hpp"
 # include "Response.hpp"
-# include "HttpRequest.hpp"
+# include "HttpHandler.hpp"
 
 // system call error 인해 webserv 프로그램이 종료되는 건 말이 안된다
 // runKqueue 내부에서 throw catch 하는 구조로 만들어야 함
@@ -22,14 +22,16 @@ class WebServ
 	private:
 		int mKq;
 		std::map<int, int> mServSockPortMap; // key: servSocket, val: port
-		std::map<int, HttpRequest> mRequestMap;
-		std::map<int, std::deque<Response> > mResponseMap;
+		std::map<int, HttpHandler> mRequestMap; // key: clientFD, value: HttpHandler
+		std::map<int, std::deque<Response> > mResponseMap; // key: clientFD, value: Response
 		std::vector<int> mServSockList;
 		std::vector<struct kevent> mChangeList;
 		std::vector<std::string> mEnvList;
-		std::map<int, std::pair<Response&, int> > mCGIPipeMap; // key: pipeFD, value: Response body(pipeFD에 읽기 요청이 들어오면 담당하는 Respons Buff에 저장한다.)
-		std::map<int, std::pair<int,int> > mCGIClientMap; // key: clientFD, value: pipeFD, PID
-		std::map<int, std::pair<Response&,int> > mCGIPidMap; // key: pid, value: Response, pipeFD
+		std::map<int, std::pair<Response*, int> > mCGIPipeMap; // key: pipeFD, value: Response, clientFD
+		std::map<int, std::pair<int,pid_t> > mCGIClientMap; // key: clientFD, value: pipeFD, PID
+		std::map<pid_t, std::pair<Response*,int> > mCGIPidMap; // key: pid, value: Response, pipeFD
+		std::map<int, std::pair<Response*, size_t> > mCGIPostPipeMap; // key: pipe(CGI STDIN_FILENO), value: Response, 이미 write 된 문자열 길이
+		std::map<int, bool> mTimerMap; // key: clientFD, value: TimerOn Off;
 		struct kevent mEventList[30];
 
 		WebServ();
@@ -41,14 +43,19 @@ class WebServ
 		void runKqueueLoop(void);
 		void acceptNewClientSocket(struct kevent* currEvent);
 		void processHttpRequest(struct kevent* currEvent);
+		void processCGI(Response& response, int clinetFD);
 		//void sendCGIResource(struct kevent* currEvent);
 		void writeHttpResponse(struct kevent* currEvent);
+		void writeToCGIPipe(struct kevent* currEvent);
 		void waitCGIProc(struct kevent* currEvent);
 		void handleTimeOut(struct kevent* currEvent);
 		bool isFatalKeventError(void);
 		std::string readFDData(int clientFD);
-		//void processGetCGI(const Request& request, const Response& response, int clientFD); // pipe 1개
-		//void processPostCGI(const Request& request, const Response& response, int clientFD); // pipe 2개, 표준입력으로 Http Request Body로 줘야 함
+		char *const *makeCGIEnvList(const Response& response);
+		char *const *makeArgvList(const std::string& CGIPath, const std::string& ABSPath);
+		void sendPipeData(struct kevent* currEvent);
+		void eraseCGIMaps(int pid, int clientFD, int pipeFD);
+		void eraseHttpMaps(int clientFD);
 };
 
 #endif

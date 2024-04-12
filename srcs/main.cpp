@@ -2,7 +2,7 @@
 #include <iostream>
 #include "ConfigHandler.hpp"
 #include "AConfParser.hpp"
-#include "HttpRequest.hpp"
+#include "HttpHandler.hpp"
 #include "parseUtils.hpp"
 #include "Response.hpp"
 #include "Request.hpp"
@@ -21,12 +21,14 @@ int main(int argc, char *argv[], char *envp[])
 			ConfigHandler::MakeConfigHandler("./conf/default.conf");
 		std::vector<std::string> envList;
 		for (char **env = envp; *env != 0; env++)
+		{
 			envList.push_back(*env);
+		}
 		WebServ webServ(ConfigHandler::GetConfigHandler().GetPorts(), envList);
 	}
 	catch(const std::exception& e)
 	{
-		std::cerr << e.what() << '\n';
+		perror(e.what());
 	}
 	return (0);
 }
