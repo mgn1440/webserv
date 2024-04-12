@@ -139,7 +139,7 @@ void	WebServ::runKqueueLoop(void)
 					else if (currEvent->filter == EVFILT_PROC)
 						waitCGIProc(currEvent);
 					else if (currEvent->filter == EVFILT_TIMER)
-						;//handleTimeOut(currEvent);
+						handleTimeOut(currEvent);
 				}
 				catch(const std::exception& e)
 				{
@@ -160,28 +160,28 @@ void	WebServ::runKqueueLoop(void)
 // clientFD 기준으로 write event가 한 번도 안났으면 timeOut
 // Response 순회하면서
 // CGI(pipe, pid) 이벤트 제거
-// void	WebServ::handleTimeOut(struct kevent* currEvent)
-// {
-// 	int clientFD = currEvent->ident;
+void	WebServ::handleTimeOut(struct kevent* currEvent)
+{
+	int clientFD = currEvent->ident;
 
-// 	std::deque<Response>::iterator iter = mResponseMap[clientFD].begin();
-// 	for (; iter != mResponseMap[clientFD].end(); ++iter)
-// 	{
-// 		addEvents(clientFD, EVFILT_READ, EV_DELETE, 0, 0, NULL);
-// 		// if (iter->IsCGI())
-// 		{
-// 			int pipeFD = mCGIClientMap[clientFD].first;
-// 			int pid = mCGIPipeMap[pipeFD].second;
-// 			close(pipeFD); // pipe event 삭제
-// 			mCGIPipeMap.erase(pipeFD);
-// 			mCGIClientMap.erase(clientFD);
-// 			mCGIPidMap.erase(pid);
-// 			addEvents(pid, EVFILT_PROC, EV_DELETE, 0, 0, NULL); // pid 이벤트 삭제
-// 		}
-// 		// onErrorPage();
-// 		addEvents(clientFD, EVFILT_WRITE, EV_ADD | EV_ENABLE | EV_ONESHOT, 0, 0, NULL); // Error page return
-// 	}
-// }
+	addEvents(clientFD, EVFILT_READ, EV_DELETE, 0, 0, NULL);
+	std::deque<Response>::iterator iter = mResponseMap[clientFD].begin();
+	for (; iter != mResponseMap[clientFD].end(); ++iter)
+	{
+		if (iter->IsCGI())
+		{
+			int pipeFD = mCGIClientMap[clientFD].first;
+			int pid = mCGIPipeMap[pipeFD].second;
+			close(pipeFD); // pipe event 삭제
+			mCGIPipeMap.erase(pipeFD);
+			mCGIClientMap.erase(clientFD);
+			mCGIPidMap.erase(pid);
+			addEvents(pid, EVFILT_PROC, EV_DELETE, 0, 0, NULL); // pid 이벤트 삭제
+		}
+		// onErrorPage();
+		addEvents(clientFD, EVFILT_WRITE, EV_ADD | EV_ENABLE | EV_ONESHOT, 0, 0, NULL); // Error page return
+	}
+}
 
 void	WebServ::waitCGIProc(struct kevent* currEvent)
 {
@@ -243,11 +243,23 @@ void	WebServ::processHttpRequest(struct kevent* currEvent)
 		mResponseMap[clientFD].push_back(*responseIt);
 		if (!responseIt->IsCGI())
 			addEvents(clientFD, EVFILT_WRITE, EV_ADD | EV_ENABLE, 0, 0, NULL);
-		else
+		else // Get인지 Post인지 확인을 해야 함
 			processCGI(mResponseMap[clientFD].back(), clientFD);
 	}
 }
 
+void	WebServ::processPostCGI(Response& response, int clientFD)
+{
+	int readPipeFD[2];
+	int writePipeFD[2];
+
+	if (pipe(readPipeFD) == -1 || pipe(writePipeFD) == -1)
+		throw std::runtime_error("pipe error");
+	if (fcntl(readPipeFD[0], F_SETFL, O_NONBLOCK, FD_CLOEXEC) == -1 || fcntl(writePipeFD[1], F_SETFL, O_NONBLOCK, FD_CLOEXEC) == -1)
+		throw std::runtime_error("pipe error");
+	addEvents(readPipeFD[0], EVFILT_READ, EV_ADD | EV_ENABLE, 0, 0, NULL);
+
+}
 
 void	WebServ::processCGI(Response& response, int clientFD)
 {
