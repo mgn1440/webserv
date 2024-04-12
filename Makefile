@@ -3,6 +3,7 @@ CXX = c++
 CXXFLAGS = -Wall -Wextra -Werror -std=c++98
 DEBUGFLAGS = -g
 DEPFLAGS = -MMD -MP
+ADDRESS = -fsanitize=address
 
 #----------OBJ----------
 OBJS_MAND = $(addprefix objs/, $(notdir $(SRCS_MAND:.cpp=.o)))
@@ -39,18 +40,11 @@ SRCS_MAND = ConfigHandler.cpp \
 SRCS_BONUS = srcs_bonus1 \
 	srcs_bonus2 \
 	srcs_bonus3
-
 #----------VPATH----------
 vpath %.cpp srcs
 vpath %.hpp includes
 
-
 all: $(NAME)
-
-debug: CXXFLAGS += $(DEBUGFLAGS)
-debug:
-	@make clean
-	@make all
 
 $(NAME): $(OBJ_DIR) mandatory
 
@@ -99,4 +93,9 @@ re:
 rebonus: fclean
 	@make bonus
 
-.PHONY: all clean fclean re rebonus
+.PHONY: all clean fclean re rebonus debug
+
+debug:
+	@make fclean
+	@make all CXXFLAGS="$(CXXFLAGS) $(DEBUGFLAGS) $(ADDRESS)"
+	
