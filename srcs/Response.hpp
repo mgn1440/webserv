@@ -26,6 +26,9 @@ public:
     std::map<std::string, std::string> GetParams() const;
     void GenCGIBody();
     std::string GetCGIPath() const;
+	std::string GenResponseMsg();
+    void SetRequestBody(const std::string& requestBody);
+    std::string GetRequestBody();
 private:
     bool isValidMethod(struct Request& req, struct Resource& res);
     void processGET(struct Resource& res);
@@ -44,6 +47,7 @@ private:
     std::string mStartLine;
     std::string mHeader;
     std::string mBody;
+    std::string mRequestBody;
 	std::map<std::string, std::string> mParams;
 
     std::string mHttpVer;
