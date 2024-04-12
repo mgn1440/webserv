@@ -26,7 +26,6 @@ public:
     std::map<std::string, std::string> GetParams() const;
     void GenCGIBody();
     std::string GetCGIPath() const;
-	std::string GenResponseMsg();
     void SetRequestBody(const std::string& requestBody);
     std::string GetRequestBody();
 private:
