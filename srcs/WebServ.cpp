@@ -63,7 +63,7 @@ void	WebServ::setKqueue(void)
 	for (; iter != mServSockList.end(); iter++)
 		addEvents(*iter, EVFILT_READ, EV_ADD | EV_ENABLE, 0, 0, NULL);
 	if (kevent(mKq, &mChangeList[0], mChangeList.size(), NULL, 0, NULL) == -1)
-		throw std::runtime_error("kevent error0");
+		throw std::runtime_error("kevent error");
 	mChangeList.clear();
 }
 
@@ -73,10 +73,7 @@ void	WebServ::addEvents(uintptr_t ident, int16_t filter, uint16_t flags, uint32_
 
 	EV_SET(&newEvent, ident, filter, flags, fflags, data, udata);
 	if (kevent(mKq, &newEvent, 1, NULL, 0, NULL) == -1)
-	{
-		perror("kevent error");
 		throw std::runtime_error("kevent error");
-	}
 }
 
 bool	WebServ::isFatalKeventError(void)
@@ -146,7 +143,7 @@ void	WebServ::runKqueueLoop(void)
 				}
 				catch(const std::exception& e)
 				{
-					std::cerr << e.what() << '\n';
+					perror(e.what());
 					continue;
 				}
 			}
@@ -234,6 +231,7 @@ void	WebServ::processHttpRequest(struct kevent* currEvent)
 	}
 	std::string httpRequest = readFDData(clientFD);
 	addEvents(clientFD, EVFILT_TIMER, EV_ADD | EV_ENABLE | EV_ONESHOT, 0, 30000, NULL); // 30초 타임아웃 (write event가 발생하면 timeout event를 삭제해줘야 함)
+	mTimerMap[clientFD] = true;
 	// TODO: ConfigHandler::GetResponseOf 메서드와 중복 책임. => 하나로 병합 또는 한 쪽 삭제 요망
 	// Request 객체로부터 RequestList를 받음
 	std::deque<Response> responseList = mRequestMap[clientFD].ReceiveRequestMessage(httpRequest);
@@ -283,7 +281,6 @@ void	WebServ::processCGI(Response& response, int clientFD)
 		mCGIClientMap[clientFD] = std::make_pair(pipeFD[0], pid);
 		mCGIPipeMap[pipeFD[0]] = std::make_pair(&response, clientFD);
 		mCGIPidMap[pid] = std::make_pair(&response, pipeFD[0]);
-		std::cout << &response << std::endl;
 	}
 }
 
@@ -320,7 +317,6 @@ char *const *WebServ::makeCGIEnvList(const Response& response)
 void	WebServ::sendPipeData(struct kevent* currEvent)
 {
 	int pipeFD = currEvent->ident;
-	std::cout << mCGIPipeMap[pipeFD].first << std::endl;
 	mCGIPipeMap[pipeFD].first->AppendCGIBody(readFDData(pipeFD));
 }
 
@@ -337,7 +333,11 @@ void	WebServ::writeHttpResponse(struct kevent* currEvent)
 	std::string httpResponse = response.GenResponseMsg();
 	if (write(clientFD, httpResponse.c_str(), httpResponse.size()) == -1)
 			throw std::runtime_error("write error");
-	addEvents(clientFD, EVFILT_TIMER, EV_DELETE, 0, 0, NULL);
+	if (mTimerMap[clientFD])
+	{
+		addEvents(clientFD, EVFILT_TIMER, EV_DELETE, 0, 0, NULL);
+		mTimerMap[clientFD] = false;
+	}
 	if (mResponseMap[clientFD].size() == 0)
 		addEvents(clientFD, EVFILT_WRITE, EV_DELETE, 0, 0, NULL);
 	mResponseMap[clientFD].pop_front();

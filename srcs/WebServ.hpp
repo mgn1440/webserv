@@ -32,6 +32,7 @@ class WebServ
 		std::map<int, std::pair<Response*, int> > mCGIPipeMap; // key: pipeFD, value: Response, clientFD
 		std::map<int, std::pair<int,pid_t> > mCGIClientMap; // key: clientFD, value: pipeFD, PID
 		std::map<pid_t, std::pair<Response*,int> > mCGIPidMap; // key: pid, value: Response, pipeFD
+		std::map<int, bool> mTimerMap; // key: clientFD, value: TimerOn Off;
 		struct kevent mEventList[30];
 
 		WebServ();
