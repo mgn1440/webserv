@@ -1,17 +1,14 @@
-<?php
-/**
- * Front to the WordPress application. This file doesn't do anything, but loads
- * wp-blog-header.php which does and tells WordPress to load the theme.
- *
- * @package WordPress
- */
+<!DOCTYPE html>
+<html>
+<meta charset=\"UTF-8\">
+<head>
+    <title>간단한 HTML 페이지</title>
+</head>
+<body>
 
-/**
- * Tells WordPress to load the WordPress theme and output it.
- *
- * @var bool
- */
-define( 'WP_USE_THEMES', true );
+    <?php
+    echo "안녕하세요! PHP를 통해 생성된 HTML 페이지에 오신 것을 환영합니다.";
+    ?>
 
-/** Loads the WordPress Environment and Template */
-require __DIR__ . '/wp-blog-header.php';
+</body>
+</html>

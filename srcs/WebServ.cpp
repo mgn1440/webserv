@@ -72,8 +72,7 @@ void	WebServ::addEvents(uintptr_t ident, int16_t filter, uint16_t flags, uint32_
 	struct kevent newEvent;
 
 	EV_SET(&newEvent, ident, filter, flags, fflags, data, udata);
-	if (kevent(mKq, &newEvent, 1, NULL, 0, NULL) == -1)
-		throw std::runtime_error("kevent error");
+	mChangeList.push_back(newEvent);
 }
 
 bool	WebServ::isFatalKeventError(void)
@@ -147,6 +146,8 @@ void	WebServ::runKqueueLoop(void)
 					continue;
 				}
 			}
+			if (kevent(mKq, &mChangeList[0], mChangeList.size(), NULL, 0, NULL) == -1)
+				throw std::runtime_error("kevent error");
 		}
 		catch(const std::exception& e)
 		{
@@ -218,6 +219,7 @@ void	WebServ::acceptNewClientSocket(struct kevent* currEvent)
 		throw std::runtime_error("fcntl() error");
 	addEvents(clientSocket, EVFILT_READ, EV_ADD | EV_ENABLE, 0, 0, NULL);
 	mRequestMap.insert(std::make_pair(clientSocket, HttpHandler(mServSockPortMap[servSocket])));
+	mResponseMap.insert(std::make_pair(clientSocket, std::deque<Response>()));
 }
 
 void	WebServ::processHttpRequest(struct kevent* currEvent)
@@ -227,9 +229,11 @@ void	WebServ::processHttpRequest(struct kevent* currEvent)
 	if (currEvent->flags & EV_EOF) // 클라이언트 쪽에서 소켓을 닫음 (관련된 모든 리소스를 삭제, 어쩌피 에러도 못 받음)
 	{
 		close(clientFD); // EVFILT_READ, EVFILT_WRITE 삭제
-		throw std::runtime_error("client socket close");
+		// throw std::runtime_error("client socket close");
+		return;
 	}
 	std::string httpRequest = readFDData(clientFD);
+	std::cout << httpRequest << std::endl;
 	addEvents(clientFD, EVFILT_TIMER, EV_ADD | EV_ENABLE | EV_ONESHOT, 0, 30000, NULL); // 30초 타임아웃 (write event가 발생하면 timeout event를 삭제해줘야 함)
 	mTimerMap[clientFD] = true;
 	// TODO: ConfigHandler::GetResponseOf 메서드와 중복 책임. => 하나로 병합 또는 한 쪽 삭제 요망
@@ -327,10 +331,11 @@ void	WebServ::writeHttpResponse(struct kevent* currEvent)
 
 	if (currEvent->fflags & EV_EOF)
 	{
-		close(clientFD);
+		// close(clientFD);
 		return ;
 	}
 	std::string httpResponse = response.GenResponseMsg();
+	std::cout << httpResponse << std::endl;
 	if (write(clientFD, httpResponse.c_str(), httpResponse.size()) == -1)
 			throw std::runtime_error("write error");
 	if (mTimerMap[clientFD])
@@ -338,9 +343,9 @@ void	WebServ::writeHttpResponse(struct kevent* currEvent)
 		addEvents(clientFD, EVFILT_TIMER, EV_DELETE, 0, 0, NULL);
 		mTimerMap[clientFD] = false;
 	}
+	mResponseMap[clientFD].pop_front();
 	if (mResponseMap[clientFD].size() == 0)
 		addEvents(clientFD, EVFILT_WRITE, EV_DELETE, 0, 0, NULL);
-	mResponseMap[clientFD].pop_front();
 }
 
 std::string	WebServ::readFDData(int clientFD)

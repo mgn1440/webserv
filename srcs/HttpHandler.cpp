@@ -183,6 +183,8 @@ void HttpHandler::parseContentLength(std::istringstream& input)
 	catch (std::exception& e){
 		return setHttpStatusCode(400);
 	}
+	if (!contentLength)
+		return;
 	if (contentLength > maxBodySize){
 		mParsedRequest.connectionStop = true;
 		return setHttpStatusCode(413);

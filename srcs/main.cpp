@@ -28,7 +28,7 @@ int main(int argc, char *argv[], char *envp[])
 	}
 	catch(const std::exception& e)
 	{
-		std::cerr << e.what() << '\n';
+		perror(e.what());
 	}
 	return (0);
 }
