@@ -79,7 +79,7 @@ Response::Response()
     , mBody()
     , mParams()
     , mHttpVer("HTTP/1.1")
-    , mStatCode(200)
+    , mStatCode()
     , mStat()
     , mbFile()
     , mbDir()
@@ -92,15 +92,13 @@ Response::Response()
 
 void Response::createResponseHeader()
 {
-    // mbContentLen = true; // debug
     mStartLine = mHttpVer + " ";
     mStartLine += intToString(mStatCode) + " " + StatusPage::GetInstance()->GetStatusMessageOf(mStatCode) +"\r\n";
     mHeader = "Date: " + mDate + "\r\n";
     mHeader += "Server: " + mServer + "\r\n";
     if (mContentType != "")
         mHeader += "Content-Type: " + mContentType + "\r\n";
-    if (mbContentLen == true)
-        mHeader += "Content-length: " + intToString(mBody.size()) + "\r\n";
+	mHeader += "Content-length: " + intToString(mBody.size()) + "\r\n";
 	mHeader += "\r\n";
 }
 
@@ -111,6 +109,7 @@ void Response::createResponseBody()
 	std::ifstream ifs(mABSPath);
     if (ifs.fail())
         throw std::runtime_error("file open error");
+	mStatCode = 200;
     char buf[16384];
     do
     {
@@ -289,8 +288,10 @@ void Response::AppendCGIBody(const std::string& CGIBody)
 
 void Response::GenCGIBody()
 {
+	mContentType = "text/html";
 	createResponseHeader();
 }
+
 
 std::string Response::GetCGIPath() const
 {

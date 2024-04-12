@@ -72,7 +72,8 @@ void	WebServ::addEvents(uintptr_t ident, int16_t filter, uint16_t flags, uint32_
 	struct kevent newEvent;
 
 	EV_SET(&newEvent, ident, filter, flags, fflags, data, udata);
-	mChangeList.push_back(newEvent);
+	if (kevent(mKq, &newEvent, 1, NULL, 0, NULL) == -1)
+				throw std::runtime_error("kevent error");
 }
 
 bool	WebServ::isFatalKeventError(void)
@@ -146,8 +147,6 @@ void	WebServ::runKqueueLoop(void)
 					continue;
 				}
 			}
-			if (kevent(mKq, &mChangeList[0], mChangeList.size(), NULL, 0, NULL) == -1)
-				throw std::runtime_error("kevent error");
 		}
 		catch(const std::exception& e)
 		{
@@ -233,7 +232,6 @@ void	WebServ::processHttpRequest(struct kevent* currEvent)
 		return;
 	}
 	std::string httpRequest = readFDData(clientFD);
-	std::cout << httpRequest << std::endl;
 	addEvents(clientFD, EVFILT_TIMER, EV_ADD | EV_ENABLE | EV_ONESHOT, 0, 30000, NULL); // 30초 타임아웃 (write event가 발생하면 timeout event를 삭제해줘야 함)
 	mTimerMap[clientFD] = true;
 	// TODO: ConfigHandler::GetResponseOf 메서드와 중복 책임. => 하나로 병합 또는 한 쪽 삭제 요망
@@ -335,7 +333,6 @@ void	WebServ::writeHttpResponse(struct kevent* currEvent)
 		return ;
 	}
 	std::string httpResponse = response.GenResponseMsg();
-	std::cout << httpResponse << std::endl;
 	if (write(clientFD, httpResponse.c_str(), httpResponse.size()) == -1)
 			throw std::runtime_error("write error");
 	if (mTimerMap[clientFD])
