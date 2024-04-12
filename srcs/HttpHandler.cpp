@@ -82,6 +82,7 @@ std::deque<Response> HttpHandler::ReceiveRequestMessage(const std::string& data)
 		mConsumeBufferSize = 0;
 		Response res;
 		res.MakeResponse(mParsedRequest);
+		res.SetRequestBody(mParsedRequest.body);
 		ret.push_back(res);
 		initRequest(mParsedRequest);
 		if (mParsedRequest.parsedStatus != PARSED_ALL)

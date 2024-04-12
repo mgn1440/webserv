@@ -276,6 +276,16 @@ void Response::MakeResponse(struct Request& req)
 	// 	processDELETE(res);
 }
 
+void Response::SetRequestBody(const std::string& requestBody)
+{
+	mRequestBody = requestBody;
+}
+
+std::string Response::GetRequestBody()
+{
+	return (mRequestBody);
+}
+
 
 bool Response::IsCGI()
 {
