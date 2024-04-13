@@ -6,7 +6,6 @@
 #include "Response.hpp"
 #include "Request.hpp"
 
-ConfigHandler* ConfigHandler::configHandler = NULL;
 
 void setRequest(struct Request& request)
 {
@@ -38,12 +37,15 @@ int main(int ac, char** av)
 
         ConfigHandler& rhs = ConfigHandler::GetConfigHandler();
 
-        struct Request req;
-        setRequest(req);
-        std::vector<struct Request> v;
-        v.push_back(req);
-        std::deque<Response> q =  rhs.GetResponseOf(v);
-		std::cout << q[0].GetResponse(req);
+        (void) rhs;
+        Response res;
+        res.parseHeaderOfCGI();
+        // struct Request req;
+        // setRequest(req);
+        // std::vector<struct Request> v;
+        // v.push_back(req);
+        // std::deque<Response> q =  rhs.GetResponseOf(v);
+		// std::cout << q[0].GetResponse(req);
 		// q[0].PrintResponse();       
         // rhs.PrintAll();
     }

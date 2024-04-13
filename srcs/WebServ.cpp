@@ -155,7 +155,7 @@ void	WebServ::runKqueueLoop(void)
 		}
 		catch(const std::exception& e)
 		{
-			std::cerr << e.what() << '\n';
+			perror(e.what());
 			continue;
 		}
 	}

@@ -21,11 +21,12 @@ public:
     void PrintResponse();
 	void AppendCGIBody(const std::string& CGIBody);
     void SetStatusOf(int statusCode);
-	std::string GenResponseMsg() const;
+	std::string GenResponseMsg();
     const char* GetABSPath() const;
     std::map<std::string, std::string> GetParams() const;
     void GenCGIBody();
     std::string GetCGIPath() const;
+    void parseHeaderOfCGI();
     void SetRequestBody(const std::string& requestBody);
     std::string GetRequestBody();
 private:
@@ -37,7 +38,9 @@ private:
     void processDELETE();
     void createResponseHeader();
     void createResponseBody();
+
 	void setFromResource(struct Resource);
+    void setDate();
 
     bool mbCGI;
     bool mbAutoIndex;
@@ -48,6 +51,7 @@ private:
     std::string mBody;
     std::string mRequestBody;
 	std::map<std::string, std::string> mParams;
+    std::map<std::string, std::string> mHeaderMap;
 
     std::string mHttpVer;
     int mStatCode;
@@ -55,11 +59,8 @@ private:
 
     bool mbFile;
     bool mbDir;
-    std::string mABSPath;
-    std::string mDate;
-    std::string mServer;
     bool mbContentLen;
-    std::string mContentType;
+    std::string mABSPath;
 	std::map<int, std::string> mErrorPage;
 };
 

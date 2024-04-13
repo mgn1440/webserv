@@ -14,6 +14,7 @@
 #include "Response.hpp"
 #include "Resource.hpp"
 #include "StatusPage.hpp"
+#include "STLUtils.hpp"
 
 //  TODO: Static이라고 가정 후 Response init을 돌린다.
 //        추후 cgi를 돌릴 때 실제 ContentType과 ContentLength, status code 등을 설정한다.
@@ -38,10 +39,8 @@ Response::Response(const Response& rhs)
     mbFile = rhs.mbFile;
     mbDir = rhs.mbDir;
     mABSPath = rhs.mABSPath;
-    mDate = rhs.mDate;
-    mServer = rhs.mServer;
+	mHeaderMap = rhs.mHeaderMap;
     mbContentLen = rhs.mbContentLen;
-    mContentType = rhs.mContentType;
 }
 
 Response& Response::operator=(const Response& rhs)
@@ -62,10 +61,8 @@ Response& Response::operator=(const Response& rhs)
     mbFile = rhs.mbFile;
     mbDir = rhs.mbDir;
     mABSPath = rhs.mABSPath;
-    mDate = rhs.mDate;
-    mServer = rhs.mServer;
+	mHeaderMap = rhs.mHeaderMap;
     mbContentLen = rhs.mbContentLen;
-    mContentType = rhs.mContentType;
     return *this;
 }
 
@@ -83,22 +80,25 @@ Response::Response()
     , mStat()
     , mbFile()
     , mbDir()
-    , mABSPath()
-    , mDate()
-    , mServer("WebServ")
     , mbContentLen()
-    , mContentType("text/html")
-{}
+    , mABSPath()
+{
+	mHeaderMap["Server"] = "Webserv";
+}
 
 void Response::createResponseHeader()
 {
+	// body should complete when call this function
     mStartLine = mHttpVer + " ";
     mStartLine += intToString(mStatCode) + " " + StatusPage::GetInstance()->GetStatusMessageOf(mStatCode) +"\r\n";
-    mHeader = "Date: " + mDate + "\r\n";
-    mHeader += "Server: " + mServer + "\r\n";
-    if (mContentType != "")
-        mHeader += "Content-Type: " + mContentType + "\r\n";
-	mHeader += "Content-length: " + intToString(mBody.size()) + "\r\n";
+	
+	for (std::map<std::string, std::string>::iterator it = mHeaderMap.begin(); it != mHeaderMap.end(); it ++)
+	{
+		mHeader += it->first + ": " + it->second + "\r\n";
+	}
+    // if (mHeaderMap.find("Content-Type") == mHeaderMap.end())
+    //     mHeader += "Content-Type: type/plain\r\n";
+    mHeader += "Content-length: " + intToString(mBody.size()) + "\r\n";
 	mHeader += "\r\n";
 }
 
@@ -143,13 +143,10 @@ void Response::PrintResponse()
     ss << mStatCode;
     ss >>  temp;
     ret += temp + " " + "OK" +"\r\n";
-	// Server: webserv
-	ret += "Server: " + mServer + "\r\n";
-	ret += "Date: " + mDate + "\r\n\r\n";
     createResponseBody();
-    ret += mBody;
-    std::cout << mBody << std::endl;
     std::cout << ret << std::endl;
+	printMap(mHeaderMap);
+    std::cout << mBody << std::endl;
 }
 
 // TODO:
@@ -182,7 +179,7 @@ void Response::processGET(struct Resource& res)
 		if (!mbFile){
 			if (mbAutoIndex){
 				mBody = getIndexListOf(mABSPath);
-				mContentType = "text/html";
+				mHeaderMap["Content-Type"] = "text/html";
 			}
 			else if (!mbAutoIndex)
 				SetStatusOf(404);
@@ -191,7 +188,7 @@ void Response::processGET(struct Resource& res)
 	else
 		mbFile = true;
 	if (mbFile){
-		mContentType = ConfigHandler::GetConfigHandler().GetContentType(mABSPath);
+		mHeaderMap["Content-Type"] = ConfigHandler::GetConfigHandler().GetContentType(mABSPath);
 		mCGIExtension = mABSPath.substr(mABSPath.find_last_of(".") + 1);
 		if (res.CGIBinaryPath.find(mCGIExtension) != res.CGIBinaryPath.end()) // is CGI
 		{
@@ -204,7 +201,6 @@ void Response::processGET(struct Resource& res)
 	if (!mbCGI){
 		std::ifstream ifs(mABSPath);
 		createResponseBody();
-		createResponseHeader(); // doing this
 	}
 
     // //--------------------------
@@ -236,11 +232,11 @@ void Response::SetStatusOf(int statusCode)
 	if (mErrorPage.find(statusCode) != mErrorPage.end()){
 		mABSPath = mErrorPage[statusCode];
 		createResponseBody();
-		createResponseHeader();
+		// createResponseHeader();
 	}
 	else{
 		mBody = StatusPage::GetInstance()->GetStatusPageOf(statusCode);
-		createResponseHeader();
+		// createResponseHeader();
 	}
 }
 
@@ -250,12 +246,7 @@ void Response::MakeResponse(struct Request& req)
 
     mParams = req.params;
 	setFromResource(res);
-    char buf[100];
-    std::time_t time = std::time(NULL);
-	// Date: [Day], [date] [Month] [year] [time] GMT; IMF-fixdate
-	std::strftime(buf, sizeof(buf), "%a, %d %b %Y %H:%M:%S %Z", std::localtime(&time));
-	mDate += std::string(buf);
-
+	setDate();
     if (req.statusCode || !isValidMethod(req, res)) // TODO: http ver, method, abs path
  	{
 		SetStatusOf(req.statusCode);
@@ -298,7 +289,8 @@ void Response::AppendCGIBody(const std::string& CGIBody)
 
 void Response::GenCGIBody()
 {
-	mContentType = "text/html";
+	mHeaderMap["Content-Type"] = "text/html";
+	parseHeaderOfCGI();
 	createResponseHeader();
 }
 
@@ -310,12 +302,14 @@ std::string Response::GetCGIPath() const
 
 
 // TODO: Body를 reference로 받아서 복사되지 않도록(오버헤드 이슈) 처리해야 함.
-std::string Response::GenResponseMsg() const
+std::string Response::GenResponseMsg()
 {
 	std::string ret;
+	createResponseHeader();
 	ret = mStartLine;
 	ret += mHeader;
     ret += mBody;
+	std::cout << ret << std::endl;
 	return ret;
 }
 
@@ -324,6 +318,15 @@ void Response::setFromResource(struct Resource res)
 	mbAutoIndex = res.BAutoIndex;
 	mErrorPage = res.ErrorPage;
 	mABSPath = res.ABSPath;
+}
+
+void Response::setDate()
+{
+    char buf[100];
+    std::time_t time = std::time(NULL);
+	// Date: [Day], [date] [Month] [year] [time] KST;
+	std::strftime(buf, sizeof(buf), "%a, %d %b %Y %H:%M:%S %Z", std::localtime(&time));
+	mHeaderMap["Date"] = std::string(buf);
 }
 
 void Response::processPOST(struct Resource& res)
@@ -339,7 +342,7 @@ void Response::processPOST(struct Resource& res)
 	else
         mbFile = true;
 	if (mbFile){
-		mContentType = ConfigHandler::GetConfigHandler().GetContentType(mABSPath);
+		mHeaderMap["Content-Type"] = ConfigHandler::GetConfigHandler().GetContentType(mABSPath);
 		mCGIExtension = mABSPath.substr(mABSPath.find_last_of(".") + 1);
 		if (res.CGIBinaryPath.find(mCGIExtension) != res.CGIBinaryPath.end()) // is CGI
 		{
@@ -365,8 +368,53 @@ void Response::processDELETE()
 	}
     mbFile = true;
     std::remove(mABSPath.c_str());
-    mContentType = "application/json";
+    mHeaderMap["Content-Type"] = "application/json";
 	mBody = "{\n \"message\": \"Item deleted successfully.\"\n}";
+}
+
+void Response::parseHeaderOfCGI()
+{
+	bool isHeader = true;
+
+	// debug
+	// mBody = "Content-Type: text/html\r\nX-Powered-By: Python/CGI\r\nStatus: 200 OK\r\n\r\nHello World!";
+	// debug
+
+	std::istringstream ss(mBody);
+	std::string line;
+	// std::cout << mBody << "\n\n";
+	while (std::getline(ss, line))
+	{
+		// std::cout << "line: " << line << std::endl;
+		size_t idx = line.find(": ");
+		if (line == "\r")
+			break;
+		else if (line[line.length() - 1] != '\r' || idx == std::string::npos)
+		{
+			isHeader = false;
+			break;
+		}
+		line.erase(line.size() - 1);
+		std::string key = line.substr(0, idx);
+		std::string val = line.substr(idx + 2);
+		if (key == "Status")
+		{
+			size_t idx = val.find(' ');
+			if (idx == std::string::npos)
+			{
+				isHeader = false;
+				break;
+			}
+			mStatCode = std::atoi(val.substr(0, idx).c_str());
+			mStat = val.substr(idx + 1);
+		}
+		else
+			mHeaderMap[key] = val;
+		// std::cout << "key: " << key << ", val: " << val << std::endl;
+	}
+	if (isHeader)
+		mBody = mBody.substr(mBody.find("\r\n\r\n") + 4);
+	// std::cout << "body\n" << mBody;
 }
 
 const char* Response::GetABSPath() const

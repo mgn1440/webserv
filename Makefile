@@ -34,8 +34,8 @@ SRCS_MAND = ConfigHandler.cpp \
 	convertUtils.cpp \
 	autoIndex.cpp \
 	StatusPage.cpp \
-	main.cpp \
-	WebServ.cpp
+	WebServ.cpp \
+	main.cpp 
 
 SRCS_BONUS = srcs_bonus1 \
 	srcs_bonus2 \
