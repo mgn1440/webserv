@@ -109,6 +109,7 @@ void Response::createResponseBody()
 	std::ifstream ifs(mABSPath);
     if (ifs.fail())
         throw std::runtime_error("file open error");
+	mStatCode = 200;
     char buf[16384];
     do
     {
@@ -266,6 +267,16 @@ void Response::MakeResponse(struct Request& req)
 	// 	processDELETE(res);
 }
 
+void Response::SetRequestBody(const std::string& requestBody)
+{
+	mRequestBody = requestBody;
+}
+
+std::string Response::GetRequestBody()
+{
+	return (mRequestBody);
+}
+
 
 bool Response::IsCGI() const
 {
@@ -279,9 +290,11 @@ void Response::AppendCGIBody(const std::string& CGIBody)
 
 void Response::GenCGIBody()
 {
+	mContentType = "text/html";
 	createResponseHeader();
 	parseHeaderOfCGI();
 }
+
 
 std::string Response::GetCGIPath() const
 {

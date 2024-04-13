@@ -22,16 +22,15 @@ class WebServ
 	private:
 		int mKq;
 		std::map<int, int> mServSockPortMap; // key: servSocket, val: port
-		std::map<int, HttpHandler> mRequestMap;
-		std::map<int, std::deque<Response> > mResponseMap; // key: clientFD
+		std::map<int, HttpHandler> mRequestMap; // key: clientFD, value: HttpHandler
+		std::map<int, std::deque<Response> > mResponseMap; // key: clientFD, value: Response
 		std::vector<int> mServSockList;
 		std::vector<struct kevent> mChangeList;
 		std::vector<std::string> mEnvList;
-		// event => pid, pipe
-		// (pid, clientFD), (pipe, clientFD)
 		std::map<int, std::pair<Response*, int> > mCGIPipeMap; // key: pipeFD, value: Response, clientFD
 		std::map<int, std::pair<int,pid_t> > mCGIClientMap; // key: clientFD, value: pipeFD, PID
 		std::map<pid_t, std::pair<Response*,int> > mCGIPidMap; // key: pid, value: Response, pipeFD
+		std::map<int, std::pair<Response*, size_t> > mCGIPostPipeMap; // key: pipe(CGI STDIN_FILENO), value: Response, 이미 write 된 문자열 길이
 		std::map<int, bool> mTimerMap; // key: clientFD, value: TimerOn Off;
 		struct kevent mEventList[30];
 
@@ -47,6 +46,7 @@ class WebServ
 		void processCGI(Response& response, int clinetFD);
 		//void sendCGIResource(struct kevent* currEvent);
 		void writeHttpResponse(struct kevent* currEvent);
+		void writeToCGIPipe(struct kevent* currEvent);
 		void waitCGIProc(struct kevent* currEvent);
 		void handleTimeOut(struct kevent* currEvent);
 		bool isFatalKeventError(void);
@@ -54,8 +54,8 @@ class WebServ
 		char *const *makeCGIEnvList(const Response& response);
 		char *const *makeArgvList(const std::string& CGIPath, const std::string& ABSPath);
 		void sendPipeData(struct kevent* currEvent);
-		//void processGetCGI(const Request& request, const Response& response, int clientFD); // pipe 1개
-		//void processPostCGI(const Request& request, const Response& response, int clientFD); // pipe 2개, 표준입력으로 Http Request Body로 줘야 함
+		void eraseCGIMaps(int pid, int clientFD, int pipeFD);
+		void eraseHttpMaps(int clientFD);
 };
 
 #endif

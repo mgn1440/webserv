@@ -27,6 +27,8 @@ public:
     void GenCGIBody();
     std::string GetCGIPath() const;
     void parseHeaderOfCGI();
+    void SetRequestBody(const std::string& requestBody);
+    std::string GetRequestBody();
 private:
     bool isValidMethod(struct Request& req, struct Resource& res);
     void processGET(struct Resource& res);
@@ -47,6 +49,7 @@ private:
     std::string mStartLine;
     std::string mHeader;
     std::string mBody;
+    std::string mRequestBody;
 	std::map<std::string, std::string> mParams;
     std::map<std::string, std::string> mHeaderMap;
 
