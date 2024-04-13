@@ -6,6 +6,10 @@
 # include <map>
 # include <vector>
 
+# define DEF_ST_LINE_SIZE 8000
+# define DEF_HEADER_SIZE 8000
+# define DEF_BODY_SIZE 8000000
+
 class AConfParser {
 protected:
 	AConfParser();
@@ -19,6 +23,7 @@ protected:
 	void parseAutoIndex(std::stringstream& ss, std::string& word);
 	void parseLimitExcept(std::stringstream& ss, std::string& word);
 	void parseClosedBracket(std::stringstream& ss, std::string& word);
+	void parseClientMaxSize(std::stringstream& ss, std::string& word);
 	virtual void PrintInfo() = 0; //debug
 
 	bool isEnd(std::stringstream& ss, std::string& word);
@@ -26,8 +31,10 @@ protected:
 
 	bool mbIsDuplicatedAutoIndex;
 	bool mbIsDuplicatedLimitExcept;
+	bool mbIsDuplicatedClientMaxSize;
 	bool mbIsDuplicatedRoot;
 	bool mbAutoIndex;
+	size_t mMaxSize[3];
 	std::vector<std::string> mHttpMethod;
 	std::string mRoot;
 	std::set<std::string> mIndex;

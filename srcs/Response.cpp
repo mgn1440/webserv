@@ -92,6 +92,7 @@ void Response::createResponseHeader()
     mStartLine = mHttpVer + " ";
     mStartLine += intToString(mStatCode) + " " + StatusPage::GetInstance()->GetStatusMessageOf(mStatCode) +"\r\n";
 	
+	mHeader = "";
 	for (std::map<std::string, std::string>::iterator it = mHeaderMap.begin(); it != mHeaderMap.end(); it ++)
 	{
 		mHeader += it->first + ": " + it->second + "\r\n";
@@ -291,7 +292,6 @@ void Response::GenCGIBody()
 {
 	mHeaderMap["Content-Type"] = "text/html";
 	parseHeaderOfCGI();
-	createResponseHeader();
 }
 
 
@@ -414,7 +414,7 @@ void Response::parseHeaderOfCGI()
 	}
 	if (isHeader)
 		mBody = mBody.substr(mBody.find("\r\n\r\n") + 4);
-	// std::cout << "body\n" << mBody;
+	// std::cerr << "body\n" << mBody;
 }
 
 const char* Response::GetABSPath() const
