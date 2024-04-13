@@ -130,7 +130,7 @@ bool Response::isValidMethod(struct Request& req, struct Resource& res)
 {
     if (find(res.HttpMethod.begin(), res.HttpMethod.end(), req.method) == res.HttpMethod.end())
     {
-        req.statusCode = 501;
+        req.statusCode = 405; // 501
         return (false);
     }
     return (true);
@@ -164,7 +164,7 @@ void Response::PrintResponse()
 void Response::processGET(struct Resource& res)
 {
 	struct stat statBuf;
-	if (stat(mABSPath.c_str(), &statBuf) == -1)
+	if (stat(res.ABSPath.c_str(), &statBuf) == -1)
 	{
 		SetStatusOf(404);
 		return ;
