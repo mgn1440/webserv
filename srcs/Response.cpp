@@ -201,7 +201,6 @@ void Response::processGET(struct Resource& res)
 	if (!mbCGI){
 		std::ifstream ifs(mABSPath);
 		createResponseBody();
-		createResponseHeader(); // doing this
 	}
 
     // //--------------------------
@@ -233,11 +232,11 @@ void Response::SetStatusOf(int statusCode)
 	if (mErrorPage.find(statusCode) != mErrorPage.end()){
 		mABSPath = mErrorPage[statusCode];
 		createResponseBody();
-		createResponseHeader();
+		// createResponseHeader();
 	}
 	else{
 		mBody = StatusPage::GetInstance()->GetStatusPageOf(statusCode);
-		createResponseHeader();
+		// createResponseHeader();
 	}
 }
 
@@ -290,9 +289,9 @@ void Response::AppendCGIBody(const std::string& CGIBody)
 
 void Response::GenCGIBody()
 {
-	mContentType = "text/html";
-	createResponseHeader();
+	mHeaderMap["Content-Type"] = "text/html";
 	parseHeaderOfCGI();
+	createResponseHeader();
 }
 
 
@@ -310,6 +309,7 @@ std::string Response::GenResponseMsg()
 	ret = mStartLine;
 	ret += mHeader;
     ret += mBody;
+	std::cout << ret << std::endl;
 	return ret;
 }
 
