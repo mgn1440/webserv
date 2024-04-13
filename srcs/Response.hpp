@@ -37,7 +37,7 @@ private:
     // void processPUT(struct Resource& res);
     void processDELETE();
     void createResponseHeader();
-    void createResponseBody();
+    void createResponseBody(int statCode);
 
 	void setFromResource(struct Resource);
     void setDate();

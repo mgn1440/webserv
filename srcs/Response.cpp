@@ -105,12 +105,17 @@ void Response::createResponseHeader()
 
 // TODO: directory가 들어왔을 때 autoindex on =>  directory listing page
 // directory가 들어왔을 때 autoindex off => index file name이 붙어야 함
-void Response::createResponseBody()
+void Response::createResponseBody(int statCode)
 {
+	// std::cerr << "mStatus: " << mStatCode << ", Status: " << statCode << std::endl;
 	std::ifstream ifs(mABSPath);
     if (ifs.fail())
         throw std::runtime_error("file open error");
-	mStatCode = 200;
+	if (statCode != 0)
+		mStatCode = statCode;
+	else
+		mStatCode = 200;
+	// std::cerr << "mStatus: " << mStatCode << ", Status: " << statCode << std::endl;
     char buf[16384];
     do
     {
@@ -144,7 +149,7 @@ void Response::PrintResponse()
     ss << mStatCode;
     ss >>  temp;
     ret += temp + " " + "OK" +"\r\n";
-    createResponseBody();
+    createResponseBody(200);
     std::cout << ret << std::endl;
 	printMap(mHeaderMap);
     std::cout << mBody << std::endl;
@@ -183,7 +188,10 @@ void Response::processGET(struct Resource& res)
 				mHeaderMap["Content-Type"] = "text/html";
 			}
 			else if (!mbAutoIndex)
+			{
 				SetStatusOf(404);
+				return ;
+			}
 		}
 	}
 	else
@@ -201,7 +209,7 @@ void Response::processGET(struct Resource& res)
 	}
 	if (!mbCGI){
 		std::ifstream ifs(mABSPath);
-		createResponseBody();
+		createResponseBody(200);
 	}
 
     // //--------------------------
@@ -232,10 +240,14 @@ void Response::SetStatusOf(int statusCode)
     mStatCode = statusCode;
 	if (mErrorPage.find(statusCode) != mErrorPage.end()){
 		mABSPath = mErrorPage[statusCode];
-		createResponseBody();
+		createResponseBody(statusCode);
+		// std::cerr << "Set status: " << statusCode << std::endl;
 		// createResponseHeader();
 	}
 	else{
+		// TODO: 204 같은 NO Content도 body를 만들어 주는가?
+		mStatCode = statusCode;
+		mHeaderMap["Content-Type"] = "text/html";
 		mBody = StatusPage::GetInstance()->GetStatusPageOf(statusCode);
 		// createResponseHeader();
 	}
@@ -309,7 +321,7 @@ std::string Response::GenResponseMsg()
 	ret = mStartLine;
 	ret += mHeader;
     ret += mBody;
-	std::cout << ret << std::endl;
+	// std::cout << ret << std::endl;
 	return ret;
 }
 

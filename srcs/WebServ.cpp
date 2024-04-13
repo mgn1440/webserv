@@ -234,6 +234,7 @@ void	WebServ::processHttpRequest(struct kevent* currEvent)
 		return;
 	}
 	std::string httpRequest = readFDData(clientFD);
+	std::cout << httpRequest;
 	addEvents(clientFD, EVFILT_TIMER, EV_ADD | EV_ENABLE | EV_ONESHOT, 0, 30000, NULL); // 30초 타임아웃 (write event가 발생하면 timeout event를 삭제해줘야 함)
 	mTimerMap[clientFD] = true;
 	// TODO: ConfigHandler::GetResponseOf 메서드와 중복 책임. => 하나로 병합 또는 한 쪽 삭제 요망
@@ -364,6 +365,7 @@ void	WebServ::writeHttpResponse(struct kevent* currEvent)
 		return ;
 	}
 	std::string httpResponse = response.GenResponseMsg();
+	std::cout << "Response: " << httpResponse << std::endl;
 	if (write(clientFD, httpResponse.c_str(), httpResponse.size()) == -1)
 			throw std::runtime_error("write error");
 	if (mTimerMap[clientFD])

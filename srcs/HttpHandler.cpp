@@ -81,6 +81,8 @@ std::deque<Response> HttpHandler::ReceiveRequestMessage(const std::string& data)
 		refreshBuffer(mRequestBuffer, mConsumeBufferSize);
 		mConsumeBufferSize = 0;
 		Response res;
+		std::cout << "Request" << std::endl;
+		printParsedHttpRequest(mParsedRequest);
 		res.MakeResponse(mParsedRequest);
 		res.SetRequestBody(mParsedRequest.body);
 		ret.push_back(res);
@@ -107,9 +109,9 @@ void HttpHandler::parseStartLine(std::istringstream& input)
 {
 	std::string buf;
 	getline(input, buf);
+	if (input.eof())
+		return;
 	if (!checkCRLF(buf)){
-		if (input.peek() == std::istringstream::traits_type::eof()) // if next char is eof
-			return;
 		return setHttpStatusCode(400); // bad request
 	}
 	mParsedRequest.parsedStatus |= PARSED_START;
@@ -123,8 +125,6 @@ void HttpHandler::parseHeader(std::istringstream& input) // TODO: savedHeaderSiz
 	while (true)
 	{
 		getline(input, buf);
-		mSavedHeaderSize += buf.size() + 1; // +1 = linefeed character size add;
-		mConsumeBufferSize += buf.size() + 1;
 		if (mParsedRequest.hostParsed){ // host parsed?
 			if (mSavedHeaderSize > maxHeaderSize){ // check header size
 				mParsedRequest.connectionStop = true;
@@ -136,9 +136,9 @@ void HttpHandler::parseHeader(std::istringstream& input) // TODO: savedHeaderSiz
 				mParsedRequest.parsedStatus |= PARSED_HEADER;
 			break;
 		}
-		if (!checkCRLF(buf)){
-			if (input.peek() == std::istringstream::traits_type::eof()) // if next char is eof
-				return
+		if (input.eof())
+			return;
+		if (!checkCRLF(buf)){ // \r 
 			setHttpStatusCode(400); // bad request
 		}
 		int colon = buf.find_first_of(':');
@@ -155,6 +155,8 @@ void HttpHandler::parseHeader(std::istringstream& input) // TODO: savedHeaderSiz
 		// field check -- map<std::string, function pointer>
 		if (fieldName == "Host")
 			procHost(fieldValue);
+		mSavedHeaderSize += buf.size() + 1; // +1 = linefeed character size add;
+		mConsumeBufferSize += buf.size() + 1;
 		mParsedRequest.headers[fieldName] = fieldValue;
 	}
 }
