@@ -175,12 +175,14 @@ void Response::processGET(struct Resource& res)
 		std::set<std::string>::iterator indexName = res.Index.begin();
 		for (; indexName != res.Index.end(); ++indexName)
 		{
-			if (stat((mABSPath + (*indexName)).c_str(), &statBuf) == 0){
-				mABSPath += *indexName;
+			std::cout << mABSPath + (*indexName) << std::endl;
+			if (stat((mABSPath + "/" + (*indexName)).c_str(), &statBuf) == 0){
+				mABSPath += ("/" + *indexName);
 				mbDir = false;
 				mbFile = true;
 				break;
 			}
+			perror("error: ");
 		}
 		if (!mbFile){
 			if (mbAutoIndex){

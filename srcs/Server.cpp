@@ -187,7 +187,10 @@ std::string Server::GetABSPath(const std::string& URI)
 
 	if (locationPath != "")
 		mLocationMap[locationPath].GetRoot(path);
-	return path + URI;
+	if (URI == locationPath) //TODO:: Referer header logic need
+		return path;
+	std::cout << "ABSPath: " << path + URI.substr(URI.find_first_not_of(locationPath)) << std::endl;
+	return path + URI.substr(URI.find_first_not_of(locationPath));
 }
 
 void Server::parseLocation(std::ifstream& confFile, std::stringstream& ss, std::string& word)
