@@ -34,7 +34,7 @@ protected:
 	bool mbIsDuplicatedClientMaxSize;
 	bool mbIsDuplicatedRoot;
 	bool mbAutoIndex;
-	size_t mMaxSize[3];
+	size_t mMaxSize;
 	std::vector<std::string> mHttpMethod;
 	std::string mRoot;
 	std::set<std::string> mIndex;

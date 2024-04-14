@@ -93,8 +93,7 @@ void Server::PrintInfo()
 	std::cout << "ErrorPage: ";
 	printMap(mErrorPage);
 	std::cout << "MaxSize: ";
-	for (int i = 0; i < 3; i ++)
-		std::cout << mMaxSize[i] << " ";
+	std::cout << mMaxSize << " ";
 	std::cout << std::endl;
 	std::cout << "ServerName: ";
 	printVec(mServerName);
@@ -135,14 +134,13 @@ void Server::PutIn(std::map<serverInfo, Server>& rhs)
 	}
 }
 
-const size_t* Server::GetMaxSize(std::string& URI)
+size_t Server::GetMaxSize(std::string& URI)
 {
-	size_t* res = mMaxSize;
+	size_t res = mMaxSize;
 
 	std::string locationPath = searchLocationPath(URI);
 	if (locationPath != "")
 		mLocationMap[locationPath].GetMaxSize(res);
-
 	return res;
 }
 

@@ -12,9 +12,7 @@ Location::Location(std::ifstream& confFile)
 	: AConfParser()
 {
 	mRoot = "";
-	mMaxSize[0] = 0;
-	mMaxSize[1] = 0;
-	mMaxSize[2] = 0;
+	mMaxSize = 0;
 	parse(confFile);
 }
 Location::Location(const Location& src)
@@ -39,9 +37,9 @@ void Location::GetRoot(std::string& path)
 		path = mRoot;
 }
 
-void Location::GetMaxSize(size_t* res)
+void Location::GetMaxSize(size_t& res)
 {
-	if (mMaxSize[0] || mMaxSize[1] || mMaxSize[2])
+	if (mMaxSize)
 		res = mMaxSize;
 }
 

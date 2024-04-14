@@ -6,12 +6,9 @@ AConfParser::AConfParser()
 	, mbIsDuplicatedClientMaxSize(false)
 	, mbIsDuplicatedRoot(false)
 	, mbAutoIndex(false)
+	, mMaxSize(DEF_BODY_SIZE)
 	, mRoot("/")
-{
-	mMaxSize[0] = DEF_ST_LINE_SIZE;
-	mMaxSize[1] = DEF_HEADER_SIZE;
-	mMaxSize[2] = DEF_BODY_SIZE;
-}
+{}
 
 AConfParser::AConfParser(const AConfParser& rhs)
 {
@@ -33,8 +30,7 @@ AConfParser& AConfParser::operator=(const AConfParser& rhs)
 	mRoot = rhs.mRoot;
 	mIndex = rhs.mIndex;
 	mCGI = rhs.mCGI;
-	for (int i = 0; i < 3; i ++)
-		mMaxSize[i] = rhs.mMaxSize[i];
+	mMaxSize = rhs.mMaxSize;
 	return *this;
 }
 
@@ -140,16 +136,16 @@ void AConfParser::parseClientMaxSize(std::stringstream& ss, std::string& word)
 	if (mbIsDuplicatedClientMaxSize == true)
 		throw std::runtime_error("client max size duplicated");
 	mbIsDuplicatedClientMaxSize = true;
-	for (int i = 0; i < 4; i ++)
+	for (int i = 0; i < 2; i ++)
 	{
 		if (ss >> word)
 		{
-			if (word == ";" && isEnd(ss, word) && i == 3)
+			if (word == ";" && isEnd(ss, word) && i == 1)
 				return ;
 			else
 			{
-				mMaxSize[i] = atoi(word.c_str());
-				if (mMaxSize[i] <= 0)
+				mMaxSize = atoi(word.c_str());
+				if (mMaxSize <= 0)
 					throw std::runtime_error("wrong client max size format");
 				size_t	tmpOrd = word.find_first_not_of("0123456789");
 				if (tmpOrd != std::string::npos)
@@ -157,11 +153,11 @@ void AConfParser::parseClientMaxSize(std::stringstream& ss, std::string& word)
 					if (tmpOrd + 1 < word.length())
 					throw std::runtime_error("wrong client max size format");
 					else if (word[tmpOrd] == 'K')
-						mMaxSize[i] *= 1000;
+						mMaxSize *= 1000;
 					else if (word[tmpOrd] == 'M')
-						mMaxSize[i] *= 1000000;
+						mMaxSize *= 1000000;
 					else if (word[tmpOrd] == 'G')
-						mMaxSize[i] *= 1000000000;
+						mMaxSize *= 1000000000;
 					else
 						throw std::runtime_error("wrong client max size format");
 				}

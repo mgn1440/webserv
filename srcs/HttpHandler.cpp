@@ -68,7 +68,7 @@ void	HttpHandler::printParsedHttpRequest(const struct Request& r)
 	std::cout << std::endl;
 }
 
-std::deque<Response> HttpHandler::ReceiveRequestMessage(const std::string& data)
+std::deque<Response> HttpHandler::MakeResponseOf(const std::string& data)
 {
 	// 1. parse request;
 	// 2. if condition is wrong make error code response
@@ -76,15 +76,14 @@ std::deque<Response> HttpHandler::ReceiveRequestMessage(const std::string& data)
 
 	mRequestBuffer += data;
 	std::deque<Response> ret;
-	while (true){
+	while (true)
+	{
 		parseHttpRequest();
 		refreshBuffer(mRequestBuffer, mConsumeBufferSize);
 		mConsumeBufferSize = 0;
 		if (mParsedRequest.parsedStatus != PARSED_ALL)
 			break;
 		Response res;
-		std::cout << "Request" << std::endl;
-		printParsedHttpRequest(mParsedRequest);
 		res.MakeResponse(mParsedRequest);
 		res.SetRequestBody(mParsedRequest.body);
 		ret.push_back(res);

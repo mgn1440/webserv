@@ -23,7 +23,7 @@ public:
 	~Location();
 
 	void GetRoot(std::string& path);
-	void GetMaxSize(size_t* res);
+	void GetMaxSize(size_t& res);
 	void SetResource(struct Resource& res);
 	void PrintInfo(); //debug
 	void ParseLocation(std::string& line);

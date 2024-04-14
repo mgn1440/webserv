@@ -31,12 +31,12 @@ ConfigHandler& ConfigHandler::GetConfigHandler()
     throw std::logic_error("doesn't initiallized config file");
 }
 
-const size_t* ConfigHandler::GetMaxSizes(int port, std::string& serverName, std::string& URI)
+size_t ConfigHandler::GetMaxSize(int port, std::string& serverName, std::string& URI)
 {
 	std::map<std::pair<int, std::string>, Server>::iterator it = mServerMap.find(serverInfo(port, serverName));
 
 	if (it == mServerMap.end())
-		return (NULL);
+		it = mServerMap.find(serverInfo(port, "default"));
 	return it->second.GetMaxSize(URI);
 }
 

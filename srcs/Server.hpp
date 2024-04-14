@@ -25,7 +25,7 @@ public:
 	void PrintInfo();
 	void ParseLine(std::string  line);
 	void PutIn(std::map<serverInfo, Server>& rhs);
-	const size_t* GetMaxSize(std::string &URI);
+	size_t GetMaxSize(std::string &URI);
 	std::set<int>& GetPorts();
 	struct Resource GetResource(std::string URI);
 	std::string GetABSPath(const std::string& URI);

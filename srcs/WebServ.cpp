@@ -62,9 +62,7 @@ void	WebServ::setKqueue(void)
 	std::vector<int>::iterator iter = mServSockList.begin();
 	for (; iter != mServSockList.end(); iter++)
 		addEvents(*iter, EVFILT_READ, EV_ADD | EV_ENABLE, 0, 0, NULL);
-	if (kevent(mKq, &mChangeList[0], mChangeList.size(), NULL, 0, NULL) == -1)
-		throw std::runtime_error("kevent error");
-	mChangeList.clear();
+	// mChangeList.clear();
 }
 
 void	WebServ::addEvents(uintptr_t ident, int16_t filter, uint16_t flags, uint32_t fflags, intptr_t data, void *udata)
@@ -239,7 +237,7 @@ void	WebServ::processHttpRequest(struct kevent* currEvent)
 	mTimerMap[clientFD] = true;
 	// TODO: ConfigHandler::GetResponseOf 메서드와 중복 책임. => 하나로 병합 또는 한 쪽 삭제 요망
 	// Request 객체로부터 RequestList를 받음
-	std::deque<Response> responseList = mRequestMap[clientFD].ReceiveRequestMessage(httpRequest);
+	std::deque<Response> responseList = mRequestMap[clientFD].MakeResponseOf(httpRequest);
 	std::deque<Response>::iterator responseIt = responseList.begin();
 	for(; responseIt != responseList.end(); ++responseIt)
 	{
