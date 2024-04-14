@@ -8,10 +8,10 @@ void initRequest(struct Request& request)
 	request.method = "";
 	request.URI = "";
 	request.domain = "";
+	request.port = 0;
 	request.params.clear();
 	request.HTTPVersion = "";
 	request.headers.clear();
 	request.body = "";
-	request.hostParsed = false;
 	request.connectionStop = false;
 }

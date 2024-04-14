@@ -18,7 +18,6 @@ struct Request
 	std::string HTTPVersion;
 	std::map<std::string, std::string> headers; // header is sorted?
 	std::string body;
-	bool hostParsed;
 	bool connectionStop;
 };
 

@@ -318,6 +318,7 @@ void Response::setFromResource(struct Resource res)
 	mbAutoIndex = res.BAutoIndex;
 	mErrorPage = res.ErrorPage;
 	mABSPath = res.ABSPath;
+	// find referrer
 }
 
 void Response::setDate()

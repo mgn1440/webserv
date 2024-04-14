@@ -41,6 +41,7 @@ private:
 
 	void setFromResource(struct Resource);
     void setDate();
+	void setRef();
 
     bool mbCGI;
     bool mbAutoIndex;
