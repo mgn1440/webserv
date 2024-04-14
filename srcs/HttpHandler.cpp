@@ -220,6 +220,7 @@ void HttpHandler::parseTransferEncoding(std::istringstream& input)
 		mConsumeBufferSize += str.size() + 1;
 		trim(str, "\r");
 		num = convertHex(str);
+
 		std::getline(input, str);
 		if (input.eof())
 			return;
