@@ -134,7 +134,7 @@ void	WebServ::runKqueueLoop(void)
 					}
 					else if (currEvent->filter == EVFILT_WRITE)
 					{
-						// std::cout << "Write event occured!" << std::endl; // debug
+						std::cout << "Write event occured!" << std::endl; // debug
 						if (mResponseMap.find(currEvent->ident) != mResponseMap.end())
 							writeHttpResponse(currEvent);
 						else if (mCGIPostPipeMap.find(currEvent->ident) != mCGIPostPipeMap.end())
@@ -235,7 +235,7 @@ void	WebServ::processHttpRequest(struct kevent* currEvent)
 		return;
 	}
 	std::string httpRequest = readFDData(clientFD);
-	// std::cout << httpRequest; // debug
+	std::cout << httpRequest; // debug
 	addEvents(clientFD, EVFILT_TIMER, EV_ADD | EV_ENABLE | EV_ONESHOT, 0, 30000, NULL); // 30초 타임아웃 (write event가 발생하면 timeout event를 삭제해줘야 함)
 	mTimerMap[clientFD] = true;
 	// TODO: ConfigHandler::GetResponseOf 메서드와 중복 책임. => 하나로 병합 또는 한 쪽 삭제 요망

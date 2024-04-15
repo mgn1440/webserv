@@ -6,6 +6,7 @@
 #include "convertUtils.hpp"
 #include "ConfigHandler.hpp"
 #include "Response.hpp"
+#include "STLUtils.hpp"
 
 HttpHandler::HttpHandler(int port)
 	: mPort(port)
@@ -81,6 +82,7 @@ std::deque<Response> HttpHandler::MakeResponseOf(const std::string& data)
 		parseHttpRequest();
 		refreshBuffer(mRequestBuffer, mConsumeBufferSize);
 		mConsumeBufferSize = 0;
+		std::cout << "parsedStatus: " << mParsedRequest.parsedStatus << std::endl; // debug
 		if (mParsedRequest.parsedStatus != PARSED_ALL)
 			break;
 		Response res;
@@ -106,6 +108,7 @@ void HttpHandler::parseHttpRequest(void)
 
 void HttpHandler::parseStartLine(std::istringstream& input)
 {
+	// std::cout << "parseStartLine" << std::endl; // debug
 	std::string buf;
 	getline(input, buf);
 	if (input.eof())
@@ -120,6 +123,7 @@ void HttpHandler::parseStartLine(std::istringstream& input)
 
 void HttpHandler::parseHeader(std::istringstream& input) // TODO: savedHeaderSize를 초기화 하는 부분에서 refactoring 필요함
 {
+	// std::cout << "parseHeader" << std::endl; // debug
 	std::string buf;
 	while (true)
 	{
@@ -132,9 +136,11 @@ void HttpHandler::parseHeader(std::istringstream& input) // TODO: savedHeaderSiz
 		}
 		if (buf.size() == 1 && checkCRLF(buf)){ //header section is over
 			if (!mParsedRequest.statusCode){
+				// TODO: input EOF 따져야 하지 않나?
 				mSavedHeaderSize += buf.size() + 1; // +1 = linefeed character size add;
 				mConsumeBufferSize += buf.size() + 1;
 				mParsedRequest.parsedStatus |= PARSED_HEADER;
+				// printMap(mParsedRequest.headers);
 			}
 			break;
 		}
@@ -165,6 +171,7 @@ void HttpHandler::parseHeader(std::istringstream& input) // TODO: savedHeaderSiz
 
 void HttpHandler::parseBody(std::istringstream& input)
 {
+	// std::cout << "parseBody" << std::endl; // debug
 	if (mParsedRequest.headers.find("Transfer-Encoding") != mParsedRequest.headers.end()){
 		if (mParsedRequest.headers["Transfer-Encoding"] != "chunked"){
 			mParsedRequest.connectionStop = true;
@@ -174,12 +181,19 @@ void HttpHandler::parseBody(std::istringstream& input)
 			mParsedRequest.headers.erase("Content-Length");
 		parseTransferEncoding(input);
 	}
-	else
+	else if (mParsedRequest.headers.find("Content-Length") != mParsedRequest.headers.end())
 		parseContentLength(input);
+	else
+	{
+		// TODO: GET, DELETE일 때 Body 제한?
+		mParsedRequest.headers["Content-Length"] = "0";
+		mParsedRequest.parsedStatus |= PARSED_BODY;
+	}
 }
 
 void HttpHandler::parseContentLength(std::istringstream& input)
 {
+	// std::cout << "parseContentLength" << std::endl; // debug
 	std::string body;
 	size_t contentLength = 0;
 	try{
@@ -198,6 +212,7 @@ void HttpHandler::parseContentLength(std::istringstream& input)
 	}
 	int bufferSize = 100;
 	char buf[bufferSize];
+
 	while (true)
 	{
 		input.read(buf, bufferSize);
@@ -208,8 +223,12 @@ void HttpHandler::parseContentLength(std::istringstream& input)
 			mParsedRequest.connectionStop = true;
 			return setHttpStatusCode(413); // content too large
 		}
+		// TODO: why cnt compare with contentLength?
 		if (cnt != contentLength)
+		{
+			// std::cout << "cnt is 0, body size is " << mParsedRequest.body.size() << ", contentLength is " << contentLength << std::endl; // debug 
 			break;
+		}
 	}
 	if (mParsedRequest.body.size() == contentLength){
 		mParsedRequest.parsedStatus |= PARSED_BODY;
@@ -218,6 +237,7 @@ void HttpHandler::parseContentLength(std::istringstream& input)
 
 void HttpHandler::parseTransferEncoding(std::istringstream& input)
 {
+	// std::cout << "parseTransferEncoding" << std::endl; // debug
 	//decompress impossible;
 	std::string str;
 	size_t bodySize = 0;
