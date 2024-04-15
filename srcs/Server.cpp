@@ -187,7 +187,7 @@ std::string Server::GetABSPath(const std::string& URI)
 		mLocationMap[locationPath].GetRoot(path);
 	if (URI == locationPath) //TODO:: Referer header logic need
 		return path;
-	std::cout << "ABSPath: " << path + URI.substr(URI.find_first_not_of(locationPath)) << std::endl;
+	// std::cout << "ABSPath: " << path + URI.substr(URI.find_first_not_of(locationPath)) << std::endl; // debug
 	return path + URI.substr(URI.find_first_not_of(locationPath));
 }
 

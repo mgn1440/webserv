@@ -32,6 +32,7 @@ Response::Response(const Response& rhs)
 	mStartLine = rhs.mStartLine;
     mHeader = rhs.mHeader;
     mBody = rhs.mBody;
+	mBodySize = rhs.mBodySize;
     mParams = rhs.mParams;
     mHttpVer = rhs.mHttpVer;
     mStatCode = rhs.mStatCode;
@@ -54,6 +55,8 @@ Response& Response::operator=(const Response& rhs)
 	mStartLine = rhs.mStartLine;
     mHeader = rhs.mHeader;
     mBody = rhs.mBody;
+	mBodySize = rhs.mBodySize;
+    mParams = rhs.mParams;
     mParams = rhs.mParams;
     mHttpVer = rhs.mHttpVer;
     mStatCode = rhs.mStatCode;
@@ -74,6 +77,7 @@ Response::Response()
     , mStartLine()
     , mHeader()
     , mBody()
+	, mBodySize(0)
     , mParams()
     , mHttpVer("HTTP/1.1")
     , mStatCode()
@@ -119,9 +123,10 @@ void Response::createResponseBody(int statCode)
     char buf[16384];
     do
     {
-		ifs.read(buf, sizeof(buf) - 1);
-		buf[ifs.gcount()] = '\0';
-        mBody += std::string(buf);
+		ifs.read(buf, sizeof(buf));
+		// mBodySize += ifs.gcount();
+		// buf[ifs.gcount()] = '\0';
+        mBody += std::string(buf, ifs.gcount());
     } while (ifs.gcount());
 }
 
@@ -316,15 +321,24 @@ std::string Response::GetCGIPath() const
 
 
 // TODO: Body를 reference로 받아서 복사되지 않도록(오버헤드 이슈) 처리해야 함.
-std::string Response::GenResponseMsg()
+void Response::WriteResponseHeaderTo(int clientFD)
 {
 	std::string ret;
 	createResponseHeader();
 	ret = mStartLine;
 	ret += mHeader;
-    ret += mBody;
+    // ret += mBody;
 	// std::cout << ret << std::endl;
-	return ret;
+	if (write(clientFD, ret.c_str(), ret.size()) == -1)
+		throw std::runtime_error("write error");
+}
+
+void Response::WriteResponseBodyTo(int clientFD)
+{
+	// std::cout << "ABSPath: " << mABSPath << std::endl; // debug
+	// std::cout << "mBodySize: " << mBodySize << std::endl; // debug
+	if (write(clientFD, mBody.c_str(), mBody.size()) == -1)
+		throw std::runtime_error("write error");
 }
 
 void Response::setFromResource(struct Resource res)

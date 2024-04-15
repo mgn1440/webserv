@@ -39,3 +39,4 @@ CGI일 시 processCGI
 # TODO
 - client_max_size Body size만 받도록 바꾸기
 - redirection 구현하기
+- file 전송할 때 중간에 NULL이 들어올 수 있으므로 mBody는 따로 보내기. size도 같이 저장해야 함.
