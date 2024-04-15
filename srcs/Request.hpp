@@ -20,6 +20,7 @@ struct Request
 	std::string body;
 	bool connectionStop;
 	bool chunkedStatus;
+	size_t chunkedNum;
 };
 
 enum eParsedFlags

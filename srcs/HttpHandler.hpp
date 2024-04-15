@@ -30,7 +30,7 @@ private:
 	size_t mSavedHeaderSize;
 	size_t mSavedBodySize;
 	size_t mConsumeBufferSize;
-	size_t maxBodySize;
+	size_t mMaxbodySize;
 
 	// method
 	void parseHttpRequest(void);

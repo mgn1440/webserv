@@ -17,7 +17,7 @@ HttpHandler::HttpHandler(int port)
 	, mSavedHeaderSize()
 	, mSavedBodySize()
 	, mConsumeBufferSize()
-	, maxBodySize(-1)
+	, mMaxbodySize(-1)
 {
 	initRequest(mParsedRequest);
 }
@@ -40,7 +40,7 @@ HttpHandler& HttpHandler::operator=(const HttpHandler& rhs)
 	mSavedHeaderSize = rhs.mSavedHeaderSize;
 	mSavedBodySize = rhs.mSavedBodySize;
 	mConsumeBufferSize = rhs.mConsumeBufferSize;
-	maxBodySize = rhs.maxBodySize;
+	mMaxbodySize = rhs.mMaxbodySize;
 	return (*this);
 }
 
@@ -52,7 +52,7 @@ HttpHandler::HttpHandler(const HttpHandler& rhs)
 	mSavedHeaderSize = rhs.mSavedHeaderSize;
 	mSavedBodySize = rhs.mSavedBodySize;
 	mConsumeBufferSize = rhs.mConsumeBufferSize;
-	maxBodySize = rhs.maxBodySize;
+	mMaxbodySize = rhs.mMaxbodySize;
 }
 
 void	HttpHandler::printParsedHttpRequest(const struct Request& r)
@@ -188,7 +188,7 @@ void HttpHandler::parseContentLength(std::istringstream& input)
 		mParsedRequest.parsedStatus |= PARSED_BODY;
 		return;
 	}
-	if (contentLength > maxBodySize){
+	if (contentLength > mMaxbodySize){
 		mParsedRequest.connectionStop = true;
 		return setHttpStatusCode(413);
 	}
@@ -199,7 +199,7 @@ void HttpHandler::parseContentLength(std::istringstream& input)
 		size_t cnt = input.gcount();
 		mConsumeBufferSize += cnt;
 		mParsedRequest.body.append(buf, cnt);
-		if (mParsedRequest.body.size() > maxBodySize){
+		if (mParsedRequest.body.size() > mMaxbodySize){
 			mParsedRequest.connectionStop = true;
 			return setHttpStatusCode(413); // content too large
 		}
@@ -225,21 +225,23 @@ void HttpHandler::parseTransferEncoding(std::istringstream& input)
 			trim(str, "\r");
 			num = convertHex(str);
 			mParsedRequest.chunkedStatus = true;
+			mParsedRequest.chunkedNum = num;
 		}
 		std::getline(input, str);
 		if (input.eof())
 			return;
 		mSavedBodySize += str.size() + 1;
 		mConsumeBufferSize += str.size() + 1;
-		if (mSavedBodySize > maxBodySize){
+		if (mSavedBodySize > mMaxbodySize){
 			mParsedRequest.connectionStop = true;
 			return setHttpStatusCode(413); // content too large
 		}
 		trim(str, "\r");
-		if (str.size() != num)
+		if (str.size() != mParsedRequest.chunkedNum)
 			return setHttpStatusCode(400); // bad request
 		mParsedRequest.body += str;
 		mParsedRequest.chunkedStatus = false;
+		mParsedRequest.chunkedNum = 0;
 	}
 	mParsedRequest.statusCode |= PARSED_BODY;
 }
@@ -251,7 +253,7 @@ void HttpHandler::setHttpStatusCode(int statusCode)
 
 void HttpHandler::getMaxSize()
 {
-	// maxBodySize = ConfigHandler::GetConfigHandler().GetMaxSizes(); // Redefinition config handler
+	// mMaxbodySize = ConfigHandler::GetConfigHandler().GetMaxSizes(); // Redefinition config handler
 }
 
 void HttpHandler::splitStartLine()

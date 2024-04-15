@@ -15,4 +15,5 @@ void initRequest(struct Request& request)
 	request.body = "";
 	request.connectionStop = false;
 	request.chunkedStatus = false;
+	request.chunkedNum = 0;
 }

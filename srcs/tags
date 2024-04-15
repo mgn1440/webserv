@@ -68,7 +68,7 @@ mRoot	AConfParser.cpp	/^	, mRoot("\/")$/
 mUpload	Server.cpp	/^	, mUpload("\/upload")$/
 makeArgvList	WebServ.cpp	/^char *const *WebServ::makeArgvList(const std::stri/
 makeCGIEnvList	WebServ.cpp	/^char *const *WebServ::makeCGIEnvList(const Respons/
-maxBodySize	HttpHandler.cpp	/^	, maxBodySize(-1)$/
+mMaxbodySize	HttpHandler.cpp	/^	, mMaxbodySize(-1)$/
 operator	AConfParser.cpp	/^AConfParser& AConfParser::operator=(const AConfPar/
 parse	Location.cpp	/^void Location::parse(std::ifstream& confFile)$/
 parseAutoIndex	AConfParser.cpp	/^void AConfParser::parseAutoIndex(std::stringstream/
