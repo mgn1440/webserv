@@ -41,7 +41,6 @@ private:
 
 	void setFromResource(struct Resource);
     void setDate();
-	void setRef();
 
     bool mbCGI;
     bool mbAutoIndex;
@@ -63,6 +62,7 @@ private:
     bool mbContentLen;
     std::string mABSPath;
 	std::map<int, std::string> mErrorPage;
+	bool mbConnectionStop;
 };
 
 #endif
