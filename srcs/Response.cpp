@@ -141,23 +141,16 @@ bool Response::isValidMethod(struct Request& req, struct Resource& res)
     return (true);
 }
 
-// Debug
-
 void Response::PrintResponse()
 {
+	std::cout << "Print Response" << std::endl;
+	std::cout << "ABSPath: " <<  mABSPath << std::endl;  // debug
 	std::string ret;
-    std::string temp;
-
+    ret = mStartLine;
+	ret += mHeader;
+	ret += mBody.substr(0, 50);
+	std::cout << ret << "\n\n";
 	// [HTTP version] [stat code] [status]
-	ret += mHttpVer + " ";
-    std::stringstream ss;
-    ss << mStatCode;
-    ss >>  temp;
-    ret += temp + " " + "OK" +"\r\n";
-    createResponseBody(200);
-    std::cout << ret << std::endl;
-	printMap(mHeaderMap);
-    std::cout << mBody << std::endl;
 }
 
 // TODO:
@@ -171,6 +164,7 @@ void Response::processGET(struct Resource& res)
 	struct stat statBuf;
 	if (stat(res.ABSPath.c_str(), &statBuf) == -1)
 	{
+		std::cout << "Stat Error: " <<  mABSPath << std::endl; // debug
 		SetStatusOf(404);
 		return ;
 	}
@@ -180,8 +174,8 @@ void Response::processGET(struct Resource& res)
 		std::set<std::string>::iterator indexName = res.Index.begin();
 		for (; indexName != res.Index.end(); ++indexName)
 		{
-			std::cout << mABSPath + (*indexName) << std::endl;
 			if (stat((mABSPath + "/" + (*indexName)).c_str(), &statBuf) == 0){
+				// std::cout << mABSPath << ", " << (*indexName) << "\n" << std::endl; // debug
 				mABSPath += ("/" + *indexName);
 				mbDir = false;
 				mbFile = true;
@@ -214,11 +208,14 @@ void Response::processGET(struct Resource& res)
 		else
 			mCGIPath = "";
 	}
-	if (!mbCGI){
+	if (!mbCGI)
+	{
 		std::ifstream ifs(mABSPath);
 		createResponseBody(200);
 	}
-
+	else
+		mStatCode = 200;
+	// std::cout << "ABSPath: " <<  mABSPath << std::endl;  // debug
     // //--------------------------
     // mABSPath = res.ABSPath;
     // struct stat statBuf;
