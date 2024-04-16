@@ -257,18 +257,21 @@ void HttpHandler::parseTransferEncoding(std::istringstream& input)
 		mConsumeBufferSize += num + 2;
 		if (mSavedBodySize > mMaxbodySize)
 		{
+			delete[] str;
 			// std::cout << "maxSizeOver: " << mSavedBodySize << std::endl;
 			mParsedRequest.connectionStop = true;
 			return setHttpStatusCode(413); // content too large
 		}
 		if (str[num] != '\r' || str[num + 1] != '\n')
 		{
+			delete[] str;
 			// std::cout << "not \\r\\n: [" << (int)str[num] << "], [" << (int)str[num + 1] << "]" << input.str() <<std::endl;
 			return setHttpStatusCode(400); // bad request
 		}
 		mParsedRequest.body += std::string(str, num);
 		mParsedRequest.chunkedNum = 0;
 		mParsedRequest.chunkedStatus = false;
+		delete[] str;
 		if (num == 0)
 		{
 			// std::cout << "num is 0" << std::endl; // debug
