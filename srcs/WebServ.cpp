@@ -235,7 +235,7 @@ void	WebServ::processHttpRequest(struct kevent* currEvent)
 		return;
 	}
 	std::string httpRequest = readFDData(clientFD);
-	std::cout << httpRequest; // debug
+	// std::cout << httpRequest; // debug
 	addEvents(clientFD, EVFILT_TIMER, EV_ADD | EV_ENABLE | EV_ONESHOT, 0, 30000, NULL); // 30초 타임아웃 (write event가 발생하면 timeout event를 삭제해줘야 함)
 	mTimerMap[clientFD] = true;
 	// TODO: ConfigHandler::GetResponseOf 메서드와 중복 책임. => 하나로 병합 또는 한 쪽 삭제 요망
@@ -392,7 +392,7 @@ std::string	WebServ::readFDData(int clientFD)
 		throw std::runtime_error("read error");
 	}
 	buf[n] = 0;
-	return (std::string(buf));
+	return (std::string(buf, n));
 }
 
 void WebServ::eraseCGIMaps(int pid, int clientFD, int pipeFD)
