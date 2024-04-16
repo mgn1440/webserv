@@ -3,14 +3,6 @@
 
 #include "Location.hpp"
 #include "parseUtils.hpp"
-// limit_except GET POST;
-// 		# root /path/to/root;
-// 		# index index.html;
-// 		# autoindex on;
-
-// 		# fastcgi_pass unix:/var/run/php/php7.4-fpm.sock;
-// 		# fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
-// 		# include fastcgi_params;
 
 Location::Location()
 	: AConfParser()
@@ -20,6 +12,7 @@ Location::Location(std::ifstream& confFile)
 	: AConfParser()
 {
 	mRoot = "";
+	mMaxSize = 0;
 	parse(confFile);
 }
 Location::Location(const Location& src)
@@ -42,6 +35,12 @@ void Location::GetRoot(std::string& path)
 {
 	if (mRoot != "")
 		path = mRoot;
+}
+
+void Location::GetMaxSize(size_t& res)
+{
+	if (mMaxSize)
+		res = mMaxSize;
 }
 
 // server {
@@ -95,6 +94,8 @@ void Location::parse(std::ifstream& confFile)
 			parseLimitExcept(ss, word);
 		else if (word == "cgi")
 			parseCGI(ss, word);
+		else if (word == "client_max_size")
+			parseClientMaxSize(ss, word);
 		else
 			throw std::runtime_error("Invalid symbol or syntax");
 		if (confFile.eof())

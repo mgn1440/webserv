@@ -6,6 +6,7 @@
 #include "convertUtils.hpp"
 #include "ConfigHandler.hpp"
 #include "Response.hpp"
+#include "STLUtils.hpp"
 
 #define MAX_STARTLINE_SIZE 8000
 #define MAX_HEDAER_SIZE 8000
@@ -65,18 +66,21 @@ void	HttpHandler::printParsedHttpRequest(const struct Request& r)
 	std::cout << std::endl;
 }
 
-std::deque<Response> HttpHandler::ReceiveRequestMessage(const std::string& data)
+std::deque<Response> HttpHandler::MakeResponseOf(const std::string& data)
 {
 	// 1. parse request;
 	// 2. if condition is wrong make error code response
 	// 3. if request is not end save not parsed string
 
 	mRequestBuffer += data;
+	std::cout << "mRequestBuffer\n" << mRequestBuffer << std::endl;
 	std::deque<Response> ret;
-	while (true){
+	while (true)
+	{
 		parseHttpRequest();
 		refreshBuffer(mRequestBuffer, mConsumeBufferSize);
 		mConsumeBufferSize = 0;
+		std::cout << "parsedStatus: " << mParsedRequest.parsedStatus << std::endl; // debug
 		if (mParsedRequest.parsedStatus != PARSED_ALL)
 			break;
 		Response res;
@@ -104,10 +108,14 @@ void HttpHandler::parseStartLine(std::istringstream& input)
 {
 	std::string buf;
 	getline(input, buf);
+	std::cout << "StartLine buf:" << buf <<  ", buffer: " << mRequestBuffer << std::endl; // debug
 	if (input.eof())
 		return;
-	if (!checkCRLF(buf))
+	std::cout << "line buf length is " << buf.length() << std::endl;
+	if (!checkCRLF(buf)){
 		return setHttpStatusCode(400); // bad request
+	}
+	std::cout << "set PARSED_START" << std::endl; // debug
 	mConsumeBufferSize += buf.size() + 1;
 	mParsedRequest.startLine = buf;
 	splitStartLine();
@@ -158,7 +166,10 @@ void HttpHandler::setHeader(const std::string& str)
 
 void HttpHandler::parseBody(std::istringstream& input)
 {
+	// std::cout << "parseBody" << std::endl; // debug
 	if (mParsedRequest.headers.find("Transfer-Encoding") != mParsedRequest.headers.end()){
+
+		// std::cout << "chunked" << std::endl; // debug
 		if (mParsedRequest.headers["Transfer-Encoding"] != "chunked"){
 			mParsedRequest.connectionStop = true;
 			setHttpStatusCode(400); // and connection cut
@@ -168,23 +179,28 @@ void HttpHandler::parseBody(std::istringstream& input)
 			mParsedRequest.headers.erase("Content-Length");
 		parseTransferEncoding(input);
 	}
-	else
+	else if (mParsedRequest.headers.find("Content-Length") != mParsedRequest.headers.end())
 		parseContentLength(input);
+	else
+	{
+		// TODO: GET, DELETE일 때 Body 제한?
+		mParsedRequest.headers["Content-Length"] = "0";
+		mParsedRequest.parsedStatus |= PARSED_BODY;
+	}
 }
 
 void HttpHandler::parseContentLength(std::istringstream& input)
 {
+	// std::cout << "parseContentLength" << std::endl; // debug
 	std::string body;
 	size_t contentLength = 0;
-	if (mParsedRequest.headers.find("Content-Length") != mParsedRequest.headers.end()){
-		try{
-			contentLength = convertNum(mParsedRequest.headers["Content-Length"]);
-		}
-		catch (std::exception& e){
-			return setHttpStatusCode(400);
-		}
+	try{
+		 contentLength = convertNum(mParsedRequest.headers["Content-Length"]);
 	}
-	if (!contentLength){ // body size = 0;
+	catch (std::exception& e){
+		return setHttpStatusCode(400);
+	}
+	if (!contentLength){
 		mParsedRequest.parsedStatus |= PARSED_BODY;
 		return;
 	}
@@ -194,7 +210,8 @@ void HttpHandler::parseContentLength(std::istringstream& input)
 	}
 	int bufferSize = 100;
 	char buf[bufferSize];
-	while (true){
+	while (true)
+	{
 		input.read(buf, bufferSize);
 		size_t cnt = input.gcount();
 		mConsumeBufferSize += cnt;
@@ -203,8 +220,12 @@ void HttpHandler::parseContentLength(std::istringstream& input)
 			mParsedRequest.connectionStop = true;
 			return setHttpStatusCode(413); // content too large
 		}
+		// TODO: why cnt compare with contentLength?
 		if (cnt != contentLength)
+		{
+			// std::cout << "cnt is 0, body size is " << mParsedRequest.body.size() << ", contentLength is " << contentLength << std::endl; // debug 
 			break;
+		}
 	}
 	if (mParsedRequest.body.size() == contentLength)
 		mParsedRequest.parsedStatus |= PARSED_BODY;
@@ -213,37 +234,53 @@ void HttpHandler::parseContentLength(std::istringstream& input)
 void HttpHandler::parseTransferEncoding(std::istringstream& input)
 {
 	//decompress impossible;
-	std::string str;
-	size_t num = 0;
+	std::string size;
 	while (true){
 		if (!mParsedRequest.chunkedStatus){ // before buffer where parsed?
-			std::getline(input, str);
+			std::getline(input, size);
 			if (input.eof())
 				return;
-			mSavedBodySize += str.size() + 1;
-			mConsumeBufferSize += str.size() + 1;
-			trim(str, "\r");
-			num = convertHex(str);
+			mSavedBodySize += size.size() + 1;
+			mConsumeBufferSize += size.size() + 1;
+			trim(size, "\r");
+			mParsedRequest.chunkedNum = convertHex(size);
 			mParsedRequest.chunkedStatus = true;
-			mParsedRequest.chunkedNum = num;
+			std::cout << "num: " << mParsedRequest.chunkedNum << std::endl; // debug
 		}
-		std::getline(input, str);
-		if (input.eof())
-			return;
-		mSavedBodySize += str.size() + 1;
-		mConsumeBufferSize += str.size() + 1;
-		if (mSavedBodySize > mMaxbodySize){
+		size_t num = mParsedRequest.chunkedNum;
+		if (input.str().size() - input.tellg() < num + 2)
+		{
+			std::cout << "second chunk eof" << std::endl; // debug
+			return ;
+		}
+		char *str = new char[num + 3];
+		str[input.readsome(str, num + 2)] = '\0';
+		std::cout << "str: " << str << std::endl; // debug
+		mSavedBodySize += num + 2;
+		mConsumeBufferSize += num + 2;
+		if (mSavedBodySize > mMaxbodySize)
+		{
+			std::cout << "maxSizeOver: " << mSavedBodySize << std::endl;
 			mParsedRequest.connectionStop = true;
 			return setHttpStatusCode(413); // content too large
 		}
-		trim(str, "\r");
-		if (str.size() != mParsedRequest.chunkedNum)
+		if (str[num] != '\r' || str[num + 1] != '\n')
+		{
+			std::cout << "not \\r\\n: [" << (int)str[num] << "], [" << (int)str[num + 1] << "]" << input.str() <<std::endl;
 			return setHttpStatusCode(400); // bad request
-		mParsedRequest.body += str;
-		mParsedRequest.chunkedStatus = false;
+		}
+		mParsedRequest.body += std::string(str, num);
 		mParsedRequest.chunkedNum = 0;
+		mParsedRequest.chunkedStatus = false;
+		if (num == 0)
+		{
+			std::cout << "num is 0" << std::endl; // debug
+			break;
+		}
+		else
+			std::cout << "num is not 0" << std::endl; // debug
 	}
-	mParsedRequest.statusCode |= PARSED_BODY;
+	mParsedRequest.parsedStatus |= PARSED_BODY;
 }
 
 void HttpHandler::setHttpStatusCode(int statusCode)

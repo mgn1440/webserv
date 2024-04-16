@@ -32,6 +32,7 @@ Response::Response(const Response& rhs)
 	mStartLine = rhs.mStartLine;
     mHeader = rhs.mHeader;
     mBody = rhs.mBody;
+	mBodySize = rhs.mBodySize;
     mParams = rhs.mParams;
     mHttpVer = rhs.mHttpVer;
     mStatCode = rhs.mStatCode;
@@ -54,6 +55,8 @@ Response& Response::operator=(const Response& rhs)
 	mStartLine = rhs.mStartLine;
     mHeader = rhs.mHeader;
     mBody = rhs.mBody;
+	mBodySize = rhs.mBodySize;
+    mParams = rhs.mParams;
     mParams = rhs.mParams;
     mHttpVer = rhs.mHttpVer;
     mStatCode = rhs.mStatCode;
@@ -74,6 +77,7 @@ Response::Response()
     , mStartLine()
     , mHeader()
     , mBody()
+	, mBodySize(0)
     , mParams()
     , mHttpVer("HTTP/1.1")
     , mStatCode()
@@ -92,6 +96,7 @@ void Response::createResponseHeader()
     mStartLine = mHttpVer + " ";
     mStartLine += intToString(mStatCode) + " " + StatusPage::GetInstance()->GetStatusMessageOf(mStatCode) +"\r\n";
 	
+	mHeader = "";
 	for (std::map<std::string, std::string>::iterator it = mHeaderMap.begin(); it != mHeaderMap.end(); it ++)
 	{
 		mHeader += it->first + ": " + it->second + "\r\n";
@@ -104,18 +109,24 @@ void Response::createResponseHeader()
 
 // TODO: directory가 들어왔을 때 autoindex on =>  directory listing page
 // directory가 들어왔을 때 autoindex off => index file name이 붙어야 함
-void Response::createResponseBody()
+void Response::createResponseBody(int statCode)
 {
+	// std::cerr << "mStatus: " << mStatCode << ", Status: " << statCode << std::endl;
 	std::ifstream ifs(mABSPath);
     if (ifs.fail())
         throw std::runtime_error("file open error");
-	mStatCode = 200;
+	if (statCode != 0)
+		mStatCode = statCode;
+	else
+		mStatCode = 200;
+	// std::cerr << "mStatus: " << mStatCode << ", Status: " << statCode << std::endl;
     char buf[16384];
     do
     {
-		ifs.read(buf, sizeof(buf) - 1);
-		buf[ifs.gcount()] = '\0';
-        mBody += std::string(buf);
+		ifs.read(buf, sizeof(buf));
+		// mBodySize += ifs.gcount();
+		// buf[ifs.gcount()] = '\0';
+        mBody += std::string(buf, ifs.gcount());
     } while (ifs.gcount());
 }
 
@@ -124,7 +135,7 @@ bool Response::isValidMethod(struct Request& req, struct Resource& res)
 {
     if (find(res.HttpMethod.begin(), res.HttpMethod.end(), req.method) == res.HttpMethod.end())
     {
-        req.statusCode = 501;
+        req.statusCode = 405; // 501
         return (false);
     }
     return (true);
@@ -143,7 +154,7 @@ void Response::PrintResponse()
     ss << mStatCode;
     ss >>  temp;
     ret += temp + " " + "OK" +"\r\n";
-    createResponseBody();
+    createResponseBody(200);
     std::cout << ret << std::endl;
 	printMap(mHeaderMap);
     std::cout << mBody << std::endl;
@@ -158,7 +169,7 @@ void Response::PrintResponse()
 void Response::processGET(struct Resource& res)
 {
 	struct stat statBuf;
-	if (stat(mABSPath.c_str(), &statBuf) == -1)
+	if (stat(res.ABSPath.c_str(), &statBuf) == -1)
 	{
 		SetStatusOf(404);
 		return ;
@@ -169,12 +180,14 @@ void Response::processGET(struct Resource& res)
 		std::set<std::string>::iterator indexName = res.Index.begin();
 		for (; indexName != res.Index.end(); ++indexName)
 		{
-			if (stat((mABSPath + (*indexName)).c_str(), &statBuf) == 0){
-				mABSPath += *indexName;
+			std::cout << mABSPath + (*indexName) << std::endl;
+			if (stat((mABSPath + "/" + (*indexName)).c_str(), &statBuf) == 0){
+				mABSPath += ("/" + *indexName);
 				mbDir = false;
 				mbFile = true;
 				break;
 			}
+			perror("error: ");
 		}
 		if (!mbFile){
 			if (mbAutoIndex){
@@ -182,7 +195,10 @@ void Response::processGET(struct Resource& res)
 				mHeaderMap["Content-Type"] = "text/html";
 			}
 			else if (!mbAutoIndex)
+			{
 				SetStatusOf(404);
+				return ;
+			}
 		}
 	}
 	else
@@ -200,7 +216,7 @@ void Response::processGET(struct Resource& res)
 	}
 	if (!mbCGI){
 		std::ifstream ifs(mABSPath);
-		createResponseBody();
+		createResponseBody(200);
 	}
 
     // //--------------------------
@@ -231,10 +247,14 @@ void Response::SetStatusOf(int statusCode)
     mStatCode = statusCode;
 	if (mErrorPage.find(statusCode) != mErrorPage.end()){
 		mABSPath = mErrorPage[statusCode];
-		createResponseBody();
+		createResponseBody(statusCode);
+		// std::cerr << "Set status: " << statusCode << std::endl;
 		// createResponseHeader();
 	}
 	else{
+		// TODO: 204 같은 NO Content도 body를 만들어 주는가?
+		mStatCode = statusCode;
+		mHeaderMap["Content-Type"] = "text/html";
 		mBody = StatusPage::GetInstance()->GetStatusPageOf(statusCode);
 		// createResponseHeader();
 	}
@@ -292,7 +312,6 @@ void Response::GenCGIBody()
 {
 	mHeaderMap["Content-Type"] = "text/html";
 	parseHeaderOfCGI();
-	createResponseHeader();
 }
 
 
@@ -303,15 +322,24 @@ std::string Response::GetCGIPath() const
 
 
 // TODO: Body를 reference로 받아서 복사되지 않도록(오버헤드 이슈) 처리해야 함.
-std::string Response::GenResponseMsg()
+void Response::WriteResponseHeaderTo(int clientFD)
 {
 	std::string ret;
 	createResponseHeader();
 	ret = mStartLine;
 	ret += mHeader;
-    ret += mBody;
-	std::cout << ret << std::endl;
-	return ret;
+    // ret += mBody;
+	// std::cout << ret << std::endl;
+	if (write(clientFD, ret.c_str(), ret.size()) == -1)
+		throw std::runtime_error("write error");
+}
+
+void Response::WriteResponseBodyTo(int clientFD)
+{
+	// std::cout << "ABSPath: " << mABSPath << std::endl; // debug
+	// std::cout << "mBodySize: " << mBodySize << std::endl; // debug
+	if (write(clientFD, mBody.c_str(), mBody.size()) == -1)
+		throw std::runtime_error("write error");
 }
 
 void Response::setFromResource(struct Resource res)
@@ -415,7 +443,7 @@ void Response::parseHeaderOfCGI()
 	}
 	if (isHeader)
 		mBody = mBody.substr(mBody.find("\r\n\r\n") + 4);
-	// std::cout << "body\n" << mBody;
+	// std::cerr << "body\n" << mBody;
 }
 
 const char* Response::GetABSPath() const

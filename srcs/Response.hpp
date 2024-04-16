@@ -21,7 +21,8 @@ public:
     void PrintResponse();
 	void AppendCGIBody(const std::string& CGIBody);
     void SetStatusOf(int statusCode);
-	std::string GenResponseMsg();
+    void WriteResponseHeaderTo(int clientFD);
+    void WriteResponseBodyTo(int clientFD);
     const char* GetABSPath() const;
     std::map<std::string, std::string> GetParams() const;
     void GenCGIBody();
@@ -37,7 +38,7 @@ private:
     // void processPUT(struct Resource& res);
     void processDELETE();
     void createResponseHeader();
-    void createResponseBody();
+    void createResponseBody(int statCode);
 
 	void setFromResource(struct Resource);
     void setDate();
@@ -49,6 +50,7 @@ private:
     std::string mStartLine;
     std::string mHeader;
     std::string mBody;
+    size_t mBodySize;
     std::string mRequestBody;
 	std::map<std::string, std::string> mParams;
     std::map<std::string, std::string> mHeaderMap;

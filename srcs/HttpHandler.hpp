@@ -19,8 +19,9 @@ public:
 	HttpHandler();
 
 	// interface
-	// std::vector<struct Request> ReceiveRequestMessage(const std::string& data);
-	std::deque<Response> ReceiveRequestMessage(const std::string& data);
+	// std::vector<struct Request> MakeResponseOf(const std::string& data);
+	std::deque<Response> MakeResponseOf(const std::string& data);
+	void TestMethod();
 private:
 	// occf not used
 	// member var

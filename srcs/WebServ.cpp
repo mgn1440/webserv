@@ -62,9 +62,7 @@ void	WebServ::setKqueue(void)
 	std::vector<int>::iterator iter = mServSockList.begin();
 	for (; iter != mServSockList.end(); iter++)
 		addEvents(*iter, EVFILT_READ, EV_ADD | EV_ENABLE, 0, 0, NULL);
-	if (kevent(mKq, &mChangeList[0], mChangeList.size(), NULL, 0, NULL) == -1)
-		throw std::runtime_error("kevent error");
-	mChangeList.clear();
+	// mChangeList.clear();
 }
 
 void	WebServ::addEvents(uintptr_t ident, int16_t filter, uint16_t flags, uint32_t fflags, intptr_t data, void *udata)
@@ -136,6 +134,7 @@ void	WebServ::runKqueueLoop(void)
 					}
 					else if (currEvent->filter == EVFILT_WRITE)
 					{
+						std::cout << "Write event occured!" << std::endl; // debug
 						if (mResponseMap.find(currEvent->ident) != mResponseMap.end())
 							writeHttpResponse(currEvent);
 						else if (mCGIPostPipeMap.find(currEvent->ident) != mCGIPostPipeMap.end())
@@ -211,6 +210,7 @@ void	WebServ::waitCGIProc(struct kevent* currEvent)
 
 void	WebServ::acceptNewClientSocket(struct kevent* currEvent)
 {
+	// std::cout << "acceptNewClientSocket" << std::endl; // debug
 	int servSocket = currEvent->ident;
 	int clientSocket = accept(servSocket, NULL, NULL);
 	if (clientSocket == -1)
@@ -224,6 +224,7 @@ void	WebServ::acceptNewClientSocket(struct kevent* currEvent)
 
 void	WebServ::processHttpRequest(struct kevent* currEvent)
 {
+	// std::cout << "processHttpRequest" << std::endl; // debug
 	int clientFD = currEvent->ident;
 
 	if (currEvent->flags & EV_EOF) // 클라이언트 쪽에서 소켓을 닫음 (관련된 모든 리소스를 삭제, 어쩌피 에러도 못 받음)
@@ -234,17 +235,22 @@ void	WebServ::processHttpRequest(struct kevent* currEvent)
 		return;
 	}
 	std::string httpRequest = readFDData(clientFD);
+	// std::cout << httpRequest; // debug
 	addEvents(clientFD, EVFILT_TIMER, EV_ADD | EV_ENABLE | EV_ONESHOT, 0, 30000, NULL); // 30초 타임아웃 (write event가 발생하면 timeout event를 삭제해줘야 함)
 	mTimerMap[clientFD] = true;
 	// TODO: ConfigHandler::GetResponseOf 메서드와 중복 책임. => 하나로 병합 또는 한 쪽 삭제 요망
 	// Request 객체로부터 RequestList를 받음
-	std::deque<Response> responseList = mRequestMap[clientFD].ReceiveRequestMessage(httpRequest);
+	std::deque<Response> responseList = mRequestMap[clientFD].MakeResponseOf(httpRequest);
 	std::deque<Response>::iterator responseIt = responseList.begin();
 	for(; responseIt != responseList.end(); ++responseIt)
 	{
+		std::cout << "looping response list..." << std::endl; //debug
 		mResponseMap[clientFD].push_back(*responseIt);
 		if (!responseIt->IsCGI())
+		{
+			// std::cout << "Not CGI, set new Write Event" << std::endl; // debug
 			addEvents(clientFD, EVFILT_WRITE, EV_ADD | EV_ENABLE, 0, 0, NULL);
+		}
 		else // Get인지 Post인지 확인을 해야 함
 			processCGI(mResponseMap[clientFD].back(), clientFD);
 	}
@@ -354,6 +360,7 @@ void	WebServ::writeToCGIPipe(struct kevent* currEvent)
 
 void	WebServ::writeHttpResponse(struct kevent* currEvent)
 {
+	// std::cout << "writeHttpResponse" << std::endl; // debug
 	int clientFD = currEvent->ident;
 	Response &response = mResponseMap[clientFD].front();
 
@@ -363,9 +370,8 @@ void	WebServ::writeHttpResponse(struct kevent* currEvent)
 		eraseHttpMaps(clientFD);
 		return ;
 	}
-	std::string httpResponse = response.GenResponseMsg();
-	if (write(clientFD, httpResponse.c_str(), httpResponse.size()) == -1)
-			throw std::runtime_error("write error");
+	response.WriteResponseHeaderTo(clientFD);
+	response.WriteResponseBodyTo(clientFD);
 	if (mTimerMap[clientFD])
 	{
 		addEvents(clientFD, EVFILT_TIMER, EV_DELETE, 0, 0, NULL);
@@ -386,7 +392,7 @@ std::string	WebServ::readFDData(int clientFD)
 		throw std::runtime_error("read error");
 	}
 	buf[n] = 0;
-	return (std::string(buf));
+	return (std::string(buf, n));
 }
 
 void WebServ::eraseCGIMaps(int pid, int clientFD, int pipeFD)

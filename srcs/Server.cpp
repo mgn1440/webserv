@@ -11,13 +11,9 @@ Server::Server()
 
 Server::Server(std::ifstream& confFile)
 	: AConfParser()
-	, mbIsDuplicatedClientMaxSize(false)
 	, mbIsDuplicatedUpload(false)
 	, mUpload("/upload")
 {
-	mMaxSize[0] = DEF_ST_LINE_SIZE;
-	mMaxSize[1] = DEF_HEADER_SIZE;
-	mMaxSize[2] = DEF_BODY_SIZE;
 	parse(confFile);
 	if (mPort.empty())
 		throw std::runtime_error("Does not define port");
@@ -39,11 +35,8 @@ Server&	Server::operator=(const Server& rhs)
 		return (*this);
 	AConfParser::operator=(rhs);
 	mPort = rhs.mPort;
-	mbIsDuplicatedClientMaxSize = rhs.mbIsDuplicatedClientMaxSize;
 	mServerName = rhs.mServerName;
 	mErrorPage = rhs.mErrorPage;
-	for (int i = 0; i < 3; i ++)
-		mMaxSize[i] = rhs.mMaxSize[i];
 	mLocationMap = rhs.mLocationMap;
 	return (*this);
 }
@@ -100,8 +93,7 @@ void Server::PrintInfo()
 	std::cout << "ErrorPage: ";
 	printMap(mErrorPage);
 	std::cout << "MaxSize: ";
-	for (int i = 0; i < 3; i ++)
-		std::cout << mMaxSize[i] << " ";
+	std::cout << mMaxSize << " ";
 	std::cout << std::endl;
 	std::cout << "ServerName: ";
 	printVec(mServerName);
@@ -142,9 +134,14 @@ void Server::PutIn(std::map<serverInfo, Server>& rhs)
 	}
 }
 
-const size_t* Server::GetMaxSize()
+size_t Server::GetMaxSize(std::string& URI)
 {
-	return mMaxSize;
+	size_t res = mMaxSize;
+
+	std::string locationPath = searchLocationPath(URI);
+	if (locationPath != "")
+		mLocationMap[locationPath].GetMaxSize(res);
+	return res;
 }
 
 std::set<int>& Server::GetPorts()
@@ -188,7 +185,10 @@ std::string Server::GetABSPath(const std::string& URI)
 
 	if (locationPath != "")
 		mLocationMap[locationPath].GetRoot(path);
-	return path + URI;
+	if (URI == locationPath) //TODO:: Referer header logic need
+		return path;
+	// std::cout << "ABSPath: " << path + URI.substr(URI.find_first_not_of(locationPath)) << std::endl; // debug
+	return path + URI.substr(URI.find_first_not_of(locationPath));
 }
 
 void Server::parseLocation(std::ifstream& confFile, std::stringstream& ss, std::string& word)
@@ -264,42 +264,6 @@ void Server::parseErrorPage(std::stringstream& ss, std::string& word)
 	throw std::runtime_error("Wrong error page format");
 }
 
-void Server::parseClientMaxSize(std::stringstream& ss, std::string& word)
-{
-	if (mbIsDuplicatedClientMaxSize == true)
-		throw std::runtime_error("client max size duplicated");
-	mbIsDuplicatedClientMaxSize = true;
-	for (int i = 0; i < 4; i ++)
-	{
-		if (ss >> word)
-		{
-			if (word == ";" && isEnd(ss, word) && i == 3)
-				return ;
-			else
-			{
-				mMaxSize[i] = atoi(word.c_str());
-				if (mMaxSize[i] <= 0)
-					throw std::runtime_error("wrong client max size format");
-				size_t	tmpOrd = word.find_first_not_of("0123456789");
-				if (tmpOrd != std::string::npos)
-				{
-					if (tmpOrd + 1 < word.length())
-					throw std::runtime_error("wrong client max size format");
-					else if (word[tmpOrd] == 'K')
-						mMaxSize[i] *= 1000;
-					else if (word[tmpOrd] == 'M')
-						mMaxSize[i] *= 1000000;
-					else if (word[tmpOrd] == 'G')
-						mMaxSize[i] *= 1000000000;
-					else
-						throw std::runtime_error("wrong client max size format");
-				}
-			}
-		}
-		else
-			throw std::runtime_error("wrong client max size format");
-	}
-}
 
 void Server::parseUpload(std::stringstream& ss, std::string& word)
 {

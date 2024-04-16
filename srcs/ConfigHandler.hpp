@@ -21,7 +21,7 @@ public:
     static void MakeConfigHandler(const std::string& confPath);
     static ConfigHandler& GetConfigHandler();
 
-    const size_t* GetMaxSizes(int port, std::string serverName);
+    size_t GetMaxSize(int port, std::string& serverName, std::string& URI);
     std::set<int>& GetPorts();
     std::deque<Response> GetResponseOf(std::vector<struct Request> requests);
     std::string GetContentType(const std::string& URI);

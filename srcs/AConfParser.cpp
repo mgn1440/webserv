@@ -3,8 +3,10 @@
 AConfParser::AConfParser()
 	: mbIsDuplicatedAutoIndex(false)
 	, mbIsDuplicatedLimitExcept(false)
+	, mbIsDuplicatedClientMaxSize(false)
 	, mbIsDuplicatedRoot(false)
 	, mbAutoIndex(false)
+	, mMaxSize(DEF_BODY_SIZE)
 	, mRoot("/")
 {}
 
@@ -22,11 +24,13 @@ AConfParser& AConfParser::operator=(const AConfParser& rhs)
 		return *this;
 	mbIsDuplicatedAutoIndex = rhs.mbIsDuplicatedAutoIndex;
 	mbIsDuplicatedLimitExcept = rhs.mbIsDuplicatedLimitExcept;
+	mbIsDuplicatedClientMaxSize = rhs.mbIsDuplicatedClientMaxSize;
 	mbAutoIndex = rhs.mbAutoIndex;
 	mHttpMethod = rhs.mHttpMethod;
 	mRoot = rhs.mRoot;
 	mIndex = rhs.mIndex;
 	mCGI = rhs.mCGI;
+	mMaxSize = rhs.mMaxSize;
 	return *this;
 }
 
@@ -124,4 +128,42 @@ void AConfParser::parseClosedBracket(std::stringstream& ss, std::string& word)
 {
 	if (ss >> word)
 		throw std::runtime_error("wrong bracket format");
+}
+
+
+void AConfParser::parseClientMaxSize(std::stringstream& ss, std::string& word)
+{
+	if (mbIsDuplicatedClientMaxSize == true)
+		throw std::runtime_error("client max size duplicated");
+	mbIsDuplicatedClientMaxSize = true;
+	for (int i = 0; i < 2; i ++)
+	{
+		if (ss >> word)
+		{
+			if (word == ";" && isEnd(ss, word) && i == 1)
+				return ;
+			else
+			{
+				mMaxSize = atoi(word.c_str());
+				if (mMaxSize <= 0)
+					throw std::runtime_error("wrong client max size format");
+				size_t	tmpOrd = word.find_first_not_of("0123456789");
+				if (tmpOrd != std::string::npos)
+				{
+					if (tmpOrd + 1 < word.length())
+					throw std::runtime_error("wrong client max size format");
+					else if (word[tmpOrd] == 'K')
+						mMaxSize *= 1000;
+					else if (word[tmpOrd] == 'M')
+						mMaxSize *= 1000000;
+					else if (word[tmpOrd] == 'G')
+						mMaxSize *= 1000000000;
+					else
+						throw std::runtime_error("wrong client max size format");
+				}
+			}
+		}
+		else
+			throw std::runtime_error("wrong client max size format");
+	}
 }

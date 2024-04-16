@@ -1,0 +1,2 @@
+[13-Apr-2024 10:09:00 UTC] PHP Warning:  mysqli_real_connect(): php_network_getaddresses: getaddrinfo failed: nodename nor servname provided, or not known in /Users/hyungjuk/C_cursus/WebServ/webserv/wordpress/wp-includes/class-wpdb.php on line 1987
+[13-Apr-2024 10:09:00 UTC] PHP Warning:  mysqli_real_connect(): (HY000/2002): php_network_getaddresses: getaddrinfo failed: nodename nor servname provided, or not known in /Users/hyungjuk/C_cursus/WebServ/webserv/wordpress/wp-includes/class-wpdb.php on line 1987
