@@ -171,6 +171,7 @@ std::string Server::searchLocationPath(const std::string& URI)
 
 	for (std::map<std::string, Location>::iterator it = mLocationMap.begin(); it != mLocationMap.end(); it ++)
 	{
+		// std::cout << "path: " <<it->first << ", URI:  " << URI << std::endl; // debug
 		if (URI.find(it->first) == 0 && locationPath.length() < it->first.length())
 			locationPath = it->first;
 	}
@@ -188,7 +189,11 @@ std::string Server::GetABSPath(const std::string& URI)
 	if (URI == locationPath) //TODO:: Referer header logic need
 		return path;
 	// std::cout << "ABSPath: " << path + URI.substr(URI.find_first_not_of(locationPath)) << std::endl; // debug
-	return path + URI.substr(URI.find_first_not_of(locationPath));
+	// std::cout << "URI: " << URI << ", location path: " << path << std::endl; // debug
+	path += URI.substr(locationPath.size());
+	if (path[path.size() - 1] == '/')
+		path.erase(path.size() - 1);
+	return path;
 }
 
 void Server::parseLocation(std::ifstream& confFile, std::stringstream& ss, std::string& word)
