@@ -311,20 +311,20 @@ void HttpHandler::splitStartLine()
 void HttpHandler::parseURI()
 {
 	percentDecoding(mParsedRequest.URI);
-	if (mParsedRequest.URI.front() == '/'){ // if origin-form
-		size_t pos = mParsedRequest.URI.find_first_of("?");
-		if (pos == std::string::npos)
-			return;
-		else{ // query exist
-			std::string paramString = mParsedRequest.URI.substr(pos + 1);
-			std::vector<std::string> pramaVec = split(paramString, "&");
-			for (std::vector<std::string>::iterator it = pramaVec.begin(); it != pramaVec.end(); it++){
-				std::vector<std::string> param = split(*it, "=");
-				if (param.size() != 2) continue;
-				mParsedRequest.params[param[0]] = param[1];
-			}
-			mParsedRequest.URI = mParsedRequest.URI.substr(0, pos - 1);
-		}
+	if (mParsedRequest.URI.front() == '/'){ // query parse logic not needed
+		// size_t pos = mParsedRequest.URI.find_first_of("?");
+		// if (pos == std::string::npos)
+		// 	return;
+		// else{ // query exist
+		// 	std::string paramString = mParsedRequest.URI.substr(pos + 1);
+		// 	std::vector<std::string> pramaVec = split(paramString, "&");
+		// 	for (std::vector<std::string>::iterator it = pramaVec.begin(); it != pramaVec.end(); it++){
+		// 		std::vector<std::string> param = split(*it, "=");
+		// 		if (param.size() != 2) continue;
+		// 		mParsedRequest.params[param[0]] = param[1];
+		// 	}
+		// 	mParsedRequest.URI = mParsedRequest.URI.substr(0, pos - 1);
+		// }
 	}
 	else{ // if absolute-form
 		size_t endScheme = mParsedRequest.URI.find("://") + 3;

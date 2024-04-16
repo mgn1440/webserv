@@ -281,4 +281,3 @@ void ConfigHandler::PrintServInfo(serverInfo info)
 	}
 	it->second.PrintInfo();
 }
-
