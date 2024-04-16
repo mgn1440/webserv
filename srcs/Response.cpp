@@ -265,6 +265,7 @@ void Response::MakeResponse(struct Request& req)
     struct Resource res = ConfigHandler::GetConfigHandler().GetResource(req.port, req.domain, req.URI);
 
     mParams = req.params;
+	mbConnectionStop = req.connectionStop;
 	setFromResource(res);
 	setDate();
     if (req.statusCode || !isValidMethod(req, res)) // TODO: http ver, method, abs path

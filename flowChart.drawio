@@ -427,7 +427,7 @@
                 <mxCell id="158" value="" style="edgeStyle=none;html=1;endArrow=classic;endFill=1;" parent="1" source="152" target="157" edge="1">
                     <mxGeometry relative="1" as="geometry"/>
                 </mxCell>
-                <mxCell id="152" value="content-length가 maxbodysize 보다 큰가?" style="rhombus;whiteSpace=wrap;html=1;rounded=0;" parent="1" vertex="1">
+                <mxCell id="152" value="content-length가 mMaxbodySize 보다 큰가?" style="rhombus;whiteSpace=wrap;html=1;rounded=0;" parent="1" vertex="1">
                     <mxGeometry x="1340" y="960" width="140" height="80" as="geometry"/>
                 </mxCell>
                 <mxCell id="156" style="edgeStyle=none;html=1;entryX=1;entryY=0.5;entryDx=0;entryDy=0;endArrow=classic;endFill=1;" parent="1" source="154" target="60" edge="1">

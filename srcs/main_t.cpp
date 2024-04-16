@@ -1,57 +1,20 @@
 #include <iostream>
-#include <vector>
-#include <deque>
-#include "ConfigHandler.hpp"
-#include "parseUtils.hpp"
-#include "Response.hpp"
-#include "Request.hpp"
+#include "HttpHandler.hpp"
 
-
-void setRequest(struct Request& request)
+void HttpHandler::TestMethod()
 {
-	request.statusCode = 0;
-	request.parsedStatus = PARSED_NOT;
-	request.startLine = "";
-	request.method = "GET";
-	request.URI = "/webserv/";
-	request.domain = "www.ex1.com";
-	request.params.clear();
-	request.HTTPVersion = "HTTP/1.1";
-	request.headers.clear();
-	request.body = "";
-	request.hostParsed = false;
-	request.connectionStop = false;
-    request.port = 80;
+	std::istringstream iss("a\r\n1234567890\r\nb\r\n");
+	
+	parseTransferEncoding(iss);
+	iss.str("hello world\r\n0\r\n\r\n");
+	iss.clear();
+	parseTransferEncoding(iss);
+	std::cout << "[" << mParsedRequest.body <<  "]" << std::endl;
 }
 
-int main(int ac, char** av)
+int main()
 {
-    try
-    {
-        if (ac > 2)
-            exitWithError("too many arguments");
-        else if (ac == 1)
-            ConfigHandler::MakeConfigHandler("./conf/default.conf");
-        else if (ac == 2)
-            ConfigHandler::MakeConfigHandler(std::string(av[1]));
-
-        ConfigHandler& rhs = ConfigHandler::GetConfigHandler();
-
-        (void) rhs;
-        Response res;
-        res.parseHeaderOfCGI();
-        // struct Request req;
-        // setRequest(req);
-        // std::vector<struct Request> v;
-        // v.push_back(req);
-        // std::deque<Response> q =  rhs.GetResponseOf(v);
-		// std::cout << q[0].GetResponse(req);
-		// q[0].PrintResponse();       
-        // rhs.PrintAll();
-    }
-    catch(const std::exception& e)
-    {
-        exitWithError(e.what());
-    }
-    
+	HttpHandler httpHandler(80);
+	
+	httpHandler.TestMethod();
 }
