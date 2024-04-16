@@ -62,6 +62,7 @@ private:
     bool mbContentLen;
     std::string mABSPath;
 	std::map<int, std::string> mErrorPage;
+	bool mbConnectionStop;
 };
 
 #endif

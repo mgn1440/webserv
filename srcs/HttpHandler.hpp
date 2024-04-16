@@ -30,14 +30,13 @@ private:
 	size_t mSavedHeaderSize;
 	size_t mSavedBodySize;
 	size_t mConsumeBufferSize;
-	size_t maxStartLineSize;
-	size_t maxHeaderSize;
-	size_t maxBodySize;
+	size_t mMaxbodySize;
 
 	// method
 	void parseHttpRequest(void);
 	void parseStartLine(std::istringstream& input);
 	void parseHeader(std::istringstream& input);
+	void setHeader(const std::string& str);
 	void parseBody(std::istringstream& input);
 	void parseContentLength(std::istringstream& input);
 	void parseTransferEncoding(std::istringstream& input);
@@ -45,11 +44,11 @@ private:
 	void getMaxSize(void);
 	void splitStartLine(void);
 	void parseURI(void);
-	void CheckHTTP(std::string http);
+	void checkHTTP(std::string http);
 
 	// process method
-	void procHost(const std::string& fieldValue);
-	// HttpResponse httpResponse; not implemented
+	void procHost();
+	void procReferer();
 
 
 	// debug
