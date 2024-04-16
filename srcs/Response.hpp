@@ -30,6 +30,8 @@ public:
     void parseHeaderOfCGI();
     void SetRequestBody(const std::string& requestBody);
     std::string GetRequestBody();
+
+    void TestMethod(); // debug
 private:
     bool isValidMethod(struct Request& req, struct Resource& res);
     void processGET(struct Resource& res);

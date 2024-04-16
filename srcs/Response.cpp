@@ -42,6 +42,7 @@ Response::Response(const Response& rhs)
     mABSPath = rhs.mABSPath;
 	mHeaderMap = rhs.mHeaderMap;
     mbContentLen = rhs.mbContentLen;
+	mRequestBody = rhs.mRequestBody;
 }
 
 Response& Response::operator=(const Response& rhs)
@@ -66,6 +67,7 @@ Response& Response::operator=(const Response& rhs)
     mABSPath = rhs.mABSPath;
 	mHeaderMap = rhs.mHeaderMap;
     mbContentLen = rhs.mbContentLen;
+	mRequestBody = rhs.mRequestBody;
     return *this;
 }
 
@@ -302,6 +304,7 @@ bool Response::IsCGI() const
 
 void Response::AppendCGIBody(const std::string& CGIBody)
 {
+	std::cout << CGIBody.size() << std::endl; // debug
 	mBody += CGIBody;
 }
 
@@ -328,7 +331,7 @@ void Response::WriteResponseHeaderTo(int clientFD)
     // ret += mBody;
 	// std::cout << ret << std::endl;
 	if (write(clientFD, ret.c_str(), ret.size()) == -1)
-		throw std::runtime_error("write error");
+		throw std::runtime_error("write error1");
 }
 
 void Response::WriteResponseBodyTo(int clientFD)
@@ -336,7 +339,7 @@ void Response::WriteResponseBodyTo(int clientFD)
 	// std::cout << "ABSPath: " << mABSPath << std::endl; // debug
 	// std::cout << "mBodySize: " << mBodySize << std::endl; // debug
 	if (write(clientFD, mBody.c_str(), mBody.size()) == -1)
-		throw std::runtime_error("write error");
+		throw std::runtime_error("write error2");
 }
 
 void Response::setFromResource(struct Resource res)
@@ -451,4 +454,9 @@ const char* Response::GetABSPath() const
 std::map<std::string, std::string> Response::GetParams() const
 {
 	return (mParams);
+}
+
+void Response::TestMethod()
+{
+	std::cout << "Request Body size: " << mRequestBody.size() << std::endl;
 }
