@@ -43,3 +43,14 @@ std::string intToString(size_t num)
     ss << num;
 	return ss.str();
 }
+
+std::string headerToCGIVar(const std::string& str)
+{
+	std::string ret = str;
+	for (size_t i = 0; i < ret.length(); i++){
+		ret[i] = std::toupper(static_cast<unsigned char>(ret[i]));
+		if (ret[i] == '-')
+			ret[i] = '_';
+	}
+	return ret;
+}

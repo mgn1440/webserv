@@ -505,6 +505,18 @@ void Response::setCGIParam(struct Request& req)
 	mParams["SERVER_PORT"] = req.port;
 	mParams["SERVER_PROTOCOL"] = "HTTP/1.1";
 	mParams["SERVER_SOFTWARE"] = "webserv";
+	for (std::map<std::string, std::string>::iterator it = req.headers.begin(); it != req.headers.end(); it++){
+		if (startWith(it->first, "X", '-') || startWith(it->first, "Http", '-')){
+			mParams[headerToCGIVar(it->first)] = it->second;
+		}
+	}
+}
+
+bool startWith(const std::string& str, std::string comp, char del)
+{
+	if (str.size() < comp.size())
+		return false;
+	return str.substr(0, str.find_first_of(del)) == comp;
 }
 
 void Response::TestMethod()
