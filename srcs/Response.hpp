@@ -28,11 +28,11 @@ public:
     void GenCGIBody();
     std::string GetCGIPath() const;
     void parseHeaderOfCGI();
-    void SetRequestBody(const std::string& requestBody);
     std::string GetRequestBody();
 
     void TestMethod(); // debug
 private:
+    void setRequestBody(const std::string& requestBody);
     bool isValidMethod(struct Request& req, struct Resource& res);
     void processGET(struct Resource& res);
     void processPOST(struct Resource& res);

@@ -74,6 +74,7 @@ std::deque<Response> HttpHandler::MakeResponseOf(const std::string& data)
 
 	mRequestBuffer += data;
 	// std::cout << "mRequestBuffer\n" << mRequestBuffer << std::endl;
+	// TODO: Response에 body를 바로바로 저장하면 시간을 더욱 단축 시킬 수 있을 것
 	std::deque<Response> ret;
 	while (true)
 	{
@@ -85,7 +86,7 @@ std::deque<Response> HttpHandler::MakeResponseOf(const std::string& data)
 			break;
 		Response res;
 		res.MakeResponse(mParsedRequest);
-		res.SetRequestBody(mParsedRequest.body);
+		// res.SetRequestBody(mParsedRequest.body);
 		ret.push_back(res);
 		initRequest(mParsedRequest);
 	}

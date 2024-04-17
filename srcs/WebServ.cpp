@@ -69,7 +69,7 @@ void	WebServ::addEvents(uintptr_t ident, int16_t filter, uint16_t flags, uint32_
 {
 	struct kevent newEvent;
 
-	std::cout << "clientFD: " << ident << ", EVFILT: " << filter << std::endl; // debug
+	// std::cout << "clientFD: " << ident << ", EVFILT: " << filter << std::endl; // debug
 	EV_SET(&newEvent, ident, filter, flags, fflags, data, udata);
 	if (kevent(mKq, &newEvent, 1, NULL, 0, NULL) == -1)
 		throw std::runtime_error("kevent error");
@@ -183,6 +183,7 @@ void	WebServ::handleTimeOut(struct kevent* currEvent)
 			int pid = mCGIPipeMap[pipeFD].second;
 			close(pipeFD); // pipe event 삭제
 			eraseCGIMaps(pid, clientFD, pipeFD);
+			std::cout << "TIMEOUT pid: " << pid << std::endl; // debug
 			addEvents(pid, EVFILT_PROC, EV_DELETE, 0, 0, NULL); // pid 이벤트 삭제
 		}
 		mResponseMap[clientFD].front().SetStatusOf(504);
@@ -242,7 +243,7 @@ void	WebServ::processHttpRequest(struct kevent* currEvent)
 	}
 	std::string httpRequest = readFDData(clientFD);
 	// std::cout << httpRequest; // debug
-	addEvents(clientFD, EVFILT_TIMER, EV_ADD | EV_ENABLE | EV_ONESHOT, 0, 30000, NULL); // 30초 타임아웃 (write event가 발생하면 timeout event를 삭제해줘야 함)
+	addEvents(clientFD, EVFILT_TIMER, EV_ADD | EV_ENABLE | EV_ONESHOT, 0, 300000, NULL); // 300초 타임아웃 (write event가 발생하면 timeout event를 삭제해줘야 함)
 	mTimerMap[clientFD] = true;
 	// TODO: ConfigHandler::GetResponseOf 메서드와 중복 책임. => 하나로 병합 또는 한 쪽 삭제 요망
 	// Request 객체로부터 RequestList를 받음
@@ -311,10 +312,13 @@ void	WebServ::processCGI(Response& response, int clientFD)
 			mCGIPostPipeMap.insert(std::make_pair(writeFD[1], std::make_pair(&response, 0)));
 		}
 		else
+		{
 			close(writeFD[1]);
+			std::cout << "EVPROC pid: " << pid << std::endl; // debug
+		}
+		addEvents(pid, EVFILT_PROC, EV_ADD | EV_ONESHOT, NOTE_EXIT, 0, NULL);
 		close(readFD[1]);
 		close(writeFD[0]);
-		addEvents(pid, EVFILT_PROC, EV_ADD | EV_ONESHOT, NOTE_EXIT, 0, NULL);
 		mCGIClientMap[clientFD] = std::make_pair(readFD[0], pid);
 		mCGIPipeMap[readFD[0]] = std::make_pair(&response, clientFD);
 		mCGIPidMap[pid] = std::make_pair(&response, readFD[0]);
@@ -363,7 +367,7 @@ void	WebServ::writeToCGIPipe(struct kevent* currEvent)
 	Response &response = *(mCGIPostPipeMap[pipeFD].first);
 	size_t pos = mCGIPostPipeMap[pipeFD].second;
 	size_t toWrite = response.GetRequestBody().size() - pos;
-	std::cout << "toWrite: " << toWrite << std::endl; // debug
+	// std::cout << "toWrite: " << toWrite << std::endl; // debug
 	ssize_t written = write(pipeFD, response.GetRequestBody().c_str() + pos, toWrite);
 	if (written == -1)
 		throw std::runtime_error("write error3");
