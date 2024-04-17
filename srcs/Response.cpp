@@ -146,13 +146,13 @@ bool Response::isValidMethod(struct Request& req, struct Resource& res)
 
 void Response::PrintResponse()
 {
-	std::cout << "Print Response" << std::endl;
-	std::cout << "ABSPath: " <<  mABSPath << std::endl;  // debug
+	std::cout << "\033[1;32m" << "~~Print Response~~" << "\033[0m" << std::endl;
+	std::cout << "\033[1;32m" << "ABSPath: " <<  mABSPath << "\033[0m" << std::endl;  // debug
 	std::string ret;
     ret = mStartLine;
 	ret += mHeader;
 	ret += mBody.substr(0, 50);
-	std::cout << ret << "\n\n";
+	std::cout << "\033[1;32m" << ret << "\033[0m" << "\n\n";
 	// [HTTP version] [stat code] [status]
 }
 
@@ -299,7 +299,7 @@ void Response::MakeResponse(struct Request& req)
 // 	mRequestBody = requestBody;
 // }
 
-std::string Response::GetRequestBody()
+std::string& Response::GetRequestBody()
 {
 	return (mRequestBody);
 }
@@ -337,7 +337,7 @@ void Response::WriteResponseHeaderTo(int clientFD)
 	ret = mStartLine;
 	ret += mHeader;
     // ret += mBody;
-	std::cout << ret << std::endl;
+	// std::cout << ret << std::endl;
 	if (write(clientFD, ret.c_str(), ret.size()) == -1)
 		throw std::runtime_error("write error1");
 }
@@ -356,11 +356,15 @@ void Response::WriteResponseBodyTo(int clientFD)
 			continue ;
 			// throw std::runtime_error("write error2");
 		pos += written;
-		// std::cout << "toSend: " << pos << std::endl;
 	}
-	ssize_t written = write(clientFD, mBody.c_str() + pos, toWrite - pos);
-	if (written == -1)
-		throw std::runtime_error("write error2");
+	while (pos != toWrite)
+	{
+		ssize_t written = write(clientFD, mBody.c_str() + pos, toWrite - pos);
+		if (written == -1)
+			continue ;
+		pos += written;
+	}
+	std::cout << "toSend: " << pos << std::endl;
 }
 
 void Response::setFromResource(struct Resource& res)

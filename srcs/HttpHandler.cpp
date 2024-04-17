@@ -80,11 +80,11 @@ std::deque<Response> HttpHandler::MakeResponseOf(const std::string& data)
 	{
 		parseHttpRequest();
 		refreshBuffer(mRequestBuffer, mConsumeBufferSize);
+		Response res;
 		mConsumeBufferSize = 0;
 		// std::cout << "parsedStatus: " << mParsedRequest.parsedStatus << std::endl; // debug
 		if (mParsedRequest.parsedStatus != PARSED_ALL)
 			break;
-		Response res;
 		res.MakeResponse(mParsedRequest);
 		// res.SetRequestBody(mParsedRequest.body);
 		ret.push_back(res);
@@ -110,7 +110,11 @@ void HttpHandler::parseStartLine(std::istringstream& input)
 	std::string buf;
 	getline(input, buf);
 	if (input.eof())
+	{
+		mReq = "";
 		return;
+	}
+	mReq += buf + "\n"; // debug
 	if (!checkCRLF(buf)){
 		return setHttpStatusCode(400); // bad request
 	}
@@ -123,11 +127,13 @@ void HttpHandler::parseStartLine(std::istringstream& input)
 void HttpHandler::parseHeader(std::istringstream& input)
 {
 	std::string buf;
+	std::string header;
 	while (true)
 	{
 		getline(input, buf);
 		if (input.eof())
 			return;
+		header += buf + "\n";
 		mSavedHeaderSize += buf.size() + 1; // +1 = linefeed character size add;
 		mConsumeBufferSize += buf.size() + 1;
 		if (mSavedHeaderSize > MAX_HEDAER_SIZE){ // check header size
@@ -143,6 +149,8 @@ void HttpHandler::parseHeader(std::istringstream& input)
 			setHttpStatusCode(400); // bad request
 		setHeader(buf);
 	}
+	mReq += header; // debug
+	std::cout << "\033[1;33m" << "~~Print Request~~\n" <<  mReq << "\033[0m" << "\n\n";
 	procHost();
 	procReferer();
 }

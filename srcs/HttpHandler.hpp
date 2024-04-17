@@ -54,6 +54,7 @@ private:
 
 	// debug
 	void	printParsedHttpRequest(const struct Request& r);
+	std::string mReq;
 };
 
 #endif

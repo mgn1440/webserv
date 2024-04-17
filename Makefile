@@ -85,6 +85,7 @@ clean:
 	@rm -f $(DEPS)
 	@rm -f mandatory bonus
 	@rm -rf $(OBJ_DIR)
+	@rm -f */*/youpla.bla
 
 re:
 	@make fclean
