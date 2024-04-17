@@ -206,7 +206,7 @@ void	WebServ::waitCGIProc(struct kevent* currEvent)
 		else
 		{
 			response->GenCGIBody();
-			std::cout << "client fd" << std::endl;
+			std::cout << "client fd" << std::endl; // debug
 			addEvents(clientFD, EVFILT_WRITE, EV_ADD | EV_ENABLE, 0, 0, NULL);
 		}
 		close(pipeFD);
@@ -260,7 +260,7 @@ void	WebServ::processHttpRequest(struct kevent* currEvent)
 		}
 		else // Get인지 Post인지 확인을 해야 함
 		{
-			responseIt->TestMethod();
+			// responseIt->TestMethod(); // debug 
 			processCGI(mResponseMap[clientFD].back(), clientFD);
 		}	
 	}
@@ -275,7 +275,7 @@ void	WebServ::processCGI(Response& response, int clientFD)
 		throw std::runtime_error("pipe error");
 	if (fcntl(readFD[0], F_SETFL, O_NONBLOCK, FD_CLOEXEC) == -1 || fcntl(writeFD[1], F_SETFL, O_NONBLOCK, FD_CLOEXEC) == -1)
 		throw std::runtime_error("fcntl() error");
-	std::cout << "read fd0" << std::endl;
+	// std::cout << "read fd0" << std::endl; // debug 
 	addEvents(readFD[0], EVFILT_READ, EV_ADD | EV_ENABLE, 0, 0, NULL);
 	pid_t pid = fork();
 	if (pid < 0)
@@ -304,10 +304,10 @@ void	WebServ::processCGI(Response& response, int clientFD)
 	}
 	else // parent
 	{
-		std::cout << "request body size: " << response.GetRequestBody().size() << std::endl;
+		// std::cout << "request body size: " << response.GetRequestBody().size() << std::endl; // debug
 		if (response.GetRequestBody().size() != 0) // post
 		{
-			std::cout << "write fd1" << std::endl;
+			// std::cout << "write fd1" << std::endl; // debug
 			addEvents(writeFD[1], EVFILT_WRITE, EV_ADD | EV_ENABLE, 0, 0, NULL);
 			mCGIPostPipeMap.insert(std::make_pair(writeFD[1], std::make_pair(&response, 0)));
 		}

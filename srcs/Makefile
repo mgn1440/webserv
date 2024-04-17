@@ -66,6 +66,7 @@ clean:
 	@rm -f $(OBJS_BONUS)
 	@rm -f $(DEPS)
 	@rm -f mandatory bonus
+	@rm -f */youpla.bla
 
 re:
 	@make fclean

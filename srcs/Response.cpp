@@ -146,13 +146,13 @@ bool Response::isValidMethod(struct Request& req, struct Resource& res)
 
 void Response::PrintResponse()
 {
-	std::cout << "Print Response" << std::endl;
-	std::cout << "ABSPath: " <<  mABSPath << std::endl;  // debug
+	std::cout << "\033[1;32m" << "~~Print Response~~" << "\033[0m" << std::endl;
+	std::cout << "\033[1;32m" << "ABSPath: " <<  mABSPath << "\033[0m" << std::endl;  // debug
 	std::string ret;
     ret = mStartLine;
 	ret += mHeader;
 	ret += mBody.substr(0, 50);
-	std::cout << ret << "\n\n";
+	std::cout << "\033[1;32m" << ret << "\033[0m" << "\n\n";
 	// [HTTP version] [stat code] [status]
 }
 
@@ -337,7 +337,7 @@ void Response::WriteResponseHeaderTo(int clientFD)
 	ret = mStartLine;
 	ret += mHeader;
     // ret += mBody;
-	std::cout << ret << std::endl;
+	// std::cout << ret << std::endl;
 	if (write(clientFD, ret.c_str(), ret.size()) == -1)
 		throw std::runtime_error("write error1");
 }
