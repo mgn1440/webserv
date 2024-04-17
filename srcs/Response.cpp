@@ -299,7 +299,7 @@ void Response::MakeResponse(struct Request& req)
 // 	mRequestBody = requestBody;
 // }
 
-std::string Response::GetRequestBody()
+std::string& Response::GetRequestBody()
 {
 	return (mRequestBody);
 }
@@ -356,11 +356,15 @@ void Response::WriteResponseBodyTo(int clientFD)
 			continue ;
 			// throw std::runtime_error("write error2");
 		pos += written;
-		// std::cout << "toSend: " << pos << std::endl;
 	}
-	ssize_t written = write(clientFD, mBody.c_str() + pos, toWrite - pos);
-	if (written == -1)
-		throw std::runtime_error("write error2");
+	while (pos != toWrite)
+	{
+		ssize_t written = write(clientFD, mBody.c_str() + pos, toWrite - pos);
+		if (written == -1)
+			continue ;
+		pos += written;
+	}
+	std::cout << "toSend: " << pos << std::endl;
 }
 
 void Response::setFromResource(struct Resource& res)

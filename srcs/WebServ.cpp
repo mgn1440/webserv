@@ -363,7 +363,7 @@ void	WebServ::sendPipeData(struct kevent* currEvent)
 
 static void printProgressBar(size_t cur, size_t max, size_t& call)
 {
-	if (call < 10)
+	if (call < 50)
 		return ;
 	call = 0;
 	std::string bar = "[";
@@ -430,7 +430,6 @@ std::string	WebServ::readFDData(int clientFD)
 		close(clientFD);
 		throw std::runtime_error("read error");
 	}
-	// write(1, buf, 10); // debug
 	return (std::string(buf, n));
 }
 

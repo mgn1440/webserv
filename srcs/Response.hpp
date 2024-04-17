@@ -28,7 +28,7 @@ public:
     void GenCGIBody();
     std::string GetCGIPath() const;
     void parseHeaderOfCGI();
-    std::string GetRequestBody();
+    std::string& GetRequestBody();
 
     void TestMethod(); // debug
 private:
