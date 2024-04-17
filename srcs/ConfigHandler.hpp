@@ -28,6 +28,7 @@ public:
     std::string GetABSPath(int port, const std::string& serverName ,const std::string& URI);
     std::string IsCGI(const std::string& ContentType);
     struct Resource GetResource(int port, const std::string& serverName, const std::string& URI);
+    std::string GetServerName(const std::string& URI);
 
     // for DEBUG
     void PrintAll();
