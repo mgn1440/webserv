@@ -502,6 +502,7 @@ void Response::setCGIParam(struct Request& req)
 	mParams["SERVER_PROTOCOL"] = "HTTP/1.1";
 	mParams["SERVER_SOFTWARE"] = "webserv";
 }
+
 void Response::TestMethod()
 {
 	std::cout << "Request Body size: " << mRequestBody.size() << std::endl;

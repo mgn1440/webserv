@@ -361,13 +361,30 @@ void	WebServ::sendPipeData(struct kevent* currEvent)
 	mCGIPipeMap[pipeFD].first->AppendCGIBody(readFDData(pipeFD));
 }
 
+static void printProgressBar(size_t cur, size_t max, size_t& call)
+{
+	if (call < 10)
+		return ;
+	call = 0;
+	std::string bar = "[";
+	float percent = (float) cur / float(max);
+	for (int i = 0; i < (int)(40 * percent); i ++)
+		bar += "=";
+	for (int i = 0; i < 40 - (int)(40 * percent); i ++)
+		bar += "-";
+	// std::cout << bar << "]: " << percent * 100 << "%\r";
+	printf("\033[A%s]: %.2f%%\n", bar.c_str(), percent * 100);
+}
+
 void	WebServ::writeToCGIPipe(struct kevent* currEvent)
 {
 	int pipeFD = currEvent->ident;
 	Response &response = *(mCGIPostPipeMap[pipeFD].first);
 	size_t pos = mCGIPostPipeMap[pipeFD].second;
 	size_t toWrite = response.GetRequestBody().size() - pos;
-	// std::cout << "toWrite: " << toWrite << std::endl; // debug
+	static size_t call;
+	printProgressBar(pos, response.GetRequestBody().size(), call);
+	call ++;
 	ssize_t written = write(pipeFD, response.GetRequestBody().c_str() + pos, toWrite);
 	if (written == -1)
 		throw std::runtime_error("write error3");
