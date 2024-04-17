@@ -207,6 +207,7 @@ void Response::processGET(struct Resource& res)
 		{
 			mbCGI = true;
 			mCGIPath = res.CGIBinaryPath[mCGIExtension];
+			// setCGIParam(req); request 여기까지 끌고 와야함
 		}
 		else
 			mCGIPath = "";
@@ -362,7 +363,7 @@ void Response::WriteResponseBodyTo(int clientFD)
 		throw std::runtime_error("write error2");
 }
 
-void Response::setFromResource(struct Resource res)
+void Response::setFromResource(struct Resource& res)
 {
 	mbAutoIndex = res.BAutoIndex;
 	mErrorPage = res.ErrorPage;
@@ -401,6 +402,7 @@ void Response::processPOST(struct Resource& res)
 		{
 			mbCGI = true;
 			mCGIPath = res.CGIBinaryPath[mCGIExtension];
+			// setCGIParam(req); request 여기까지 끌고 와야함
 		}
 		else
 			mCGIPath = "";
@@ -480,6 +482,26 @@ std::map<std::string, std::string> Response::GetParams() const
 	return (mParams);
 }
 
+void Response::setCGIParam(struct Request& req)
+{
+	// mParams["AUTH_TYPE"] = // authentication type
+	mParams["CONTENT_LENGTH"] = intToString(req.body.size());
+	mParams["CONTENT_TYPE"] = req.headers["Content-Type"];
+	mParams["GATEWAY_INTERFACE"] = "CGI/1.1";
+	mParams["PATH_INFO"] = req.URI; // after scirpt file, not full path
+	// mParams["PATH_TRANSLATED"] = mABSPath; // root path + PATH_INFO, nowdays not use
+	mParams["QUERY_STRING"] = req.URI.substr(req.URI.find('?'));
+	// mParams["REMOTE_ADDR"] = // client 의 ip 주소, getaddrinfo 사용
+	// mParams["REMOTE_HOST"] =  // domain name
+	// mParams["REMOTE_IDENT"] = // ident protocal
+	// mParams["REMOTE_USER"] = // if use auth then user's id
+	mParams["REQUEST_METHOD"] = req.method;
+	// mParams["SCRIPT_NAME"] =  //before scirpt file
+	mParams["SERVER_NAME"] = req.domain;
+	mParams["SERVER_PORT"] = req.port;
+	mParams["SERVER_PROTOCOL"] = "HTTP/1.1";
+	mParams["SERVER_SOFTWARE"] = "webserv";
+}
 void Response::TestMethod()
 {
 	std::cout << "Request Body size: " << mRequestBody.size() << std::endl;

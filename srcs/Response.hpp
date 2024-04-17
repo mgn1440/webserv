@@ -42,8 +42,9 @@ private:
     void createResponseHeader();
     void createResponseBody(int statCode);
 
-	void setFromResource(struct Resource);
+	void setFromResource(struct Resource& res);
     void setDate();
+	void setCGIParam(struct Request& req);
 
     bool mbCGI;
     bool mbAutoIndex;
