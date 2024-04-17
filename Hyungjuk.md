@@ -45,3 +45,12 @@ CGI일 시 processCGI
 
 - 디렉터가 필요하다.
 - 집중하는 시간 필요.
+
+
+POST /directory/youpi.bla HTTP/1.1
+Host: localhost:8000
+User-Agent: Go-http-client/1.1
+Transfer-Encoding: chunked
+Content-Type: test/file
+X-Secret-Header-For-Test: 0
+Accept-Encoding: gzip

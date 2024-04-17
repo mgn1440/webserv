@@ -74,18 +74,19 @@ std::deque<Response> HttpHandler::MakeResponseOf(const std::string& data)
 
 	mRequestBuffer += data;
 	// std::cout << "mRequestBuffer\n" << mRequestBuffer << std::endl;
+	// TODO: Response에 body를 바로바로 저장하면 시간을 더욱 단축 시킬 수 있을 것
 	std::deque<Response> ret;
 	while (true)
 	{
 		parseHttpRequest();
 		refreshBuffer(mRequestBuffer, mConsumeBufferSize);
+		Response res;
 		mConsumeBufferSize = 0;
 		// std::cout << "parsedStatus: " << mParsedRequest.parsedStatus << std::endl; // debug
 		if (mParsedRequest.parsedStatus != PARSED_ALL)
 			break;
-		Response res;
 		res.MakeResponse(mParsedRequest);
-		res.SetRequestBody(mParsedRequest.body);
+		// res.SetRequestBody(mParsedRequest.body);
 		ret.push_back(res);
 		initRequest(mParsedRequest);
 	}
@@ -109,7 +110,11 @@ void HttpHandler::parseStartLine(std::istringstream& input)
 	std::string buf;
 	getline(input, buf);
 	if (input.eof())
+	{
+		mReq = "";
 		return;
+	}
+	mReq += buf + "\n"; // debug
 	if (!checkCRLF(buf)){
 		return setHttpStatusCode(400); // bad request
 	}
@@ -122,11 +127,13 @@ void HttpHandler::parseStartLine(std::istringstream& input)
 void HttpHandler::parseHeader(std::istringstream& input)
 {
 	std::string buf;
+	std::string header;
 	while (true)
 	{
 		getline(input, buf);
 		if (input.eof())
 			return;
+		header += buf + "\n";
 		mSavedHeaderSize += buf.size() + 1; // +1 = linefeed character size add;
 		mConsumeBufferSize += buf.size() + 1;
 		if (mSavedHeaderSize > MAX_HEDAER_SIZE){ // check header size
@@ -142,6 +149,8 @@ void HttpHandler::parseHeader(std::istringstream& input)
 			setHttpStatusCode(400); // bad request
 		setHeader(buf);
 	}
+	mReq += header; // debug
+	std::cout << "\033[1;33m" << "~~Print Request~~\n" <<  mReq << "\033[0m" << "\n\n";
 	procHost();
 	procReferer();
 }
@@ -311,20 +320,20 @@ void HttpHandler::splitStartLine()
 void HttpHandler::parseURI()
 {
 	percentDecoding(mParsedRequest.URI);
-	if (mParsedRequest.URI.front() == '/'){ // if origin-form
-		size_t pos = mParsedRequest.URI.find_first_of("?");
-		if (pos == std::string::npos)
-			return;
-		else{ // query exist
-			std::string paramString = mParsedRequest.URI.substr(pos + 1);
-			std::vector<std::string> pramaVec = split(paramString, "&");
-			for (std::vector<std::string>::iterator it = pramaVec.begin(); it != pramaVec.end(); it++){
-				std::vector<std::string> param = split(*it, "=");
-				if (param.size() != 2) continue;
-				mParsedRequest.params[param[0]] = param[1];
-			}
-			mParsedRequest.URI = mParsedRequest.URI.substr(0, pos - 1);
-		}
+	if (mParsedRequest.URI.front() == '/'){ // query parse logic not needed
+		// size_t pos = mParsedRequest.URI.find_first_of("?");
+		// if (pos == std::string::npos)
+		// 	return;
+		// else{ // query exist
+		// 	std::string paramString = mParsedRequest.URI.substr(pos + 1);
+		// 	std::vector<std::string> pramaVec = split(paramString, "&");
+		// 	for (std::vector<std::string>::iterator it = pramaVec.begin(); it != pramaVec.end(); it++){
+		// 		std::vector<std::string> param = split(*it, "=");
+		// 		if (param.size() != 2) continue;
+		// 		mParsedRequest.params[param[0]] = param[1];
+		// 	}
+		// 	mParsedRequest.URI = mParsedRequest.URI.substr(0, pos - 1);
+		// }
 	}
 	else{ // if absolute-form
 		size_t endScheme = mParsedRequest.URI.find("://") + 3;
