@@ -69,6 +69,7 @@ void	WebServ::addEvents(uintptr_t ident, int16_t filter, uint16_t flags, uint32_
 {
 	struct kevent newEvent;
 
+	// std::cout << "clientFD: " << ident << ", EVFILT: " << filter << std::endl; // debug
 	EV_SET(&newEvent, ident, filter, flags, fflags, data, udata);
 	if (kevent(mKq, &newEvent, 1, NULL, 0, NULL) == -1)
 		throw std::runtime_error("kevent error");
@@ -104,6 +105,10 @@ void	WebServ::runKqueueLoop(void)
 	struct timespec timeout;
 	timeout.tv_nsec = 0;
 	timeout.tv_sec = 0;
+	// TODO: delete this test environment
+	mEnvList.push_back("REQUEST_METHOD=POST");
+	mEnvList.push_back("SERVER_PROTOCOL=HTTP/1.1");
+	mEnvList.push_back("PATH_INFO=.");
 	while (1)
 	{
 		try
@@ -178,6 +183,7 @@ void	WebServ::handleTimeOut(struct kevent* currEvent)
 			int pid = mCGIPipeMap[pipeFD].second;
 			close(pipeFD); // pipe event 삭제
 			eraseCGIMaps(pid, clientFD, pipeFD);
+			std::cout << "TIMEOUT pid: " << pid << std::endl; // debug
 			addEvents(pid, EVFILT_PROC, EV_DELETE, 0, 0, NULL); // pid 이벤트 삭제
 		}
 		mResponseMap[clientFD].front().SetStatusOf(504);
@@ -200,6 +206,7 @@ void	WebServ::waitCGIProc(struct kevent* currEvent)
 		else
 		{
 			response->GenCGIBody();
+			std::cout << "client fd" << std::endl;
 			addEvents(clientFD, EVFILT_WRITE, EV_ADD | EV_ENABLE, 0, 0, NULL);
 		}
 		close(pipeFD);
@@ -235,8 +242,8 @@ void	WebServ::processHttpRequest(struct kevent* currEvent)
 		return;
 	}
 	std::string httpRequest = readFDData(clientFD);
-	std::cout << httpRequest; // debug
-	addEvents(clientFD, EVFILT_TIMER, EV_ADD | EV_ENABLE | EV_ONESHOT, 0, 30000, NULL); // 30초 타임아웃 (write event가 발생하면 timeout event를 삭제해줘야 함)
+	// std::cout << httpRequest; // debug
+	addEvents(clientFD, EVFILT_TIMER, EV_ADD | EV_ENABLE | EV_ONESHOT, 0, 300000, NULL); // 300초 타임아웃 (write event가 발생하면 timeout event를 삭제해줘야 함)
 	mTimerMap[clientFD] = true;
 	// TODO: ConfigHandler::GetResponseOf 메서드와 중복 책임. => 하나로 병합 또는 한 쪽 삭제 요망
 	// Request 객체로부터 RequestList를 받음
@@ -252,7 +259,10 @@ void	WebServ::processHttpRequest(struct kevent* currEvent)
 			addEvents(clientFD, EVFILT_WRITE, EV_ADD | EV_ENABLE, 0, 0, NULL);
 		}
 		else // Get인지 Post인지 확인을 해야 함
+		{
+			responseIt->TestMethod();
 			processCGI(mResponseMap[clientFD].back(), clientFD);
+		}	
 	}
 }
 
@@ -265,12 +275,8 @@ void	WebServ::processCGI(Response& response, int clientFD)
 		throw std::runtime_error("pipe error");
 	if (fcntl(readFD[0], F_SETFL, O_NONBLOCK, FD_CLOEXEC) == -1 || fcntl(writeFD[1], F_SETFL, O_NONBLOCK, FD_CLOEXEC) == -1)
 		throw std::runtime_error("fcntl() error");
+	std::cout << "read fd0" << std::endl;
 	addEvents(readFD[0], EVFILT_READ, EV_ADD | EV_ENABLE, 0, 0, NULL);
-	if (response.GetRequestBody().size() != 0) // post
-	{
-		addEvents(writeFD[1], EVFILT_WRITE, EV_ADD | EV_ENABLE, 0, 0, NULL);
-		mCGIPostPipeMap.insert(std::make_pair(writeFD[1], std::make_pair(&response, 0)));
-	}
 	pid_t pid = fork();
 	if (pid < 0)
 		throw std::runtime_error("fork error");
@@ -298,8 +304,21 @@ void	WebServ::processCGI(Response& response, int clientFD)
 	}
 	else // parent
 	{
-		close(readFD[1]);
+		std::cout << "request body size: " << response.GetRequestBody().size() << std::endl;
+		if (response.GetRequestBody().size() != 0) // post
+		{
+			std::cout << "write fd1" << std::endl;
+			addEvents(writeFD[1], EVFILT_WRITE, EV_ADD | EV_ENABLE, 0, 0, NULL);
+			mCGIPostPipeMap.insert(std::make_pair(writeFD[1], std::make_pair(&response, 0)));
+		}
+		else
+		{
+			close(writeFD[1]);
+			std::cout << "EVPROC pid: " << pid << std::endl; // debug
+		}
 		addEvents(pid, EVFILT_PROC, EV_ADD | EV_ONESHOT, NOTE_EXIT, 0, NULL);
+		close(readFD[1]);
+		close(writeFD[0]);
 		mCGIClientMap[clientFD] = std::make_pair(readFD[0], pid);
 		mCGIPipeMap[readFD[0]] = std::make_pair(&response, clientFD);
 		mCGIPidMap[pid] = std::make_pair(&response, readFD[0]);
@@ -342,15 +361,34 @@ void	WebServ::sendPipeData(struct kevent* currEvent)
 	mCGIPipeMap[pipeFD].first->AppendCGIBody(readFDData(pipeFD));
 }
 
+static void printProgressBar(size_t cur, size_t max, size_t& call)
+{
+	if (call < 10)
+		return ;
+	call = 0;
+	std::string bar = "[";
+	float percent = (float) cur / float(max);
+	for (int i = 0; i < (int)(40 * percent); i ++)
+		bar += "=";
+	for (int i = 0; i < 40 - (int)(40 * percent); i ++)
+		bar += "-";
+	// std::cout << bar << "]: " << percent * 100 << "%\r";
+	printf("\033[A%s]: %.2f%%\n", bar.c_str(), percent * 100);
+}
+
 void	WebServ::writeToCGIPipe(struct kevent* currEvent)
 {
 	int pipeFD = currEvent->ident;
 	Response &response = *(mCGIPostPipeMap[pipeFD].first);
 	size_t pos = mCGIPostPipeMap[pipeFD].second;
-	ssize_t written = write(pipeFD, response.GetRequestBody().c_str() + pos, response.GetRequestBody().size() - pos);
+	size_t toWrite = response.GetRequestBody().size() - pos;
+	static size_t call;
+	printProgressBar(pos, response.GetRequestBody().size(), call);
+	call ++;
+	ssize_t written = write(pipeFD, response.GetRequestBody().c_str() + pos, toWrite);
 	if (written == -1)
-		throw std::runtime_error("write error");
-	mCGIPostPipeMap[pipeFD].second += written;
+		throw std::runtime_error("write error3");
+	mCGIPostPipeMap[pipeFD].second = pos + written;
 	if (mCGIPostPipeMap[pipeFD].second == response.GetRequestBody().size())
 	{
 		close(pipeFD);
@@ -385,14 +423,14 @@ void	WebServ::writeHttpResponse(struct kevent* currEvent)
 
 std::string	WebServ::readFDData(int clientFD)
 {
-	char buf[2048];
-	int n = read(clientFD, buf, sizeof(buf)-1);
+	char buf[65535];
+	int n = read(clientFD, buf, 65535);
 	if (n < 0)
 	{
 		close(clientFD);
 		throw std::runtime_error("read error");
 	}
-	buf[n] = 0;
+	// write(1, buf, 10); // debug
 	return (std::string(buf, n));
 }
 

@@ -21,7 +21,7 @@ public:
 	// interface
 	// std::vector<struct Request> MakeResponseOf(const std::string& data);
 	std::deque<Response> MakeResponseOf(const std::string& data);
-	void TestMethod();
+	void TestMethod(); // debug
 private:
 	// occf not used
 	// member var

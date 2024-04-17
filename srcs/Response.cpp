@@ -14,6 +14,7 @@
 #include "Response.hpp"
 #include "Resource.hpp"
 #include "StatusPage.hpp"
+#include "parseUtils.hpp"
 #include "STLUtils.hpp"
 
 //  TODO: Static이라고 가정 후 Response init을 돌린다.
@@ -42,6 +43,7 @@ Response::Response(const Response& rhs)
     mABSPath = rhs.mABSPath;
 	mHeaderMap = rhs.mHeaderMap;
     mbContentLen = rhs.mbContentLen;
+	mRequestBody = rhs.mRequestBody;
 }
 
 Response& Response::operator=(const Response& rhs)
@@ -66,6 +68,7 @@ Response& Response::operator=(const Response& rhs)
     mABSPath = rhs.mABSPath;
 	mHeaderMap = rhs.mHeaderMap;
     mbContentLen = rhs.mbContentLen;
+	mRequestBody = rhs.mRequestBody;
     return *this;
 }
 
@@ -243,7 +246,12 @@ void Response::processGET(struct Resource& res)
 void Response::SetStatusOf(int statusCode)
 {
     mStatCode = statusCode;
-	if (mErrorPage.find(statusCode) != mErrorPage.end()){
+	if (mStatCode == 204)
+	{
+		mHeaderMap["Content-Type"] = "text/html";
+		mBody = "";
+	}
+	else if (mErrorPage.find(statusCode) != mErrorPage.end()){
 		mABSPath = mErrorPage[statusCode];
 		createResponseBody(statusCode);
 		// std::cerr << "Set status: " << statusCode << std::endl;
@@ -264,6 +272,7 @@ void Response::MakeResponse(struct Request& req)
 
     mParams = req.params;
 	mbConnectionStop = req.connectionStop;
+	mRequestBody = req.body;
 	setFromResource(res);
 	setDate();
     if (req.statusCode || !isValidMethod(req, res)) // TODO: http ver, method, abs path
@@ -285,10 +294,10 @@ void Response::MakeResponse(struct Request& req)
 	// 	processDELETE(res);
 }
 
-void Response::SetRequestBody(const std::string& requestBody)
-{
-	mRequestBody = requestBody;
-}
+// void Response::setRequestBody(const std::string& requestBody)
+// {
+// 	mRequestBody = requestBody;
+// }
 
 std::string Response::GetRequestBody()
 {
@@ -303,6 +312,7 @@ bool Response::IsCGI() const
 
 void Response::AppendCGIBody(const std::string& CGIBody)
 {
+	// std::cout << CGIBody.size() << std::endl; // debug
 	mBody += CGIBody;
 }
 
@@ -327,17 +337,30 @@ void Response::WriteResponseHeaderTo(int clientFD)
 	ret = mStartLine;
 	ret += mHeader;
     // ret += mBody;
-	// std::cout << ret << std::endl;
+	std::cout << ret << std::endl;
 	if (write(clientFD, ret.c_str(), ret.size()) == -1)
-		throw std::runtime_error("write error");
+		throw std::runtime_error("write error1");
 }
 
 void Response::WriteResponseBodyTo(int clientFD)
 {
 	// std::cout << "ABSPath: " << mABSPath << std::endl; // debug
 	// std::cout << "mBodySize: " << mBodySize << std::endl; // debug
-	if (write(clientFD, mBody.c_str(), mBody.size()) == -1)
-		throw std::runtime_error("write error");
+	size_t toWrite = mBody.size();
+	size_t pos = 0;
+	// TODO: delete while loop may be neeeded => only one write per kqueue.
+	while (pos + 60000 < toWrite)
+	{
+		ssize_t written = write(clientFD, mBody.c_str() + pos, 60000);
+		if (written == -1)
+			continue ;
+			// throw std::runtime_error("write error2");
+		pos += written;
+		// std::cout << "toSend: " << pos << std::endl;
+	}
+	ssize_t written = write(clientFD, mBody.c_str() + pos, toWrite - pos);
+	if (written == -1)
+		throw std::runtime_error("write error2");
 }
 
 void Response::setFromResource(struct Resource& res)
@@ -361,8 +384,12 @@ void Response::processPOST(struct Resource& res)
 	struct stat statBuf;
 	if (stat(mABSPath.c_str(), &statBuf) == -1)
 	{
-		SetStatusOf(204);
-		return ;
+		// TODO: save Request Body to division
+		std::ofstream ofs(mABSPath, std::ios::out);
+		if (ofs.fail())
+			exitWithError("File Error");
+		ofs << mRequestBody;
+		stat(mABSPath.c_str(), &statBuf);
 	}
 	if (S_ISDIR(statBuf.st_mode))
 		mbDir = true;
@@ -474,4 +501,9 @@ void Response::setCGIParam(struct Request& req)
 	mParams["SERVER_PORT"] = req.port;
 	mParams["SERVER_PROTOCOL"] = "HTTP/1.1";
 	mParams["SERVER_SOFTWARE"] = "webserv";
+}
+
+void Response::TestMethod()
+{
+	std::cout << "Request Body size: " << mRequestBody.size() << std::endl;
 }

@@ -1,5 +1,6 @@
 #include <unordered_map>
 #include <iostream>
+#include <signal.h>
 #include "ConfigHandler.hpp"
 #include "AConfParser.hpp"
 #include "HttpHandler.hpp"
@@ -10,7 +11,7 @@
 
 int main(int argc, char *argv[], char *envp[])
 {
-
+	signal(SIGPIPE, SIG_IGN);
 	try
 	{
 		if (argc > 2)
