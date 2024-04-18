@@ -358,7 +358,7 @@ void Response::createResponseHeader()
 	// body should complete when call this function
     mStartLine = mHttpVer + " ";
     mStartLine += intToString(mStatCode) + " " + StatusPage::GetInstance()->GetStatusMessageOf(mStatCode) +"\r\n";
-	
+
 	mHeader = "";
 	for (std::map<std::string, std::string>::iterator it = mHeaderMap.begin(); it != mHeaderMap.end(); it ++)
 	{

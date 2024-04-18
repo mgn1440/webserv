@@ -25,7 +25,6 @@ class WebServ
 		std::map<int, HttpHandler> mRequestMap; // key: clientFD, value: HttpHandler
 		std::map<int, std::deque<Response> > mResponseMap; // key: clientFD, value: Response
 		std::vector<int> mServSockList;
-		std::vector<struct kevent> mChangeList;
 		std::vector<std::string> mEnvList;
 		std::map<int, std::pair<Response*, int> > mCGIPipeMap; // key: pipeFD, value: Response, clientFD
 		std::map<int, std::pair<int,pid_t> > mCGIClientMap; // key: clientFD, value: pipeFD, PID
