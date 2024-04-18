@@ -233,7 +233,6 @@ void	WebServ::processHttpRequest(struct kevent* currEvent)
 	std::string httpRequest = readFDData(clientFD);
 	addEvents(clientFD, EVFILT_TIMER, EV_ADD | EV_ENABLE | EV_ONESHOT, 0, 300000, NULL);
 	mTimerMap[clientFD] = true;
-	// TODO: ConfigHandler::GetResponseOf 메서드와 중복 책임. => 하나로 병합 또는 한 쪽 삭제 요망
 	std::deque<Response> responseList = mRequestMap[clientFD].MakeResponseOf(httpRequest);
 	std::deque<Response>::iterator responseIt = responseList.begin();
 	for(; responseIt != responseList.end(); ++responseIt)
@@ -376,7 +375,7 @@ void	WebServ::writeHttpResponse(struct kevent* currEvent)
 	int clientFD = currEvent->ident;
 	Response &response = mResponseMap[clientFD].front();
 
-	if (currEvent->fflags & EV_EOF /* || response.IsConnectionStop() == true */) // TODO: connectionStop;
+	if (currEvent->fflags & EV_EOF || response.IsConnectionStop() == true)
 	{
 		close(clientFD);
 		eraseHttpMaps(clientFD);

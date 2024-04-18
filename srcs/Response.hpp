@@ -29,7 +29,7 @@ public:
     std::string GetCGIPath() const;
     void parseHeaderOfCGI();
     std::string& GetRequestBody();
-
+    bool IsConnectionStop();
     void TestMethod(); // debug
 private:
     void setRequestBody(const std::string& requestBody);

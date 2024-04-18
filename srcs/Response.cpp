@@ -510,3 +510,8 @@ void Response::TestMethod()
 {
 	std::cout << "Request Body size: " << mRequestBody.size() << std::endl;
 }
+
+bool Response::IsConnectionStop()
+{
+	return (mbConnectionStop);
+}
