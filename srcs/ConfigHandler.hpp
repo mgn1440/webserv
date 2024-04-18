@@ -16,23 +16,21 @@ class Response;
 class ConfigHandler
 {
 public:
-    typedef std::pair<int, std::string> serverInfo;
-
     static void MakeConfigHandler(const std::string& confPath);
     static ConfigHandler& GetConfigHandler();
 
-    size_t GetMaxSize(int port, std::string& serverName, std::string& URI);
+    size_t GetMaxSize(int port, std::string& URI);
     std::set<int>& GetPorts();
     std::deque<Response> GetResponseOf(std::vector<struct Request> requests);
     std::string GetContentType(const std::string& URI);
-    std::string GetABSPath(int port, const std::string& serverName ,const std::string& URI);
+    std::string GetABSPath(int port, const std::string& URI);
     std::string IsCGI(const std::string& ContentType);
-    struct Resource GetResource(int port, const std::string& serverName, const std::string& URI);
+    struct Resource GetResource(int port, const std::string& URI);
     std::string GetServerName(const std::string& URI);
 
     // for DEBUG
     void PrintAll();
-    void PrintServInfo(serverInfo info);
+    void PrintServInfo(int port);
     ~ConfigHandler();
 private:
     static ConfigHandler* configHandler;
@@ -50,7 +48,7 @@ private:
     void createTypes(std::stringstream& ss, std::ifstream& confFile);
 
     std::map<std::string, std::string> mTypeMap;
-    std::map<serverInfo, Server> mServerMap;
+    std::map<int, Server> mServerMap;
     std::set<int> mPortSet;
 };
 

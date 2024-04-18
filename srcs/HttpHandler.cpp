@@ -11,12 +11,14 @@
 #define MAX_STARTLINE_SIZE 8000
 #define MAX_HEDAER_SIZE 8000
 
+void totest(void); // to debug
+
 HttpHandler::HttpHandler(int port)
 	: mPort(port)
 	, mRequestBuffer()
 	, mParsedRequest()
 	, mSavedHeaderSize()
-	, mSavedBodySize()
+	, mSavedBodySize(0)
 	, mConsumeBufferSize()
 	, mMaxbodySize(-1)
 {
@@ -80,15 +82,16 @@ std::deque<Response> HttpHandler::MakeResponseOf(const std::string& data)
 	{
 		parseHttpRequest();
 		refreshBuffer(mRequestBuffer, mConsumeBufferSize);
-		Response res;
 		mConsumeBufferSize = 0;
 		// std::cout << "parsedStatus: " << mParsedRequest.parsedStatus << std::endl; // debug
-		if (mParsedRequest.parsedStatus != PARSED_ALL)
+		if (mParsedRequest.parsedStatus != PARSED_ALL) 
 			break;
+		Response res;
 		res.MakeResponse(mParsedRequest);
 		// res.SetRequestBody(mParsedRequest.body);
 		ret.push_back(res);
 		initRequest(mParsedRequest);
+		initHttpHandler();
 	}
 	return ret;
 }
@@ -173,6 +176,8 @@ void HttpHandler::setHeader(const std::string& str)
 void HttpHandler::parseBody(std::istringstream& input)
 {
 	// std::cout << "parseBody" << std::endl; // debug
+	if (mParsedRequest.URI == "/post_body")
+		totest();
 	if (mParsedRequest.headers.find("Transfer-Encoding") != mParsedRequest.headers.end()){
 
 		// std::cout << "chunked" << std::endl; // debug
@@ -204,6 +209,7 @@ void HttpHandler::parseContentLength(std::istringstream& input)
 		 contentLength = convertNum(mParsedRequest.headers["Content-Length"]);
 	}
 	catch (std::exception& e){
+		mParsedRequest.parsedStatus |= PARSED_BODY;
 		return setHttpStatusCode(400);
 	}
 	if (!contentLength){
@@ -212,6 +218,7 @@ void HttpHandler::parseContentLength(std::istringstream& input)
 	}
 	if (contentLength > mMaxbodySize){
 		mParsedRequest.connectionStop = true;
+		mParsedRequest.parsedStatus |= PARSED_BODY;
 		return setHttpStatusCode(413);
 	}
 	int bufferSize = 100;
@@ -224,6 +231,7 @@ void HttpHandler::parseContentLength(std::istringstream& input)
 		mParsedRequest.body.append(buf, cnt);
 		if (mParsedRequest.body.size() > mMaxbodySize){
 			mParsedRequest.connectionStop = true;
+			mParsedRequest.parsedStatus |= PARSED_BODY;
 			return setHttpStatusCode(413); // content too large
 		}
 		// TODO: why cnt compare with contentLength?
@@ -246,7 +254,6 @@ void HttpHandler::parseTransferEncoding(std::istringstream& input)
 			std::getline(input, size);
 			if (input.eof())
 				return;
-			mSavedBodySize += size.size() + 1;
 			mConsumeBufferSize += size.size() + 1;
 			trim(size, "\r");
 			mParsedRequest.chunkedNum = convertHex(size);
@@ -262,22 +269,25 @@ void HttpHandler::parseTransferEncoding(std::istringstream& input)
 		char *str = new char[num + 3];
 		str[input.readsome(str, num + 2)] = '\0';
 		// std::cout << "str: " << str << std::endl; // debug
-		mSavedBodySize += num + 2;
+		mSavedBodySize += num;
 		mConsumeBufferSize += num + 2;
 		if (mSavedBodySize > mMaxbodySize)
 		{
-			delete[] str;
 			// std::cout << "maxSizeOver: " << mSavedBodySize << std::endl;
 			mParsedRequest.connectionStop = true;
-			return setHttpStatusCode(413); // content too large
+			// mParsedRequest.parsedStatus |= PARSED_BODY;
+			// return setHttpStatusCode(413); // content too large
+			setHttpStatusCode(413); // content too large
 		}
-		if (str[num] != '\r' || str[num + 1] != '\n')
+		else if (str[num] != '\r' || str[num + 1] != '\n')
 		{
-			delete[] str;
 			// std::cout << "not \\r\\n: [" << (int)str[num] << "], [" << (int)str[num + 1] << "]" << input.str() <<std::endl;
-			return setHttpStatusCode(400); // bad request
+			// mParsedRequest.parsedStatus |= PARSED_BODY;
+			// return setHttpStatusCode(400); // bad request
+			setHttpStatusCode(400); // bad request
 		}
-		mParsedRequest.body += std::string(str, num);
+		else
+			mParsedRequest.body += std::string(str, num);
 		mParsedRequest.chunkedNum = 0;
 		mParsedRequest.chunkedStatus = false;
 		delete[] str;
@@ -299,7 +309,7 @@ void HttpHandler::setHttpStatusCode(int statusCode)
 
 void HttpHandler::getMaxSize()
 {
-	// mMaxbodySize = ConfigHandler::GetConfigHandler().GetMaxSizes(); // Redefinition config handler
+	mMaxbodySize = ConfigHandler::GetConfigHandler().GetMaxSize(mParsedRequest.port, mParsedRequest.URI); // Redefinition config handler
 }
 
 void HttpHandler::splitStartLine()
@@ -379,4 +389,15 @@ void HttpHandler::procHost()
 	if (vec.size() == 2)
 		mParsedRequest.port = convertNum(vec[1]);
 	getMaxSize();
+}
+
+void totest(void){
+	std::cout <<  "is in?" << std::endl;
+}
+
+void HttpHandler::initHttpHandler()
+{
+	mSavedHeaderSize = 0;
+	mSavedBodySize = 0;
+	mMaxbodySize = 0;
 }

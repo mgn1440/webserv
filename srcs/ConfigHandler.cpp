@@ -31,13 +31,9 @@ ConfigHandler& ConfigHandler::GetConfigHandler()
     throw std::logic_error("doesn't initiallized config file");
 }
 
-size_t ConfigHandler::GetMaxSize(int port, std::string& serverName, std::string& URI)
+size_t ConfigHandler::GetMaxSize(int port, std::string& URI)
 {
-	std::map<std::pair<int, std::string>, Server>::iterator it = mServerMap.find(serverInfo(port, serverName));
-
-	if (it == mServerMap.end())
-		it = mServerMap.find(serverInfo(port, "default"));
-	return it->second.GetMaxSize(URI);
+	return (mServerMap[port].GetMaxSize(URI));
 }
 
 std::set<int>& ConfigHandler::GetPorts()
@@ -53,12 +49,9 @@ std::string ConfigHandler::GetContentType(const std::string& URI)
 	return ("text/plain");
 }
 
-std::string ConfigHandler::GetABSPath(int port, const std::string& serverName ,const std::string& URI)
+std::string ConfigHandler::GetABSPath(int port, const std::string& URI)
 {
-	serverInfo info(port, serverName);
-	Server& server = mServerMap[serverInfo(port, "default")];
-	if (mServerMap.find(info) != mServerMap.end())
-		server = mServerMap[info];
+	Server& server = mServerMap[port];
 	return (server.GetABSPath(URI));
 }
 
@@ -68,72 +61,13 @@ std::string ConfigHandler::IsCGI(const std::string& URI)
 	return (URI);
 }
 
-struct Resource	ConfigHandler::GetResource(int port, const std::string& serverName, const std::string& URI)
+struct Resource	ConfigHandler::GetResource(int port, const std::string& URI)
 {
-	serverInfo info(port, serverName);
-	// std::cout << "port = " << port << '\n';
-	// std::cout << "serverName = " << serverName << '\n';
-	Server& server = mServerMap[serverInfo(port, "default")];
-	if (mServerMap.find(info) != mServerMap.end())
-		server = mServerMap[info];
+	// std::cout << "port = " << port << '\n'; // debug
+	Server& server = mServerMap[port];
 	struct Resource resource = server.GetResource(URI);
 	resource.ABSPath = server.GetABSPath(URI);
 	return resource;
-}
-
-std::deque<Response> ConfigHandler::GetResponseOf(std::vector<struct Request> requests)
-{
-	std::deque<Response> responseDeq;
-
-	for (std::vector<Request>::iterator it = requests.begin(); it != requests.end(); it ++)
-	{
-		// TODO:
-		// request 유효성 검사(serv_name, port => configHandler)
-		// 1. vaild 한 method인지 확인 => invalid 할 시 501() return 
-		// 2. root를 따라가면서 URI를 absolute Path로 변환하고 실제 파일이 존재하는지 확인 => 404 return
-		// 3. valid 한 HTTP version인지 확인 => invalid 할 시 error() return
-		Response response;
-		responseDeq.push_back(response);
-		// method에 따라서 분기
-		// // 1. GET
-		// 	HTTP ver, status code, status 
-
-		// 	Date 
-		// 	Server: WebServ
-		// 	Content-Length: 
-		// 	Content-type:
-
-		// 	Body: 
-		// // 2. HEAD
-		// 	HTTP ver, status code, status 
-
-		// 	Date 
-		// 	Server: WebServ
-		// 	Content-Length: 
-		// 	Content-type:
-		// // 3. POST almost everything is cgi
-		// 	HTTP ver, status code, status 
-
-		// 	Date 
-		// 	Server: WebServ
-		// 	Content-Length: 
-		// 	Content-type:
-		// // 4. PUT
-		// // 5. DELETE
-		// 	HTTP ver, status code, status 
-
-		// 	Date 
-		// 	Server: WebServ
-
-		// 	만약 
-		// 	Content-Length: 
-		// 	Content-type:
-
-		// 	Body:
-		// Response response = Response();
-		// responseDeq.push_back(response);
-	}
-	return responseDeq;
 }
 
 void ConfigHandler::parseConfig(const std::string& confPath)
@@ -263,7 +197,7 @@ void ConfigHandler::PrintAll()
 	// 	std::cout << it->first << " : " << it->second << std::endl;
 	printMap(mTypeMap);
 	std::cout << "~~ serverInfo ~~" << std::endl;
-	for (std::map<serverInfo, Server>::iterator it = mServerMap.begin(); it != mServerMap.end(); it ++)
+	for (std::map<int, Server>::iterator it = mServerMap.begin(); it != mServerMap.end(); it ++)
 	{
 		it->second.PrintInfo();
 		std::cout << std::endl;
@@ -271,9 +205,9 @@ void ConfigHandler::PrintAll()
 	printSet(mPortSet);
 }
 
-void ConfigHandler::PrintServInfo(serverInfo info)
+void ConfigHandler::PrintServInfo(int port)
 {
-	std::map<serverInfo, Server>::iterator it = mServerMap.find(info);
+	std::map<int, Server>::iterator it = mServerMap.find(port);
 	if (it == mServerMap.end())
 	{
 		std::cout << "cannot find port" << std::endl;

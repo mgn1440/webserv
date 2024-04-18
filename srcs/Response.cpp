@@ -93,55 +93,33 @@ Response::Response()
 	mHeaderMap["Server"] = "Webserv";
 }
 
-void Response::createResponseHeader()
+void Response::MakeResponse(struct Request& req)
 {
-	// body should complete when call this function
-    mStartLine = mHttpVer + " ";
-    mStartLine += intToString(mStatCode) + " " + StatusPage::GetInstance()->GetStatusMessageOf(mStatCode) +"\r\n";
-	
-	mHeader = "";
-	for (std::map<std::string, std::string>::iterator it = mHeaderMap.begin(); it != mHeaderMap.end(); it ++)
-	{
-		mHeader += it->first + ": " + it->second + "\r\n";
+    struct Resource res = ConfigHandler::GetConfigHandler().GetResource(req.port, req.URI);
+
+    mParams = req.params;
+	mbConnectionStop = req.connectionStop;
+	mRequestBody = req.body;
+	setFromResource(res);
+	setDate();
+	setCGIParam(req);
+    if (req.statusCode || !isValidMethod(req, res)) // TODO: http ver, method, abs path
+ 	{
+		SetStatusOf(req.statusCode);
+        return ;
 	}
-    // if (mHeaderMap.find("Content-Type") == mHeaderMap.end())
-    //     mHeader += "Content-Type: type/plain\r\n";
-    mHeader += "Content-length: " + intToString(mBody.size()) + "\r\n";
-	mHeader += "\r\n";
-}
-
-// TODO: directory가 들어왔을 때 autoindex on =>  directory listing page
-// directory가 들어왔을 때 autoindex off => index file name이 붙어야 함
-void Response::createResponseBody(int statCode)
-{
-	// std::cerr << "mStatus: " << mStatCode << ", Status: " << statCode << std::endl;
-	std::ifstream ifs(mABSPath);
-    if (ifs.fail())
-        throw std::runtime_error("file open error");
-	if (statCode != 0)
-		mStatCode = statCode;
-	else
-		mStatCode = 200;
-	// std::cerr << "mStatus: " << mStatCode << ", Status: " << statCode << std::endl;
-    char buf[16384];
-    do
-    {
-		ifs.read(buf, sizeof(buf));
-		// mBodySize += ifs.gcount();
-		// buf[ifs.gcount()] = '\0';
-        mBody += std::string(buf, ifs.gcount());
-    } while (ifs.gcount());
-}
-
-
-bool Response::isValidMethod(struct Request& req, struct Resource& res)
-{
-    if (find(res.HttpMethod.begin(), res.HttpMethod.end(), req.method) == res.HttpMethod.end())
-    {
-        req.statusCode = 405; // 501
-        return (false);
-    }
-    return (true);
+        // TODO:
+        // find server block using the request
+	if (req.method == "GET")
+		processGET(res);
+	else if (req.method == "POST")
+		processPOST(res);
+	// else if (req.method == "HEAD")
+	// 	processHEAD(res);
+	// else if (req.method == "PUT")
+	// 	processPUT(res);
+	// else if (req.method == "DELETE")
+	// 	processDELETE(res);
 }
 
 void Response::PrintResponse()
@@ -154,6 +132,16 @@ void Response::PrintResponse()
 	ret += mBody.substr(0, 50);
 	std::cout << "\033[1;32m" << ret << "\033[0m" << "\n\n";
 	// [HTTP version] [stat code] [status]
+}
+
+bool Response::isValidMethod(struct Request& req, struct Resource& res)
+{
+    if (find(res.HttpMethod.begin(), res.HttpMethod.end(), req.method) == res.HttpMethod.end())
+    {
+        req.statusCode = 405; // 501
+        return (false);
+    }
+    return (true);
 }
 
 // TODO:
@@ -219,28 +207,54 @@ void Response::processGET(struct Resource& res)
 	}
 	else
 		mStatCode = 200;
-	// std::cout << "ABSPath: " <<  mABSPath << std::endl;  // debug
-    // //--------------------------
-    // mABSPath = res.ABSPath;
-    // struct stat statBuf;
-    // if (stat(mABSPath.c_str(), &statBuf) == -1)
-    //     return false;
-    // else if (S_ISDIR(statBuf.st_mode))
-    // {
-    //     mbDir = true;
-    //     if (!res.BAutoIndex)
-    //     {
-    //         req.statusCode = 404;
-    //         return (false);
-    //     }
-    // }
-    // else if (S_ISREG(statBuf.st_mode))
-    //     mbFile = true;
-    // return (true);
-    // // 만약 dir이고 autoIndex ON 이면, directroy list;
-    // // autoIndex Off 이면 404
-    // // 없는 파일이면 404
-    // // 있는 파일이면 return
+}
+
+void Response::processPOST(struct Resource& res)
+{
+	struct stat statBuf;
+	if (stat(mABSPath.c_str(), &statBuf) == -1)
+	{
+		// TODO: save Request Body to division
+		std::ofstream ofs(mABSPath, std::ios::out);
+		if (ofs.fail())
+			exitWithError("File Error");
+		ofs << mRequestBody;
+		stat(mABSPath.c_str(), &statBuf);
+	}
+	if (S_ISDIR(statBuf.st_mode))
+		mbDir = true;
+	else
+        mbFile = true;
+	if (mbFile){
+		mHeaderMap["Content-Type"] = ConfigHandler::GetConfigHandler().GetContentType(mABSPath);
+		mCGIExtension = mABSPath.substr(mABSPath.find_last_of(".") + 1);
+		if (res.CGIBinaryPath.find(mCGIExtension) != res.CGIBinaryPath.end()) // is CGI
+		{
+			mbCGI = true;
+			mCGIPath = res.CGIBinaryPath[mCGIExtension];
+			// setCGIParam(req); request 여기까지 끌고 와야함
+		}
+		else
+			mCGIPath = "";
+	}
+	if (!mbCGI){
+		SetStatusOf(204);
+		return ;
+    }
+}
+
+void Response::processDELETE()
+{
+	struct stat statBuf;
+	if (stat(mABSPath.c_str(), &statBuf) == -1 || S_ISDIR(statBuf.st_mode))
+	{
+		SetStatusOf(204);
+		return ;
+	}
+    mbFile = true;
+    std::remove(mABSPath.c_str());
+    mHeaderMap["Content-Type"] = "application/json";
+	mBody = "{\n \"message\": \"Item deleted successfully.\"\n}";
 }
 
 void Response::SetStatusOf(int statusCode)
@@ -264,35 +278,6 @@ void Response::SetStatusOf(int statusCode)
 		mBody = StatusPage::GetInstance()->GetStatusPageOf(statusCode);
 		// createResponseHeader();
 	}
-}
-
-void Response::MakeResponse(struct Request& req)
-{
-    struct Resource res = ConfigHandler::GetConfigHandler().GetResource(req.port, req.domain, req.URI);
-
-    mParams = req.params;
-	mbConnectionStop = req.connectionStop;
-	mRequestBody = req.body;
-	setFromResource(res);
-	setDate();
-	setCGIParam(req);
-    if (req.statusCode || !isValidMethod(req, res)) // TODO: http ver, method, abs path
- 	{
-		SetStatusOf(req.statusCode);
-        return ;
-	}
-        // TODO:
-        // find server block using the request
-	if (req.method == "GET")
-		processGET(res);
-	else if (req.method == "POST")
-		processPOST(res);
-	// else if (req.method == "HEAD")
-	// 	processHEAD(res);
-	// else if (req.method == "PUT")
-	// 	processPUT(res);
-	// else if (req.method == "DELETE")
-	// 	processDELETE(res);
 }
 
 // void Response::setRequestBody(const std::string& requestBody)
@@ -365,8 +350,49 @@ void Response::WriteResponseBodyTo(int clientFD)
 			continue ;
 		pos += written;
 	}
-	std::cout << "toSend: " << pos << std::endl;
+	// std::cout << "toSend: " << pos << std::endl; // debug
 }
+
+void Response::createResponseHeader()
+{
+	// body should complete when call this function
+    mStartLine = mHttpVer + " ";
+    mStartLine += intToString(mStatCode) + " " + StatusPage::GetInstance()->GetStatusMessageOf(mStatCode) +"\r\n";
+	
+	mHeader = "";
+	for (std::map<std::string, std::string>::iterator it = mHeaderMap.begin(); it != mHeaderMap.end(); it ++)
+	{
+		mHeader += it->first + ": " + it->second + "\r\n";
+	}
+    // if (mHeaderMap.find("Content-Type") == mHeaderMap.end())
+    //     mHeader += "Content-Type: type/plain\r\n";
+    mHeader += "Content-length: " + intToString(mBody.size()) + "\r\n";
+	mHeader += "\r\n";
+}
+
+// TODO: directory가 들어왔을 때 autoindex on =>  directory listing page
+// directory가 들어왔을 때 autoindex off => index file name이 붙어야 함
+void Response::createResponseBody(int statCode)
+{
+	// std::cerr << "mStatus: " << mStatCode << ", Status: " << statCode << std::endl;
+	std::ifstream ifs(mABSPath);
+    if (ifs.fail())
+        throw std::runtime_error("file open error");
+	if (statCode != 0)
+		mStatCode = statCode;
+	else
+		mStatCode = 200;
+	// std::cerr << "mStatus: " << mStatCode << ", Status: " << statCode << std::endl;
+    char buf[16384];
+    do
+    {
+		ifs.read(buf, sizeof(buf));
+		// mBodySize += ifs.gcount();
+		// buf[ifs.gcount()] = '\0';
+        mBody += std::string(buf, ifs.gcount());
+    } while (ifs.gcount());
+}
+
 
 void Response::setFromResource(struct Resource& res)
 {
@@ -382,54 +408,6 @@ void Response::setDate()
 	// Date: [Day], [date] [Month] [year] [time] KST;
 	std::strftime(buf, sizeof(buf), "%a, %d %b %Y %H:%M:%S %Z", std::localtime(&time));
 	mHeaderMap["Date"] = std::string(buf);
-}
-
-void Response::processPOST(struct Resource& res)
-{
-	struct stat statBuf;
-	if (stat(mABSPath.c_str(), &statBuf) == -1)
-	{
-		// TODO: save Request Body to division
-		std::ofstream ofs(mABSPath, std::ios::out);
-		if (ofs.fail())
-			exitWithError("File Error");
-		ofs << mRequestBody;
-		stat(mABSPath.c_str(), &statBuf);
-	}
-	if (S_ISDIR(statBuf.st_mode))
-		mbDir = true;
-	else
-        mbFile = true;
-	if (mbFile){
-		mHeaderMap["Content-Type"] = ConfigHandler::GetConfigHandler().GetContentType(mABSPath);
-		mCGIExtension = mABSPath.substr(mABSPath.find_last_of(".") + 1);
-		if (res.CGIBinaryPath.find(mCGIExtension) != res.CGIBinaryPath.end()) // is CGI
-		{
-			mbCGI = true;
-			mCGIPath = res.CGIBinaryPath[mCGIExtension];
-			// setCGIParam(req); request 여기까지 끌고 와야함
-		}
-		else
-			mCGIPath = "";
-	}
-	if (!mbCGI){
-		SetStatusOf(204);
-		return ;
-    }
-}
-
-void Response::processDELETE()
-{
-	struct stat statBuf;
-	if (stat(mABSPath.c_str(), &statBuf) == -1 || S_ISDIR(statBuf.st_mode))
-	{
-		SetStatusOf(204);
-		return ;
-	}
-    mbFile = true;
-    std::remove(mABSPath.c_str());
-    mHeaderMap["Content-Type"] = "application/json";
-	mBody = "{\n \"message\": \"Item deleted successfully.\"\n}";
 }
 
 void Response::parseHeaderOfCGI()

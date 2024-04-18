@@ -201,14 +201,14 @@ void	WebServ::waitCGIProc(struct kevent* currEvent)
 	Response* response = mCGIPidMap[pid].first;
 	if (currEvent->fflags & NOTE_EXIT)
 	{
-		std::cout << "return value is " << waitpid(pid, &status, 0) << std::endl;
-		std::cout << "wifexited: " << WIFEXITED(status) << ", wexitstatus: " << WEXITSTATUS(status) << std::endl;
+		waitpid(pid, &status, 0);
+		// std::cout << "wifexited: " << WIFEXITED(status) << ", wexitstatus: " << WEXITSTATUS(status) << std::endl;
 		if (!WIFEXITED(status) || WEXITSTATUS(status))
 			response->SetStatusOf(502);
 		else
 		{
 			response->GenCGIBody();
-			std::cout << "client fd" << std::endl; // debug
+			// std::cout << "client fd" << std::endl; // debug
 		}
 		addEvents(clientFD, EVFILT_WRITE, EV_ADD | EV_ENABLE, 0, 0, NULL);
 		close(pipeFD);
