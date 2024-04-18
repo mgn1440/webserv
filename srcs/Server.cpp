@@ -116,21 +116,13 @@ void Server::PrintInfo()
 	}
 }
 
-void Server::PutIn(std::map<serverInfo, Server>& rhs)
+void Server::PutIn(std::map<int, Server>& rhs)
 {
 	for(std::set<int>::iterator portIt = mPort.begin(); portIt != mPort.end(); portIt ++)
 	{
-		serverInfo info = serverInfo(*portIt, "default");
-		if(rhs.find(info) == rhs.end())
-			rhs[info] = *this;
-		for(std::vector<std::string>::iterator servNameIt = mServerName.begin(); servNameIt != mServerName.end(); servNameIt ++)
-		{
-			info = serverInfo(*portIt, *servNameIt);
-			if (rhs.find(info) == rhs.end())
-				rhs[info] = *this;
-			else
-				throw std::runtime_error("port duplicated");
-		}
+		if(rhs.find(*portIt) != rhs.end())
+			throw std::runtime_error("port duplicated");
+		rhs[*portIt] = *this;
 	}
 }
 
@@ -227,6 +219,8 @@ void Server::parseListen(std::stringstream& ss, std::string& word)
 		if (!isDigits(word))
 			break;
 		port = atoi(word.c_str());
+		if (mPort.find(port) != mPort.end())
+			break;
 		mPort.insert(port);
 	}
 	throw std::runtime_error("Wrong listen format");

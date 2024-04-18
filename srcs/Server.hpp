@@ -24,7 +24,7 @@ public:
 	~Server();
 	void PrintInfo();
 	void ParseLine(std::string  line);
-	void PutIn(std::map<serverInfo, Server>& rhs);
+	void PutIn(std::map<int, Server>& rhs);
 	size_t GetMaxSize(std::string &URI);
 	std::set<int>& GetPorts();
 	struct Resource GetResource(std::string URI);

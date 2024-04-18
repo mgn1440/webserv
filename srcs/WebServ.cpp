@@ -12,6 +12,7 @@
 #include "WebServ.hpp"
 #include "HttpHandler.hpp"
 #include "Response.hpp"
+#include "STLUtils.hpp"
 
 WebServ::WebServ(const std::set<int>& portList, const std::vector<std::string>& envList)
 {
@@ -106,9 +107,9 @@ void	WebServ::runKqueueLoop(void)
 	timeout.tv_nsec = 0;
 	timeout.tv_sec = 0;
 	// TODO: delete this test environment
-	mEnvList.push_back("REQUEST_METHOD=POST");
-	mEnvList.push_back("SERVER_PROTOCOL=HTTP/1.1");
-	mEnvList.push_back("PATH_INFO=.");
+	// mEnvList.push_back("REQUEST_METHOD=POST");
+	// mEnvList.push_back("SERVER_PROTOCOL=HTTP/1.1");
+	// mEnvList.push_back("PATH_INFO=.");
 	while (1)
 	{
 		try
@@ -201,14 +202,15 @@ void	WebServ::waitCGIProc(struct kevent* currEvent)
 	if (currEvent->fflags & NOTE_EXIT)
 	{
 		waitpid(pid, &status, 0);
-		if (status != 0)
+		// std::cout << "wifexited: " << WIFEXITED(status) << ", wexitstatus: " << WEXITSTATUS(status) << std::endl;
+		if (!WIFEXITED(status) || WEXITSTATUS(status))
 			response->SetStatusOf(502);
 		else
 		{
 			response->GenCGIBody();
-			std::cout << "client fd" << std::endl; // debug
-			addEvents(clientFD, EVFILT_WRITE, EV_ADD | EV_ENABLE, 0, 0, NULL);
+			// std::cout << "client fd" << std::endl; // debug
 		}
+		addEvents(clientFD, EVFILT_WRITE, EV_ADD | EV_ENABLE, 0, 0, NULL);
 		close(pipeFD);
 		eraseCGIMaps(pid, clientFD, pipeFD);
 	}
@@ -337,21 +339,25 @@ char *const *WebServ::makeArgvList(const std::string& CGIPath, const std::string
 	return (argv);
 }
 
-char *const *WebServ::makeCGIEnvList(const Response& response)
+char *const *WebServ::makeCGIEnvList(Response& response)
 {
 	std::map<std::string, std::string> params = response.GetParams();
-	for (std::map<std::string, std::string>::iterator iter = params.begin(); iter != params.end(); ++iter)
-	{
-		std::string s = iter->first + "=" + iter->second;
-		mEnvList.push_back(s);
-	}
-	char **envp = new char*[mEnvList.size() + 1];
-	for (size_t i = 0; i < mEnvList.size(); ++i)
+	// printMap(params); // debug => why error occured?
+	char **envp = new char*[mEnvList.size() + params.size() + 1];
+	size_t i = 0;
+	for (; i < mEnvList.size(); ++i)
 	{
 		envp[i] = new char[mEnvList[i].length() + 1];
 		std::strcpy(envp[i], mEnvList[i].c_str());
 	}
-	envp[mEnvList.size()] = NULL;
+	for (std::map<std::string, std::string>::iterator iter = params.begin(); iter != params.end(); ++iter)
+	{
+		std::string s = iter->first + "=" + iter->second;
+		envp[i] = new char[s.length() + 1];
+		std::strcpy(envp[i], s.c_str());
+		i ++;
+	}
+	envp[mEnvList.size() + params.size()] = NULL;
 	return (envp);
 }
 

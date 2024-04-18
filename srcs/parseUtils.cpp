@@ -68,7 +68,12 @@ std::vector<std::string> split(const std::string& str, std::string delim)
 	do
     {
         cur = str.find(delim, pre);
-        token = str.substr(pre, cur - pre);
+		if (cur == static_cast<int>(std::string::npos)){
+			token = str.substr(pre);
+		}
+		else{
+			token = str.substr(pre, cur - pre);
+		}
         ret.push_back(token);
         pre = cur + 1;
     } while (static_cast<const unsigned long>(cur) != std::string::npos);

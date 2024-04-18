@@ -24,7 +24,7 @@ public:
     void WriteResponseHeaderTo(int clientFD);
     void WriteResponseBodyTo(int clientFD);
     const char* GetABSPath() const;
-    std::map<std::string, std::string> GetParams() const;
+    std::map<std::string, std::string> GetParams();
     void GenCGIBody();
     std::string GetCGIPath() const;
     void parseHeaderOfCGI();

@@ -46,6 +46,7 @@ private:
 	void splitStartLine(void);
 	void parseURI(void);
 	void checkHTTP(std::string http);
+	void initHttpHandler();
 
 	// process method
 	void procHost();
