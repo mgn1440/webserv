@@ -275,6 +275,7 @@ void Response::MakeResponse(struct Request& req)
 	mRequestBody = req.body;
 	setFromResource(res);
 	setDate();
+	setCGIParam(req);
     if (req.statusCode || !isValidMethod(req, res)) // TODO: http ver, method, abs path
  	{
 		SetStatusOf(req.statusCode);
@@ -472,7 +473,11 @@ void Response::parseHeaderOfCGI()
 		// std::cout << "key: " << key << ", val: " << val << std::endl;
 	}
 	if (isHeader)
-		mBody = mBody.substr(mBody.find("\r\n\r\n") + 4);
+	{
+		size_t idx = mBody.find("\r\n\r\n");
+		if (idx != std::string::npos)
+			mBody = mBody.substr(idx + 4);
+	}
 	// std::cerr << "body\n" << mBody;
 }
 
@@ -481,9 +486,19 @@ const char* Response::GetABSPath() const
 	return (mABSPath.c_str());
 }
 
-std::map<std::string, std::string> Response::GetParams() const
+std::map<std::string, std::string> Response::GetParams()
 {
+	// std::cout << "mParams" << std::endl; // debug
+	// printMap(mParams); // debug
 	return (mParams);
+}
+
+
+bool startWith(const std::string& str, std::string comp, char del)
+{
+	if (str.size() < comp.size())
+		return false;
+	return str.substr(0, str.find_first_of(del)) == comp;
 }
 
 void Response::setCGIParam(struct Request& req)
@@ -494,7 +509,8 @@ void Response::setCGIParam(struct Request& req)
 	mParams["GATEWAY_INTERFACE"] = "CGI/1.1";
 	mParams["PATH_INFO"] = req.URI; // after scirpt file, not full path
 	// mParams["PATH_TRANSLATED"] = mABSPath; // root path + PATH_INFO, nowdays not use
-	mParams["QUERY_STRING"] = req.URI.substr(req.URI.find('?'));
+	if (req.URI.find('?') != std::string::npos)
+		mParams["QUERY_STRING"] = req.URI.substr(req.URI.find('?'));
 	// mParams["REMOTE_ADDR"] = // client 의 ip 주소, getaddrinfo 사용
 	// mParams["REMOTE_HOST"] =  // domain name
 	// mParams["REMOTE_IDENT"] = // ident protocal
@@ -506,17 +522,10 @@ void Response::setCGIParam(struct Request& req)
 	mParams["SERVER_PROTOCOL"] = "HTTP/1.1";
 	mParams["SERVER_SOFTWARE"] = "webserv";
 	for (std::map<std::string, std::string>::iterator it = req.headers.begin(); it != req.headers.end(); it++){
-		if (startWith(it->first, "X", '-') || startWith(it->first, "Http", '-')){
-			mParams[headerToCGIVar(it->first)] = it->second;
+		if (startWith(it->first, "X", '-')){
+			mParams["HTTP_" + it->first] = it->second;
 		}
 	}
-}
-
-bool startWith(const std::string& str, std::string comp, char del)
-{
-	if (str.size() < comp.size())
-		return false;
-	return str.substr(0, str.find_first_of(del)) == comp;
 }
 
 void Response::TestMethod()

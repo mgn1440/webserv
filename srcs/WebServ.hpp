@@ -51,7 +51,7 @@ class WebServ
 		void handleTimeOut(struct kevent* currEvent);
 		bool isFatalKeventError(void);
 		std::string readFDData(int clientFD);
-		char *const *makeCGIEnvList(const Response& response);
+		char *const *makeCGIEnvList(Response& response);
 		char *const *makeArgvList(const std::string& CGIPath, const std::string& ABSPath);
 		void sendPipeData(struct kevent* currEvent);
 		void eraseCGIMaps(int pid, int clientFD, int pipeFD);
