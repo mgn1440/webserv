@@ -69,7 +69,6 @@ void	WebServ::addEvents(uintptr_t ident, int16_t filter, uint16_t flags, uint32_
 {
 	struct kevent newEvent;
 
-	// std::cout << "clientFD: " << ident << ", EVFILT: " << filter << std::endl; // debug
 	EV_SET(&newEvent, ident, filter, flags, fflags, data, udata);
 	if (kevent(mKq, &newEvent, 1, NULL, 0, NULL) == -1)
 		throw std::runtime_error("kevent error");
@@ -375,7 +374,7 @@ void	WebServ::writeHttpResponse(struct kevent* currEvent)
 	int clientFD = currEvent->ident;
 	Response &response = mResponseMap[clientFD].front();
 
-	if (currEvent->fflags & EV_EOF || response.IsConnectionStop() == true)
+	if (currEvent->fflags & EV_EOF)
 	{
 		close(clientFD);
 		eraseHttpMaps(clientFD);
@@ -383,7 +382,7 @@ void	WebServ::writeHttpResponse(struct kevent* currEvent)
 	}
 	response.WriteResponseHeaderTo(clientFD);
 	response.WriteResponseBodyTo(clientFD);
-	response.PrintResponse();
+	response.PrintResponse(); // debug
 	if (mTimerMap[clientFD])
 	{
 		addEvents(clientFD, EVFILT_TIMER, EV_DELETE, 0, 0, NULL);
@@ -391,7 +390,14 @@ void	WebServ::writeHttpResponse(struct kevent* currEvent)
 	}
 	mResponseMap[clientFD].pop_front();
 	if (mResponseMap[clientFD].size() == 0)
+	{
 		addEvents(clientFD, EVFILT_WRITE, EV_DELETE, 0, 0, NULL);
+		if (response.IsConnectionStop())
+		{
+			close(clientFD);
+			eraseHttpMaps(clientFD);
+		}
+	}
 }
 
 std::string	WebServ::readFDData(int clientFD)

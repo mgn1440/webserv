@@ -212,12 +212,12 @@ void Response::processGET(struct Resource& res)
 void Response::processPOST(struct Resource& res)
 {
 	struct stat statBuf;
-	if (stat(mABSPath.c_str(), &statBuf) == -1)
+	if (stat(mABSPath.c_str(), &statBuf) == -1 && errno == ENOENT) // 파일 없을때 확정?
 	{
 		// TODO: save Request Body to division
 		std::ofstream ofs(mABSPath, std::ios::out);
 		if (ofs.fail())
-			exitWithError("File Error");
+			exitWithError("File Error"); // exit을 해야하나?
 		ofs << mRequestBody;
 		stat(mABSPath.c_str(), &statBuf);
 	}
