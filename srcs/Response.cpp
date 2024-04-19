@@ -505,6 +505,11 @@ void Response::setCGIParam(struct Request& req)
 	}
 }
 
+bool Response::IsConnected() const
+{
+	return (mbConnectionStop);
+}
+
 void Response::TestMethod()
 {
 	std::cout << "Request Body size: " << mRequestBody.size() << std::endl;
