@@ -21,26 +21,26 @@ public:
     void PrintResponse();
 	void AppendCGIBody(const std::string& CGIBody);
     void SetStatusOf(int statusCode, std::string str);
-    void WriteResponseHeaderTo(int clientFD);
-    void WriteResponseBodyTo(int clientFD);
+	void WriteResponse(int clientFD);
     const char* GetABSPath() const;
     std::map<std::string, std::string> GetParams();
     void GenCGIBody();
     std::string GetCGIPath() const;
     void parseHeaderOfCGI();
     std::string& GetRequestBody();
+	int GetSendStatus();
+    void CreateResponseHeader();
 
     void TestMethod(); // debug
 private:
-    void setRequestBody(const std::string& requestBody);
     bool isValidMethod(struct Request& req, struct Resource& res);
     void processGET(struct Resource& res);
     void processPOST(struct Resource& res);
     // void processHEAD(struct Resource& res);
     // void processPUT(struct Resource& res);
     void processDELETE();
-    void createResponseHeader();
     void createResponseBody(int statCode);
+	void respectiveSend(int clientFD, const std::string& toSend, int checkCond, int setCond);
 
 	void setFromResource(struct Resource& res);
     void setDate();
@@ -68,6 +68,21 @@ private:
     std::string mABSPath;
 	std::map<int, std::string> mErrorPage;
 	bool mbConnectionStop;
+
+	size_t mRemainSendSize;
+	int mSendStatus;	
+	size_t mSendPos;
+};
+
+enum eSendFlags
+{
+	SEND_NOT = 0,
+	SEND_START = 1,
+	SEND_START_DONE = 1,
+	SEND_HEADER = 2,
+	SEND_HEADER_DONE = 3,
+	SEND_BODY = 4,
+	SEND_ALL = 7
 };
 
 #endif

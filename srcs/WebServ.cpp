@@ -414,9 +414,11 @@ void	WebServ::writeHttpResponse(struct kevent* currEvent)
 		eraseHttpMaps(clientFD);
 		return ;
 	}
-	response.WriteResponseHeaderTo(clientFD);
-	response.WriteResponseBodyTo(clientFD);
+	response.CreateResponseHeader();
+	response.WriteResponse(clientFD);
 	response.PrintResponse();
+	if (response.GetSendStatus() != SEND_ALL)
+		return;
 	if (mTimerMap[clientFD])
 	{
 		addEvents(clientFD, EVFILT_TIMER, EV_DELETE, 0, 0, NULL);
