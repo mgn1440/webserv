@@ -505,7 +505,7 @@ void Response::setCGIParam(struct Request& req)
 	}
 }
 
-bool Response::IsConnected() const
+bool Response::IsConnectionStop() const
 {
 	return (mbConnectionStop);
 }
