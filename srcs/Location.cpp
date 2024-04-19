@@ -63,6 +63,11 @@ void Location::SetResource(struct Resource& res)
 		res.Root = mRoot;
 	if (!mIndex.empty())
 		res.Index = mIndex;
+	if (mRedirCode)
+	{
+		res.RedirCode = mRedirCode;
+		res.Location = mLocation;
+	}
 	for (std::map<std::string, std::string>::iterator it = mCGI.begin(); it != mCGI.end(); it ++)
 	{
 		res.CGIBinaryPath[it->first] = it->second;
@@ -96,6 +101,8 @@ void Location::parse(std::ifstream& confFile)
 			parseCGI(ss, word);
 		else if (word == "client_max_size")
 			parseClientMaxSize(ss, word);
+		else if (word == "return")
+			parseReturn(ss, word);
 		else
 			throw std::runtime_error("Invalid symbol or syntax");
 		if (confFile.eof())

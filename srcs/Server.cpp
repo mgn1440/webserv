@@ -78,6 +78,8 @@ void Server::parse(std::ifstream& confFile)
 			parseCGI(ss, word);
 		else if (word == "upload")
 			parseUpload(ss, word);
+		else if (word == "return")
+			parseReturn(ss, word);
 		else
 			throw std::runtime_error("Invalid symbol or syntax, may be duplicated");
 		if (confFile.eof())
@@ -150,6 +152,8 @@ struct Resource Server::GetResource(std::string URI)
 	res.HttpMethod = mHttpMethod;
 	res.Index = mIndex;
 	res.Root = mRoot;
+	res.RedirCode = mRedirCode;
+	res.Location = mLocation;
 	std::string locationPath = searchLocationPath(URI);
 	if (locationPath != "")
 		mLocationMap[locationPath].SetResource(res);

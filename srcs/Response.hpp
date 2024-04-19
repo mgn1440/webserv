@@ -20,7 +20,7 @@ public:
     void MakeResponse(struct Request& req);
     void PrintResponse();
 	void AppendCGIBody(const std::string& CGIBody);
-    void SetStatusOf(int statusCode);
+    void SetStatusOf(int statusCode, std::string str);
     void WriteResponseHeaderTo(int clientFD);
     void WriteResponseBodyTo(int clientFD);
     const char* GetABSPath() const;
