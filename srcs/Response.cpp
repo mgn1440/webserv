@@ -188,7 +188,6 @@ void Response::processGET(struct Resource& res)
 				mbFile = true;
 				break;
 			}
-			perror("error: ");
 		}
 		if (!mbFile){
 			if (mbAutoIndex){
@@ -359,7 +358,7 @@ void Response::CreateResponseHeader()
 	// body should complete when call this function
     mStartLine = mHttpVer + " ";
     mStartLine += intToString(mStatCode) + " " + StatusPage::GetInstance()->GetStatusMessageOf(mStatCode) +"\r\n";
-	
+
 	mHeader = "";
 	for (std::map<std::string, std::string>::iterator it = mHeaderMap.begin(); it != mHeaderMap.end(); it ++)
 	{
@@ -509,6 +508,11 @@ void Response::setCGIParam(struct Request& req)
 			mParams["HTTP_" + it->first] = it->second;
 		}
 	}
+}
+
+bool Response::IsConnectionStop() const
+{
+	return (mbConnectionStop);
 }
 
 void Response::TestMethod()

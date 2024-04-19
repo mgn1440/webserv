@@ -28,9 +28,9 @@ public:
     std::string GetCGIPath() const;
     void parseHeaderOfCGI();
     std::string& GetRequestBody();
+    bool IsConnectionStop() const;
 	int GetSendStatus();
     void CreateResponseHeader();
-
     void TestMethod(); // debug
 private:
     bool isValidMethod(struct Request& req, struct Resource& res);
