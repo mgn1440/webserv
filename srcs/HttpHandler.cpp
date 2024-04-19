@@ -11,8 +11,6 @@
 #define MAX_STARTLINE_SIZE 8000
 #define MAX_HEDAER_SIZE 8000
 
-void totest(void); // to debug
-
 HttpHandler::HttpHandler(int port)
 	: mPort(port)
 	, mRequestBuffer()
@@ -60,10 +58,10 @@ HttpHandler::HttpHandler(const HttpHandler& rhs)
 
 void	HttpHandler::printParsedHttpRequest(const struct Request& r)
 {
-	std::cout << "method: " << r.method << std::endl;
+	std::cout << "method: " << r.Method << std::endl;
 	std::cout<< "uri: " << r.URI << std::endl;
-	std::map<std::string, std::string>::const_iterator iter = r.headers.begin();
-	for (; iter != r.headers.end(); ++iter)
+	std::map<std::string, std::string>::const_iterator iter = r.Headers.begin();
+	for (; iter != r.Headers.end(); ++iter)
 		std::cout << iter->first << ": " << iter->second << std::endl;
 	std::cout << std::endl;
 }
@@ -83,8 +81,8 @@ std::deque<Response> HttpHandler::MakeResponseOf(const std::string& data)
 		parseHttpRequest();
 		refreshBuffer(mRequestBuffer, mConsumeBufferSize);
 		mConsumeBufferSize = 0;
-		// std::cout << "parsedStatus: " << mParsedRequest.parsedStatus << std::endl; // debug
-		if (mParsedRequest.parsedStatus != PARSED_ALL) 
+		// std::cout << "parsedStatus: " << mParsedRequest.ParsedStatus << std::endl; // debug
+		if (mParsedRequest.ParsedStatus != PARSED_ALL) 
 			break;
 		Response res;
 		res.MakeResponse(mParsedRequest);
@@ -99,11 +97,11 @@ std::deque<Response> HttpHandler::MakeResponseOf(const std::string& data)
 void HttpHandler::parseHttpRequest(void)
 {
 	std::istringstream inputStream(mRequestBuffer);
-	if (mParsedRequest.parsedStatus == PARSED_NOT)
+	if (mParsedRequest.ParsedStatus == PARSED_NOT)
 		parseStartLine(inputStream);
-	if (mParsedRequest.parsedStatus == (PARSED_START))
+	if (mParsedRequest.ParsedStatus == (PARSED_START))
 		parseHeader(inputStream);
-	if (mParsedRequest.parsedStatus == (PARSED_START | PARSED_HEADER))
+	if (mParsedRequest.ParsedStatus == (PARSED_START | PARSED_HEADER))
 		parseBody(inputStream);
 }
 
@@ -122,9 +120,9 @@ void HttpHandler::parseStartLine(std::istringstream& input)
 		return setHttpStatusCode(400); // bad request
 	}
 	mConsumeBufferSize += buf.size() + 1;
-	mParsedRequest.startLine = buf;
+	mParsedRequest.StartLine = buf;
 	splitStartLine();
-	mParsedRequest.parsedStatus |= PARSED_START;
+	mParsedRequest.ParsedStatus |= PARSED_START;
 }
 
 void HttpHandler::parseHeader(std::istringstream& input)
@@ -140,12 +138,12 @@ void HttpHandler::parseHeader(std::istringstream& input)
 		mSavedHeaderSize += buf.size() + 1; // +1 = linefeed character size add;
 		mConsumeBufferSize += buf.size() + 1;
 		if (mSavedHeaderSize > MAX_HEDAER_SIZE){ // check header size
-			mParsedRequest.connectionStop = true;
+			mParsedRequest.ConnectionStop = true;
 			return setHttpStatusCode(431); // Request Header Fields Too Large, connetction close
 		}
 		if (buf.size() == 1 && checkCRLF(buf)){ //header section is over
-			if (!mParsedRequest.statusCode)
-				mParsedRequest.parsedStatus |= PARSED_HEADER;
+			if (!mParsedRequest.StatusCode)
+				mParsedRequest.ParsedStatus |= PARSED_HEADER;
 			break;
 		}
 		if (!checkCRLF(buf))
@@ -170,33 +168,31 @@ void HttpHandler::setHeader(const std::string& str)
 	// TODO: check mesasage type and obs-fold, content type == message obs-fold can recieve
 	trim(fieldValue, " \r"); // del ows
 	// field check -- map<std::string, function pointer>
-	mParsedRequest.headers[fieldName] = fieldValue;
+	mParsedRequest.Headers[fieldName] = fieldValue;
 }
 
 void HttpHandler::parseBody(std::istringstream& input)
 {
 	// std::cout << "parseBody" << std::endl; // debug
-	if (mParsedRequest.URI == "/post_body")
-		totest();
-	if (mParsedRequest.headers.find("Transfer-Encoding") != mParsedRequest.headers.end()){
+	if (mParsedRequest.Headers.find("Transfer-Encoding") != mParsedRequest.Headers.end()){
 
 		// std::cout << "chunked" << std::endl; // debug
-		if (mParsedRequest.headers["Transfer-Encoding"] != "chunked"){
-			mParsedRequest.connectionStop = true;
+		if (mParsedRequest.Headers["Transfer-Encoding"] != "chunked"){
+			mParsedRequest.ConnectionStop = true;
 			setHttpStatusCode(400); // and connection cut
 			return;
 		}
-		if (mParsedRequest.headers.find("Content-Length") != mParsedRequest.headers.end())
-			mParsedRequest.headers.erase("Content-Length");
+		if (mParsedRequest.Headers.find("Content-Length") != mParsedRequest.Headers.end())
+			mParsedRequest.Headers.erase("Content-Length");
 		parseTransferEncoding(input);
 	}
-	else if (mParsedRequest.headers.find("Content-Length") != mParsedRequest.headers.end())
+	else if (mParsedRequest.Headers.find("Content-Length") != mParsedRequest.Headers.end())
 		parseContentLength(input);
 	else
 	{
 		// TODO: GET, DELETE일 때 Body 제한?
-		mParsedRequest.headers["Content-Length"] = "0";
-		mParsedRequest.parsedStatus |= PARSED_BODY;
+		mParsedRequest.Headers["Content-Length"] = "0";
+		mParsedRequest.ParsedStatus |= PARSED_BODY;
 	}
 }
 
@@ -206,32 +202,32 @@ void HttpHandler::parseContentLength(std::istringstream& input)
 	std::string body;
 	size_t contentLength = 0;
 	try{
-		 contentLength = convertNum(mParsedRequest.headers["Content-Length"]);
+		 contentLength = convertNum(mParsedRequest.Headers["Content-Length"]);
 	}
 	catch (std::exception& e){
-		mParsedRequest.parsedStatus |= PARSED_BODY;
+		mParsedRequest.ParsedStatus |= PARSED_BODY;
 		return setHttpStatusCode(400);
 	}
 	if (!contentLength){
-		mParsedRequest.parsedStatus |= PARSED_BODY;
+		mParsedRequest.ParsedStatus |= PARSED_BODY;
 		return;
 	}
 	if (contentLength > mMaxbodySize){
-		mParsedRequest.connectionStop = true;
-		mParsedRequest.parsedStatus |= PARSED_BODY;
+		mParsedRequest.ConnectionStop = true;
+		mParsedRequest.ParsedStatus |= PARSED_BODY;
 		return setHttpStatusCode(413);
 	}
-	int bufferSize = 100;
+	int bufferSize = 1000;
 	char buf[bufferSize];
 	while (true)
 	{
 		input.read(buf, bufferSize);
 		size_t cnt = input.gcount();
 		mConsumeBufferSize += cnt;
-		mParsedRequest.body.append(buf, cnt);
-		if (mParsedRequest.body.size() > mMaxbodySize){
-			mParsedRequest.connectionStop = true;
-			mParsedRequest.parsedStatus |= PARSED_BODY;
+		mParsedRequest.Body.append(buf, cnt);
+		if (mParsedRequest.Body.size() > mMaxbodySize){
+			mParsedRequest.ConnectionStop = true;
+			mParsedRequest.ParsedStatus |= PARSED_BODY;
 			return setHttpStatusCode(413); // content too large
 		}
 		// TODO: why cnt compare with contentLength?
@@ -241,8 +237,8 @@ void HttpHandler::parseContentLength(std::istringstream& input)
 			break;
 		}
 	}
-	if (mParsedRequest.body.size() == contentLength)
-		mParsedRequest.parsedStatus |= PARSED_BODY;
+	if (mParsedRequest.Body.size() == contentLength)
+		mParsedRequest.ParsedStatus |= PARSED_BODY;
 }
 
 void HttpHandler::parseTransferEncoding(std::istringstream& input)
@@ -250,17 +246,17 @@ void HttpHandler::parseTransferEncoding(std::istringstream& input)
 	//decompress impossible;
 	std::string size;
 	while (true){
-		if (!mParsedRequest.chunkedStatus){ // before buffer where parsed?
+		if (!mParsedRequest.ChunkedStatus){ // before buffer where parsed?
 			std::getline(input, size);
 			if (input.eof())
 				return;
 			mConsumeBufferSize += size.size() + 1;
 			trim(size, "\r");
-			mParsedRequest.chunkedNum = convertHex(size);
-			mParsedRequest.chunkedStatus = true;
-			// std::cout << "num: " << mParsedRequest.chunkedNum << std::endl; // debug
+			mParsedRequest.ChunkedNum = convertHex(size);
+			mParsedRequest.ChunkedStatus = true;
+			// std::cout << "num: " << mParsedRequest.ChunkedNum << std::endl; // debug
 		}
-		size_t num = mParsedRequest.chunkedNum;
+		size_t num = mParsedRequest.ChunkedNum;
 		if (input.str().size() - input.tellg() < num + 2)
 		{
 			// std::cout << "second chunk eof" << std::endl; // debug
@@ -274,22 +270,22 @@ void HttpHandler::parseTransferEncoding(std::istringstream& input)
 		if (mSavedBodySize > mMaxbodySize)
 		{
 			// std::cout << "maxSizeOver: " << mSavedBodySize << std::endl;
-			mParsedRequest.connectionStop = true;
-			// mParsedRequest.parsedStatus |= PARSED_BODY;
+			mParsedRequest.ConnectionStop = true;
+			// mParsedRequest.ParsedStatus |= PARSED_BODY;
 			// return setHttpStatusCode(413); // content too large
 			setHttpStatusCode(413); // content too large
 		}
 		else if (str[num] != '\r' || str[num + 1] != '\n')
 		{
 			// std::cout << "not \\r\\n: [" << (int)str[num] << "], [" << (int)str[num + 1] << "]" << input.str() <<std::endl;
-			// mParsedRequest.parsedStatus |= PARSED_BODY;
+			// mParsedRequest.ParsedStatus |= PARSED_BODY;
 			// return setHttpStatusCode(400); // bad request
 			setHttpStatusCode(400); // bad request
 		}
 		else
-			mParsedRequest.body += std::string(str, num);
-		mParsedRequest.chunkedNum = 0;
-		mParsedRequest.chunkedStatus = false;
+			mParsedRequest.Body += std::string(str, num);
+		mParsedRequest.ChunkedNum = 0;
+		mParsedRequest.ChunkedStatus = false;
 		delete[] str;
 		if (num == 0)
 		{
@@ -299,27 +295,27 @@ void HttpHandler::parseTransferEncoding(std::istringstream& input)
 		// else
 		// 	std::cout << "num is not 0" << std::endl; // debug
 	}
-	mParsedRequest.parsedStatus |= PARSED_BODY;
+	mParsedRequest.ParsedStatus |= PARSED_BODY;
 }
 
 void HttpHandler::setHttpStatusCode(int statusCode)
 {
-	mParsedRequest.statusCode = statusCode;
+	mParsedRequest.StatusCode = statusCode;
 }
 
 void HttpHandler::getMaxSize()
 {
-	mMaxbodySize = ConfigHandler::GetConfigHandler().GetMaxSize(mParsedRequest.port, mParsedRequest.URI); // Redefinition config handler
+	mMaxbodySize = ConfigHandler::GetConfigHandler().GetMaxSize(mParsedRequest.Port, mParsedRequest.URI); // Redefinition config handler
 }
 
 void HttpHandler::splitStartLine()
 {
-	if (mParsedRequest.startLine.size() + 1 > MAX_STARTLINE_SIZE){ // +1 = linefeed character size add{
-		mParsedRequest.parsedStatus ^= PARSED_START;
+	if (mParsedRequest.StartLine.size() + 1 > MAX_STARTLINE_SIZE){ // +1 = linefeed character size add{
+		mParsedRequest.ParsedStatus ^= PARSED_START;
 		return setHttpStatusCode(414); // size error occured
 	}
-	std::vector<std::string> startLine = split(mParsedRequest.startLine, " ");
-	mParsedRequest.method = startLine[0];
+	std::vector<std::string> startLine = split(mParsedRequest.StartLine, " ");
+	mParsedRequest.Method = startLine[0];
 	mParsedRequest.URI = startLine[1];
 	parseURI();
 	mParsedRequest.HTTPVersion = startLine[2];
@@ -365,9 +361,9 @@ void HttpHandler::checkHTTP(std::string http)
 
 void HttpHandler::procReferer()
 {
-	if (mParsedRequest.headers.find("Referer") == mParsedRequest.headers.end())
+	if (mParsedRequest.Headers.find("Referer") == mParsedRequest.Headers.end())
 		return;
-	std::string referer = mParsedRequest.headers["Referer"];
+	std::string referer = mParsedRequest.Headers["Referer"];
 	if (referer[referer.size() - 1] == '/')
 		referer.erase(referer.size() - 1);
 	mParsedRequest.URI = referer + mParsedRequest.URI;
@@ -381,18 +377,14 @@ void HttpHandler::procReferer()
 
 void HttpHandler::procHost()
 {
-	if (mParsedRequest.headers.find("Host") == mParsedRequest.headers.end())
+	if (mParsedRequest.Headers.find("Host") == mParsedRequest.Headers.end())
 		return;
-	std::vector<std::string> vec = split(mParsedRequest.headers["Host"], ":");
-	mParsedRequest.domain = vec[0];
-	mParsedRequest.port = mPort;
+	std::vector<std::string> vec = split(mParsedRequest.Headers["Host"], ":");
+	mParsedRequest.Domain = vec[0];
+	mParsedRequest.Port = mPort;
 	if (vec.size() == 2)
-		mParsedRequest.port = convertNum(vec[1]);
+		mParsedRequest.Port = convertNum(vec[1]);
 	getMaxSize();
-}
-
-void totest(void){
-	std::cout <<  "is in?" << std::endl;
 }
 
 void HttpHandler::initHttpHandler()
