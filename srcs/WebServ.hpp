@@ -55,7 +55,7 @@ class WebServ
 		char *const *makeArgvList(const std::string& CGIPath, const std::string& ABSPath);
 		void sendPipeData(struct kevent* currEvent);
 		void eraseCGIMaps(int pid, int clientFD, int pipeFD);
-		void eraseHttpMaps(int clientFD);
+		void eraseClientMaps(int clientFD);
 };
 
 #endif
