@@ -7,20 +7,20 @@
 
 struct Request
 {
-	int statusCode;
-	int parsedStatus;
-	std::string startLine;
-	std::string method;
+	int StatusCode;
+	int ParsedStatus;
+	std::string StartLine;
+	std::string Method;
 	std::string URI;
-	std::string domain;
-	int port;
-	std::map<std::string, std::string> params;
+	std::string Domain;
+	int Port;
+	std::map<std::string, std::string> Params;
 	std::string HTTPVersion;
-	std::map<std::string, std::string> headers; // header is sorted?
-	std::string body;
-	bool connectionStop;
-	bool chunkedStatus;
-	size_t chunkedNum;
+	std::map<std::string, std::string> Headers; // header is sorted?
+	std::string Body;
+	bool ConnectionStop;
+	bool ChunkedStatus;
+	size_t ChunkedNum;
 };
 
 enum eParsedFlags

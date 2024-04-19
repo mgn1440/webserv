@@ -3,6 +3,7 @@
 #include <iostream>
 #include <sstream>
 #include <fstream>
+#include <algorithm>
 #include <ctime>
 #include <cstdio>
 #include <sys/stat.h>
@@ -44,6 +45,9 @@ Response::Response(const Response& rhs)
 	mHeaderMap = rhs.mHeaderMap;
     mbContentLen = rhs.mbContentLen;
 	mRequestBody = rhs.mRequestBody;
+	mRemainSendSize = rhs.mRemainSendSize;
+	mSendStatus = rhs.mSendStatus;
+	mSendPos = rhs.mSendPos;
 }
 
 Response& Response::operator=(const Response& rhs)
@@ -69,6 +73,9 @@ Response& Response::operator=(const Response& rhs)
 	mHeaderMap = rhs.mHeaderMap;
     mbContentLen = rhs.mbContentLen;
 	mRequestBody = rhs.mRequestBody;
+	mRemainSendSize = rhs.mRemainSendSize;
+	mSendStatus = rhs.mSendStatus;
+	mSendPos = rhs.mSendPos;
     return *this;
 }
 
@@ -89,30 +96,39 @@ Response::Response()
     , mbDir()
     , mbContentLen()
     , mABSPath()
+    , mRemainSendSize(60000)
+    , mSendStatus()
+    , mSendPos(0)
 {
 	mHeaderMap["Server"] = "Webserv";
 }
 
 void Response::MakeResponse(struct Request& req)
 {
-    struct Resource res = ConfigHandler::GetConfigHandler().GetResource(req.port, req.URI);
+    struct Resource res = ConfigHandler::GetConfigHandler().GetResource(req.Port, req.URI);
 
-    mParams = req.params;
-	mbConnectionStop = req.connectionStop;
-	mRequestBody = req.body;
+    mParams = req.Params;
+	mbConnectionStop = req.ConnectionStop;
+	mRequestBody = req.Body;
+	std::cout << "redir code: " << res.RedirCode << std::endl;
+	if (res.RedirCode)
+	{
+		SetStatusOf(res.RedirCode, res.Location);
+		return;
+	}
 	setFromResource(res);
 	setDate();
 	setCGIParam(req);
-    if (req.statusCode || !isValidMethod(req, res)) // TODO: http ver, method, abs path
+    if (req.StatusCode || !isValidMethod(req, res)) // TODO: http ver, method, abs path
  	{
-		SetStatusOf(req.statusCode);
+		SetStatusOf(req.StatusCode, "");
         return ;
 	}
         // TODO:
         // find server block using the request
-	if (req.method == "GET")
+	if (req.Method == "GET")
 		processGET(res);
-	else if (req.method == "POST")
+	else if (req.Method == "POST")
 		processPOST(res);
 	// else if (req.method == "HEAD")
 	// 	processHEAD(res);
@@ -136,9 +152,9 @@ void Response::PrintResponse()
 
 bool Response::isValidMethod(struct Request& req, struct Resource& res)
 {
-    if (find(res.HttpMethod.begin(), res.HttpMethod.end(), req.method) == res.HttpMethod.end())
+    if (find(res.HttpMethod.begin(), res.HttpMethod.end(), req.Method) == res.HttpMethod.end())
     {
-        req.statusCode = 405; // 501
+        req.StatusCode = 405; // 501
         return (false);
     }
     return (true);
@@ -156,7 +172,7 @@ void Response::processGET(struct Resource& res)
 	if (stat(res.ABSPath.c_str(), &statBuf) == -1)
 	{
 		std::cout << "Stat Error: " <<  mABSPath << std::endl; // debug
-		SetStatusOf(404);
+		SetStatusOf(404, "");
 		return ;
 	}
 	if (S_ISDIR(statBuf.st_mode))
@@ -180,7 +196,7 @@ void Response::processGET(struct Resource& res)
 			}
 			else if (!mbAutoIndex)
 			{
-				SetStatusOf(404);
+				SetStatusOf(404, "");
 				return ;
 			}
 		}
@@ -237,7 +253,7 @@ void Response::processPOST(struct Resource& res)
 			mCGIPath = "";
 	}
 	if (!mbCGI){
-		SetStatusOf(204);
+		SetStatusOf(204, "");
 		return ;
     }
 }
@@ -247,7 +263,7 @@ void Response::processDELETE()
 	struct stat statBuf;
 	if (stat(mABSPath.c_str(), &statBuf) == -1 || S_ISDIR(statBuf.st_mode))
 	{
-		SetStatusOf(204);
+		SetStatusOf(204, "");
 		return ;
 	}
     mbFile = true;
@@ -256,12 +272,17 @@ void Response::processDELETE()
 	mBody = "{\n \"message\": \"Item deleted successfully.\"\n}";
 }
 
-void Response::SetStatusOf(int statusCode)
+void Response::SetStatusOf(int statusCode, std::string str)
 {
     mStatCode = statusCode;
 	if (mStatCode == 204)
 	{
 		mHeaderMap["Content-Type"] = "text/html";
+		mBody = "";
+	}
+	if (mStatCode / 100 == 3)
+	{
+		mHeaderMap["Location"] = str;
 		mBody = "";
 	}
 	else if (mErrorPage.find(statusCode) != mErrorPage.end()){
@@ -278,11 +299,6 @@ void Response::SetStatusOf(int statusCode)
 		// createResponseHeader();
 	}
 }
-
-// void Response::setRequestBody(const std::string& requestBody)
-// {
-// 	mRequestBody = requestBody;
-// }
 
 std::string& Response::GetRequestBody()
 {
@@ -314,45 +330,30 @@ std::string Response::GetCGIPath() const
 }
 
 
-// TODO: Body를 reference로 받아서 복사되지 않도록(오버헤드 이슈) 처리해야 함.
-void Response::WriteResponseHeaderTo(int clientFD)
+void Response::WriteResponse(int clientFD)
 {
-	std::string ret;
-	createResponseHeader();
-	ret = mStartLine;
-	ret += mHeader;
-    // ret += mBody;
-	// std::cout << ret << std::endl;
-	if (write(clientFD, ret.c_str(), ret.size()) == -1)
-		throw std::runtime_error("write error1");
+	respectiveSend(clientFD, mStartLine, SEND_NOT, SEND_START);
+	respectiveSend(clientFD, mHeader, SEND_START_DONE, SEND_HEADER);
+	respectiveSend(clientFD, mBody, SEND_HEADER_DONE, SEND_BODY);
+	mRemainSendSize = 60000;
 }
 
-void Response::WriteResponseBodyTo(int clientFD)
+void Response::respectiveSend(int clientFD, const std::string& toSend, int checkCond, int setCond)
 {
-	// std::cout << "ABSPath: " << mABSPath << std::endl; // debug
-	// std::cout << "mBodySize: " << mBodySize << std::endl; // debug
-	size_t toWrite = mBody.size();
-	size_t pos = 0;
-	// TODO: delete while loop may be neeeded => only one write per kqueue.
-	while (pos + 60000 < toWrite)
-	{
-		ssize_t written = write(clientFD, mBody.c_str() + pos, 60000);
-		if (written == -1)
-			continue ;
-			// throw std::runtime_error("write error2");
-		pos += written;
+	if (mSendStatus == checkCond){
+		ssize_t writeSize = write(clientFD, toSend.c_str() + mSendPos, std::min(mRemainSendSize, toSend.size() - mSendPos));
+		if (writeSize == -1)
+			throw std::runtime_error("write error: write response");
+		mSendPos += writeSize;
+		mRemainSendSize -= writeSize;
+		if (mSendPos == toSend.size()){
+			mSendStatus |= setCond;
+			mSendPos = 0;
+		}
 	}
-	while (pos != toWrite)
-	{
-		ssize_t written = write(clientFD, mBody.c_str() + pos, toWrite - pos);
-		if (written == -1)
-			continue ;
-		pos += written;
-	}
-	// std::cout << "toSend: " << pos << std::endl; // debug
 }
 
-void Response::createResponseHeader()
+void Response::CreateResponseHeader()
 {
 	// body should complete when call this function
     mStartLine = mHttpVer + " ";
@@ -423,10 +424,14 @@ void Response::parseHeaderOfCGI()
 	while (std::getline(ss, line))
 	{
 		// std::cout << "line: " << line << std::endl;
+		if (ss.eof())
+			return;
 		size_t idx = line.find(": ");
 		if (line == "\r")
 			break;
-		else if (line[line.length() - 1] != '\r' || idx == std::string::npos)
+		if (line == "") // temp
+			continue;
+		else if (line.back() != '\r' || idx == std::string::npos)
 		{
 			isHeader = false;
 			break;
@@ -481,8 +486,8 @@ bool startWith(const std::string& str, std::string comp, char del)
 void Response::setCGIParam(struct Request& req)
 {
 	// mParams["AUTH_TYPE"] = // authentication type
-	mParams["CONTENT_LENGTH"] = intToString(req.body.size());
-	mParams["CONTENT_TYPE"] = req.headers["Content-Type"];
+	mParams["CONTENT_LENGTH"] = intToString(req.Body.size());
+	mParams["CONTENT_TYPE"] = req.Headers["Content-Type"];
 	mParams["GATEWAY_INTERFACE"] = "CGI/1.1";
 	mParams["PATH_INFO"] = req.URI; // after scirpt file, not full path
 	// mParams["PATH_TRANSLATED"] = mABSPath; // root path + PATH_INFO, nowdays not use
@@ -492,13 +497,13 @@ void Response::setCGIParam(struct Request& req)
 	// mParams["REMOTE_HOST"] =  // domain name
 	// mParams["REMOTE_IDENT"] = // ident protocal
 	// mParams["REMOTE_USER"] = // if use auth then user's id
-	mParams["REQUEST_METHOD"] = req.method;
+	mParams["REQUEST_METHOD"] = req.Method;
 	// mParams["SCRIPT_NAME"] =  //before scirpt file
-	mParams["SERVER_NAME"] = req.domain;
-	mParams["SERVER_PORT"] = req.port;
+	mParams["SERVER_NAME"] = req.Domain;
+	mParams["SERVER_PORT"] = req.Port;
 	mParams["SERVER_PROTOCOL"] = "HTTP/1.1";
 	mParams["SERVER_SOFTWARE"] = "webserv";
-	for (std::map<std::string, std::string>::iterator it = req.headers.begin(); it != req.headers.end(); it++){
+	for (std::map<std::string, std::string>::iterator it = req.Headers.begin(); it != req.Headers.end(); it++){
 		if (startWith(it->first, "X", '-')){
 			mParams["HTTP_" + it->first] = it->second;
 		}
@@ -513,4 +518,9 @@ bool Response::IsConnectionStop() const
 void Response::TestMethod()
 {
 	std::cout << "Request Body size: " << mRequestBody.size() << std::endl;
+}
+
+int Response::GetSendStatus()
+{
+	return mSendStatus;
 }

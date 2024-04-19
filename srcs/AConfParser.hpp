@@ -24,6 +24,7 @@ protected:
 	void parseLimitExcept(std::stringstream& ss, std::string& word);
 	void parseClosedBracket(std::stringstream& ss, std::string& word);
 	void parseClientMaxSize(std::stringstream& ss, std::string& word);
+	void parseReturn(std::stringstream& ss, std::string& word);
 	virtual void PrintInfo() = 0; //debug
 
 	bool isEnd(std::stringstream& ss, std::string& word);
@@ -33,10 +34,13 @@ protected:
 	bool mbIsDuplicatedLimitExcept;
 	bool mbIsDuplicatedClientMaxSize;
 	bool mbIsDuplicatedRoot;
+	bool mbIsDuplicatedReturn;
 	bool mbAutoIndex;
 	size_t mMaxSize;
 	std::vector<std::string> mHttpMethod;
 	std::string mRoot;
+	int mRedirCode;
+	std::string mLocation;
 	std::set<std::string> mIndex;
 	std::map<std::string, std::string> mCGI; // Key: CGI 확장자 (php, py) Value: 실행파일 경로
 private:

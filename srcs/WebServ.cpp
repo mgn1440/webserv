@@ -175,7 +175,7 @@ void	WebServ::handleTimeOut(struct kevent* currEvent)
 			eraseCGIMaps(pid, clientFD, pipeFD);
 			addEvents(pid, EVFILT_PROC, EV_DELETE, 0, 0, NULL); // pid 이벤트 삭제
 		}
-		mResponseMap[clientFD].front().SetStatusOf(504);
+		mResponseMap[clientFD].front().SetStatusOf(504, "");
 		addEvents(clientFD, EVFILT_WRITE, EV_ADD | EV_ENABLE | EV_ONESHOT, 0, 0, NULL); // Error page return
 	}
 }
@@ -191,7 +191,7 @@ void	WebServ::waitCGIProc(struct kevent* currEvent)
 	{
 		waitpid(pid, &status, 0);
 		if (!WIFEXITED(status) || WEXITSTATUS(status))
-			response->SetStatusOf(502);
+			response->SetStatusOf(502, "");
 		else
 			response->GenCGIBody();
 		addEvents(clientFD, EVFILT_WRITE, EV_ADD | EV_ENABLE, 0, 0, NULL);
@@ -377,9 +377,11 @@ void	WebServ::writeHttpResponse(struct kevent* currEvent)
 		eraseClientMaps(clientFD);
 		return ;
 	}
-	response.WriteResponseHeaderTo(clientFD);
-	response.WriteResponseBodyTo(clientFD);
+	response.CreateResponseHeader();
+	response.WriteResponse(clientFD);
 	response.PrintResponse();
+	if (response.GetSendStatus() != SEND_ALL)
+		return;
 	if (mTimerMap[clientFD])
 	{
 		addEvents(clientFD, EVFILT_TIMER, EV_DELETE, 0, 0, NULL);
