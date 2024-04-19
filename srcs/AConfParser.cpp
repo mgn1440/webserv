@@ -1,13 +1,17 @@
 #include "AConfParser.hpp"
+#include "parseUtils.hpp"
 
 AConfParser::AConfParser()
 	: mbIsDuplicatedAutoIndex(false)
 	, mbIsDuplicatedLimitExcept(false)
 	, mbIsDuplicatedClientMaxSize(false)
 	, mbIsDuplicatedRoot(false)
+	, mbIsDuplicatedReturn(false)
 	, mbAutoIndex(false)
 	, mMaxSize(DEF_BODY_SIZE)
 	, mRoot("/")
+	, mRedirCode(0)
+	, mLocation("")
 {}
 
 AConfParser::AConfParser(const AConfParser& rhs)
@@ -25,11 +29,14 @@ AConfParser& AConfParser::operator=(const AConfParser& rhs)
 	mbIsDuplicatedAutoIndex = rhs.mbIsDuplicatedAutoIndex;
 	mbIsDuplicatedLimitExcept = rhs.mbIsDuplicatedLimitExcept;
 	mbIsDuplicatedClientMaxSize = rhs.mbIsDuplicatedClientMaxSize;
+	mbIsDuplicatedReturn = rhs.mbIsDuplicatedReturn;
 	mbAutoIndex = rhs.mbAutoIndex;
 	mHttpMethod = rhs.mHttpMethod;
 	mRoot = rhs.mRoot;
 	mIndex = rhs.mIndex;
 	mCGI = rhs.mCGI;
+	mRedirCode = rhs.mRedirCode;
+	mLocation = rhs.mLocation;
 	mMaxSize = rhs.mMaxSize;
 	return *this;
 }
@@ -168,4 +175,27 @@ void AConfParser::parseClientMaxSize(std::stringstream& ss, std::string& word)
 	}
 }
 
-// void AConfParser::parse
+bool isURI(std::string location)
+{
+	size_t idx = location.find("://");
+	if (idx == 0 || idx == std::string::npos)
+		return false;
+	return true;
+}
+
+void AConfParser::parseReturn(std::stringstream& ss, std::string& word)
+{
+	if (mbIsDuplicatedReturn == true)
+		throw std::runtime_error("return duplicated");
+	mbIsDuplicatedReturn = true;
+	std::string end;
+
+	if (!(ss >> word) || !(ss >> mLocation) || !(ss >> end))
+		throw std::runtime_error("wrong return format");
+	if (!isDigits(word) || !isURI(mLocation) || !isEnd(ss, end))
+		throw std::runtime_error("wrong return format");
+	mRedirCode = atoi(word.c_str());
+	if (mRedirCode == 301 || mRedirCode == 302 || mRedirCode == 303 || mRedirCode == 307 || mRedirCode == 308)
+		return;
+	throw std::runtime_error("wrong return format");
+}

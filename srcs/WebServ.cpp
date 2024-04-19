@@ -187,7 +187,7 @@ void	WebServ::handleTimeOut(struct kevent* currEvent)
 			std::cout << "TIMEOUT pid: " << pid << std::endl; // debug
 			addEvents(pid, EVFILT_PROC, EV_DELETE, 0, 0, NULL); // pid 이벤트 삭제
 		}
-		mResponseMap[clientFD].front().SetStatusOf(504);
+		mResponseMap[clientFD].front().SetStatusOf(504, "");
 		addEvents(clientFD, EVFILT_WRITE, EV_ADD | EV_ENABLE | EV_ONESHOT, 0, 0, NULL); // Error page return
 	}
 }
@@ -204,7 +204,7 @@ void	WebServ::waitCGIProc(struct kevent* currEvent)
 		waitpid(pid, &status, 0);
 		// std::cout << "wifexited: " << WIFEXITED(status) << ", wexitstatus: " << WEXITSTATUS(status) << std::endl;
 		if (!WIFEXITED(status) || WEXITSTATUS(status))
-			response->SetStatusOf(502);
+			response->SetStatusOf(502, "");
 		else
 		{
 			response->GenCGIBody();

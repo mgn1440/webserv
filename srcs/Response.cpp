@@ -100,12 +100,18 @@ void Response::MakeResponse(struct Request& req)
     mParams = req.params;
 	mbConnectionStop = req.connectionStop;
 	mRequestBody = req.body;
+	std::cout << "redir code: " << res.RedirCode << std::endl;
+	if (res.RedirCode)
+	{
+		SetStatusOf(res.RedirCode, res.Location);
+		return;
+	}
 	setFromResource(res);
 	setDate();
 	setCGIParam(req);
     if (req.statusCode || !isValidMethod(req, res)) // TODO: http ver, method, abs path
  	{
-		SetStatusOf(req.statusCode);
+		SetStatusOf(req.statusCode, "");
         return ;
 	}
         // TODO:
@@ -156,7 +162,7 @@ void Response::processGET(struct Resource& res)
 	if (stat(res.ABSPath.c_str(), &statBuf) == -1)
 	{
 		std::cout << "Stat Error: " <<  mABSPath << std::endl; // debug
-		SetStatusOf(404);
+		SetStatusOf(404, "");
 		return ;
 	}
 	if (S_ISDIR(statBuf.st_mode))
@@ -181,7 +187,7 @@ void Response::processGET(struct Resource& res)
 			}
 			else if (!mbAutoIndex)
 			{
-				SetStatusOf(404);
+				SetStatusOf(404, "");
 				return ;
 			}
 		}
@@ -238,7 +244,7 @@ void Response::processPOST(struct Resource& res)
 			mCGIPath = "";
 	}
 	if (!mbCGI){
-		SetStatusOf(204);
+		SetStatusOf(204, "");
 		return ;
     }
 }
@@ -248,7 +254,7 @@ void Response::processDELETE()
 	struct stat statBuf;
 	if (stat(mABSPath.c_str(), &statBuf) == -1 || S_ISDIR(statBuf.st_mode))
 	{
-		SetStatusOf(204);
+		SetStatusOf(204, "");
 		return ;
 	}
     mbFile = true;
@@ -257,12 +263,17 @@ void Response::processDELETE()
 	mBody = "{\n \"message\": \"Item deleted successfully.\"\n}";
 }
 
-void Response::SetStatusOf(int statusCode)
+void Response::SetStatusOf(int statusCode, std::string str)
 {
     mStatCode = statusCode;
 	if (mStatCode == 204)
 	{
 		mHeaderMap["Content-Type"] = "text/html";
+		mBody = "";
+	}
+	if (mStatCode / 100 == 3)
+	{
+		mHeaderMap["Location"] = str;
 		mBody = "";
 	}
 	else if (mErrorPage.find(statusCode) != mErrorPage.end()){
