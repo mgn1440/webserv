@@ -103,8 +103,9 @@ Response::Response()
 void Response::MakeResponse(struct Request& req)
 {
     struct Resource res = ConfigHandler::GetConfigHandler().GetResource(req.Port, req.URI);
-
-	// std::cout << "redir code: " << res.RedirCode << std::endl; // debug
+    mParams = req.Params;
+	mbConnectionStop = req.ConnectionStop;
+	mRequestBody = req.Body;
 	if (res.RedirCode)
 	{
 		SetStatusOf(res.RedirCode, res.Location);
