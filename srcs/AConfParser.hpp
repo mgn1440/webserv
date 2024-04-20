@@ -8,7 +8,7 @@
 
 # define DEF_ST_LINE_SIZE 8000
 # define DEF_HEADER_SIZE 8000
-# define DEF_BODY_SIZE 8000000
+# define DEF_BODY_SIZE 1000000000
 
 class AConfParser {
 protected:

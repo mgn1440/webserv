@@ -138,8 +138,9 @@ void HttpHandler::parseHeader(std::istringstream& input)
 		mSavedHeaderSize += buf.size() + 1; // +1 = linefeed character size add;
 		mConsumeBufferSize += buf.size() + 1;
 		if (mSavedHeaderSize > MAX_HEDAER_SIZE){ // check header size
-			mParsedRequest.ConnectionStop = true;
-			return setHttpStatusCode(431); // Request Header Fields Too Large, connetction close
+			// mParsedRequest.ConnectionStop = true;
+			// return setHttpStatusCode(431); // Request Header Fields Too Large, connetction close
+			setHttpStatusCode(431); // Request Header Fields Too Large, connetction close
 		}
 		if (buf.size() == 1 && checkCRLF(buf)){ //header section is over
 			if (!mParsedRequest.StatusCode)
@@ -154,6 +155,7 @@ void HttpHandler::parseHeader(std::istringstream& input)
 	std::cout << "\033[1;33m" << "~~Print Request~~\n" <<  mReq << "\033[0m" << "\n\n";
 	procHost();
 	procReferer();
+	procConnection();
 }
 
 void HttpHandler::setHeader(const std::string& str)
@@ -178,7 +180,7 @@ void HttpHandler::parseBody(std::istringstream& input)
 
 		// std::cout << "chunked" << std::endl; // debug
 		if (mParsedRequest.Headers["Transfer-Encoding"] != "chunked"){
-			mParsedRequest.ConnectionStop = true;
+			// mParsedRequest.ConnectionStop = true;
 			setHttpStatusCode(400); // and connection cut
 			return;
 		}
@@ -213,9 +215,9 @@ void HttpHandler::parseContentLength(std::istringstream& input)
 		return;
 	}
 	if (contentLength > mMaxbodySize){
-		mParsedRequest.ConnectionStop = true;
+		// mParsedRequest.ConnectionStop = true;
 		mParsedRequest.ParsedStatus |= PARSED_BODY;
-		return setHttpStatusCode(413);
+		setHttpStatusCode(413);
 	}
 	int bufferSize = 1000;
 	char buf[bufferSize];
@@ -226,9 +228,9 @@ void HttpHandler::parseContentLength(std::istringstream& input)
 		mConsumeBufferSize += cnt;
 		mParsedRequest.Body.append(buf, cnt);
 		if (mParsedRequest.Body.size() > mMaxbodySize){
-			mParsedRequest.ConnectionStop = true;
+			// mParsedRequest.ConnectionStop = true;
 			mParsedRequest.ParsedStatus |= PARSED_BODY;
-			return setHttpStatusCode(413); // content too large
+			setHttpStatusCode(413); // content too large
 		}
 		// TODO: why cnt compare with contentLength?
 		if (cnt != contentLength)
@@ -270,7 +272,7 @@ void HttpHandler::parseTransferEncoding(std::istringstream& input)
 		if (mSavedBodySize > mMaxbodySize)
 		{
 			// std::cout << "maxSizeOver: " << mSavedBodySize << std::endl;
-			mParsedRequest.ConnectionStop = true;
+			// mParsedRequest.ConnectionStop = true;
 			// mParsedRequest.ParsedStatus |= PARSED_BODY;
 			// return setHttpStatusCode(413); // content too large
 			setHttpStatusCode(413); // content too large
@@ -385,6 +387,14 @@ void HttpHandler::procHost()
 	if (vec.size() == 2)
 		mParsedRequest.Port = convertNum(vec[1]);
 	getMaxSize();
+}
+
+void HttpHandler::procConnection()
+{
+	if (mParsedRequest.Headers.find("Connection") == mParsedRequest.Headers.end())
+		return;
+	if (mParsedRequest.Headers["Connection"] == "close")
+		mParsedRequest.ConnectionStop = true;
 }
 
 void HttpHandler::initHttpHandler()

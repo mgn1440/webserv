@@ -27,6 +27,7 @@ WebServ::~WebServ()
 
 void WebServ::createServerSocket(const std::set<int>& portList)
 {
+
 	std::set<int>::iterator iter = portList.begin();
 	for (; iter != portList.end(); ++iter)
 	{
@@ -45,7 +46,7 @@ void WebServ::createServerSocket(const std::set<int>& portList)
 
 		if (bind(listenFd, (struct sockaddr*)&addr, sizeof(addr)) < 0)
 			throw std::runtime_error("bind error");
-		if (listen(listenFd, SOMAXCONN) < 0)
+		if (listen(listenFd, 2000) < 0)
 			throw std::runtime_error("listen error");
 		if (fcntl(listenFd, F_SETFL, O_NONBLOCK, FD_CLOEXEC) < 0)
 			throw std::runtime_error("fcntl error");
@@ -203,12 +204,19 @@ void	WebServ::waitCGIProc(struct kevent* currEvent)
 
 void	WebServ::acceptNewClientSocket(struct kevent* currEvent)
 {
+	// struct linger lingerOpt;
+
+	// lingerOpt.l_onoff = 1;
+	// lingerOpt.l_linger = 0;
 	int servSocket = currEvent->ident;
+
 	int clientSocket = accept(servSocket, NULL, NULL);
 	if (clientSocket == -1)
 		throw std::runtime_error("accept error");
 	if (fcntl(clientSocket, F_SETFL, O_NONBLOCK, FD_CLOEXEC) == -1)
 		throw std::runtime_error("fcntl error");
+	// if (setsockopt(clientSocket, SOL_SOCKET, SO_LINGER, &lingerOpt, sizeof(lingerOpt)))
+	// 	throw std::runtime_error("setsockopt error");
 	addEvents(clientSocket, EVFILT_READ, EV_ADD | EV_ENABLE, 0, 0, NULL);
 	mRequestMap.insert(std::make_pair(clientSocket, HttpHandler(mServSockPortMap[servSocket])));
 	mResponseMap.insert(std::make_pair(clientSocket, std::deque<Response>()));
@@ -366,20 +374,25 @@ void	WebServ::writeHttpResponse(struct kevent* currEvent)
 	if (response.GetSendStatus() != SEND_ALL)
 		return;
 	mResponseMap[clientFD].pop_front();
+	static int a, b;
 	if (mResponseMap[clientFD].size() == 0)
 	{
+		a ++;
 		addEvents(clientFD, EVFILT_WRITE, EV_DELETE, 0, 0, NULL);
 		if (mTimerMap[clientFD])
 		{
 			addEvents(clientFD, EVFILT_TIMER, EV_DELETE, 0, 0, NULL);
 			mTimerMap[clientFD] = false;
 		}
-		// if (response.IsConnectionStop())
-		// {
-		// 	close(clientFD);
-		// 	eraseClientMaps(clientFD);
-		// }
+		if (response.IsConnectionStop())
+		{
+			b ++;
+			std::cout << "in?" << std::endl;
+			close(clientFD);
+			// eraseClientMaps(clientFD);
+		}
 	}
+	std::cout << "deq 0: " << a << "is in: " << b;
 }
 
 std::string	WebServ::readFDData(int clientFD)
