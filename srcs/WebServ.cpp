@@ -379,9 +379,9 @@ void	WebServ::writeHttpResponse(struct kevent* currEvent)
 	}
 	response.CreateResponseHeader();
 	response.WriteResponse(clientFD);
-	response.PrintResponse();
 	if (response.GetSendStatus() != SEND_ALL)
 		return;
+	response.PrintResponse();
 	if (mTimerMap[clientFD])
 	{
 		addEvents(clientFD, EVFILT_TIMER, EV_DELETE, 0, 0, NULL);
