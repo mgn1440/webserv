@@ -36,13 +36,11 @@ private:
     bool isValidMethod(struct Request& req, struct Resource& res);
     void processGET(struct Resource& res);
     void processPOST(struct Resource& res);
-    // void processHEAD(struct Resource& res);
-    // void processPUT(struct Resource& res);
     void processDELETE();
     void createResponseBody(int statCode);
 	void respectiveSend(int clientFD, const std::string& toSend, int checkCond, int setCond);
-
 	void setFromResource(struct Resource& res);
+	void setFromRequest(struct Request& req);
     void setDate();
 	void setCGIParam(struct Request& req);
 
@@ -55,6 +53,7 @@ private:
     std::string mBody;
     size_t mBodySize;
     std::string mRequestBody;
+    std::string mMethod;
 	std::map<std::string, std::string> mParams;
     std::map<std::string, std::string> mHeaderMap;
 
@@ -69,7 +68,6 @@ private:
 	std::map<int, std::string> mErrorPage;
 	bool mbConnectionStop;
 
-	size_t mRemainSendSize;
 	int mSendStatus;	
 	size_t mSendPos;
 };

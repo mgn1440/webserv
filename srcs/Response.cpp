@@ -45,7 +45,6 @@ Response::Response(const Response& rhs)
 	mHeaderMap = rhs.mHeaderMap;
     mbContentLen = rhs.mbContentLen;
 	mRequestBody = rhs.mRequestBody;
-	mRemainSendSize = rhs.mRemainSendSize;
 	mSendStatus = rhs.mSendStatus;
 	mSendPos = rhs.mSendPos;
 }
@@ -73,7 +72,6 @@ Response& Response::operator=(const Response& rhs)
 	mHeaderMap = rhs.mHeaderMap;
     mbContentLen = rhs.mbContentLen;
 	mRequestBody = rhs.mRequestBody;
-	mRemainSendSize = rhs.mRemainSendSize;
 	mSendStatus = rhs.mSendStatus;
 	mSendPos = rhs.mSendPos;
     return *this;
@@ -96,7 +94,6 @@ Response::Response()
     , mbDir()
     , mbContentLen()
     , mABSPath()
-    , mRemainSendSize(60000)
     , mSendStatus()
     , mSendPos(0)
 {
@@ -107,15 +104,13 @@ void Response::MakeResponse(struct Request& req)
 {
     struct Resource res = ConfigHandler::GetConfigHandler().GetResource(req.Port, req.URI);
 
-    mParams = req.Params;
-	mbConnectionStop = req.ConnectionStop;
-	mRequestBody = req.Body;
-	std::cout << "redir code: " << res.RedirCode << std::endl;
+	// std::cout << "redir code: " << res.RedirCode << std::endl; // debug
 	if (res.RedirCode)
 	{
 		SetStatusOf(res.RedirCode, res.Location);
 		return;
 	}
+	setFromRequest(req);
 	setFromResource(res);
 	setDate();
 	setCGIParam(req);
@@ -124,18 +119,12 @@ void Response::MakeResponse(struct Request& req)
 		SetStatusOf(req.StatusCode, "");
         return ;
 	}
-        // TODO:
-        // find server block using the request
-	if (req.Method == "GET")
+	if (req.Method == "GET" || req.Method == "HEAD")
 		processGET(res);
 	else if (req.Method == "POST")
 		processPOST(res);
-	// else if (req.method == "HEAD")
-	// 	processHEAD(res);
-	// else if (req.method == "PUT")
-	// 	processPUT(res);
-	// else if (req.method == "DELETE")
-	// 	processDELETE(res);
+	else if (req.Method == "DELETE")
+		processDELETE();
 }
 
 void Response::PrintResponse()
@@ -335,17 +324,17 @@ void Response::WriteResponse(int clientFD)
 	respectiveSend(clientFD, mStartLine, SEND_NOT, SEND_START);
 	respectiveSend(clientFD, mHeader, SEND_START_DONE, SEND_HEADER);
 	respectiveSend(clientFD, mBody, SEND_HEADER_DONE, SEND_BODY);
-	mRemainSendSize = 60000;
 }
 
 void Response::respectiveSend(int clientFD, const std::string& toSend, int checkCond, int setCond)
 {
+	if (checkCond == SEND_HEADER_DONE && mMethod == "HEAD")
+		return ;
 	if (mSendStatus == checkCond){
-		ssize_t writeSize = write(clientFD, toSend.c_str() + mSendPos, std::min(mRemainSendSize, toSend.size() - mSendPos));
+		ssize_t writeSize = write(clientFD, toSend.c_str() + mSendPos, toSend.size() - mSendPos);
 		if (writeSize == -1)
 			throw std::runtime_error("write error: write response");
 		mSendPos += writeSize;
-		mRemainSendSize -= writeSize;
 		if (mSendPos == toSend.size()){
 			mSendStatus |= setCond;
 			mSendPos = 0;
@@ -399,6 +388,14 @@ void Response::setFromResource(struct Resource& res)
 	mbAutoIndex = res.BAutoIndex;
 	mErrorPage = res.ErrorPage;
 	mABSPath = res.ABSPath;
+}
+
+void Response::setFromRequest(struct Request& req)
+{
+    mParams = req.Params;
+	mbConnectionStop = req.ConnectionStop;
+	mRequestBody = req.Body;
+	mMethod = req.Method;
 }
 
 void Response::setDate()
