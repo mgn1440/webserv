@@ -110,7 +110,6 @@ void Response::MakeResponse(struct Request& req)
     mParams = req.Params;
 	mbConnectionStop = req.ConnectionStop;
 	mRequestBody = req.Body;
-	std::cout << "redir code: " << res.RedirCode << std::endl;
 	if (res.RedirCode)
 	{
 		SetStatusOf(res.RedirCode, res.Location);
