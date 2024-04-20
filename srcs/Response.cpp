@@ -44,6 +44,7 @@ Response::Response(const Response& rhs)
     mABSPath = rhs.mABSPath;
 	mHeaderMap = rhs.mHeaderMap;
     mbContentLen = rhs.mbContentLen;
+    mbConnectionStop = rhs.mbConnectionStop;
 	mRequestBody = rhs.mRequestBody;
 	mSendStatus = rhs.mSendStatus;
 	mSendPos = rhs.mSendPos;
@@ -71,6 +72,7 @@ Response& Response::operator=(const Response& rhs)
     mABSPath = rhs.mABSPath;
 	mHeaderMap = rhs.mHeaderMap;
     mbContentLen = rhs.mbContentLen;
+    mbConnectionStop = rhs.mbConnectionStop;
 	mRequestBody = rhs.mRequestBody;
 	mSendStatus = rhs.mSendStatus;
 	mSendPos = rhs.mSendPos;
@@ -94,6 +96,8 @@ Response::Response()
     , mbDir()
     , mbContentLen()
     , mABSPath()
+    , mbConnectionStop(false)
+    , mRemainSendSize(60000)
     , mSendStatus()
     , mSendPos(0)
 {

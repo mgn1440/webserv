@@ -27,17 +27,20 @@ WebServ::~WebServ()
 
 void WebServ::createServerSocket(const std::set<int>& portList)
 {
+	struct linger optval;
+	optval.l_onoff = 1;
+	optval.l_linger = 0;
 	std::set<int>::iterator iter = portList.begin();
 	for (; iter != portList.end(); ++iter)
 	{
 		int listenFd = socket(AF_INET, SOCK_STREAM, 0);
 		if (listenFd == -1)
 			throw std::runtime_error("socket error");
-
 		const int REUSE_ADDR_ON = 1;
 		if (setsockopt(listenFd, SOL_SOCKET, SO_REUSEADDR, &REUSE_ADDR_ON, sizeof(REUSE_ADDR_ON)))
 			throw std::runtime_error("setsockopt error");
-
+		if (setsockopt(listenFd, SOL_SOCKET, SO_LINGER, (char*)&optval, sizeof(optval)))
+			throw std::runtime_error("setsockopt error");
 		struct sockaddr_in addr;
 		addr.sin_family = AF_INET;
 		addr.sin_addr.s_addr = htonl(INADDR_ANY);
@@ -45,7 +48,7 @@ void WebServ::createServerSocket(const std::set<int>& portList)
 
 		if (bind(listenFd, (struct sockaddr*)&addr, sizeof(addr)) < 0)
 			throw std::runtime_error("bind error");
-		if (listen(listenFd, SOMAXCONN) < 0)
+		if (listen(listenFd, 10000) < 0)
 			throw std::runtime_error("listen error");
 		if (fcntl(listenFd, F_SETFL, O_NONBLOCK, FD_CLOEXEC) < 0)
 			throw std::runtime_error("fcntl error");
@@ -224,7 +227,7 @@ void	WebServ::processHttpRequest(struct kevent* currEvent)
 		return;
 	}
 	std::string httpRequest = readFDData(clientFD);
-	addEvents(clientFD, EVFILT_TIMER, EV_ADD | EV_ENABLE | EV_ONESHOT, 0, 300000, NULL); // 300초 타임아웃 (write event가 발생하면 timeout event를 삭제해줘야 함)
+	addEvents(clientFD, EVFILT_TIMER, EV_ADD | EV_ENABLE | EV_ONESHOT, 0, 1000, NULL); // 300초 타임아웃 (write event가 발생하면 timeout event를 삭제해줘야 함)
 	mTimerMap[clientFD] = true;
 	std::deque<Response> responseList = mRequestMap[clientFD].MakeResponseOf(httpRequest);
 	std::deque<Response>::iterator responseIt = responseList.begin();
@@ -391,11 +394,11 @@ void	WebServ::writeHttpResponse(struct kevent* currEvent)
 	if (mResponseMap[clientFD].size() == 0)
 	{
 		addEvents(clientFD, EVFILT_WRITE, EV_DELETE, 0, 0, NULL);
-		// if (response.IsConnectionStop())
-		// {
-		// 	close(clientFD);
-		// 	eraseClientMaps(clientFD);
-		// }
+		if (response.IsConnectionStop())
+		{
+			close(clientFD);
+			eraseClientMaps(clientFD);
+		}
 	}
 }
 
@@ -438,5 +441,3 @@ void WebServ::eraseCGIMaps(int PID, int clientFD, int pipeFD)
 	if (mCGIPipeMap.find(pipeFD) != mCGIPipeMap.end())
 		mCGIPipeMap.erase(pipeFD);
 }
-
-
