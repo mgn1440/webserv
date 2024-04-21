@@ -168,6 +168,8 @@ void	WebServ::handleTimeOut(struct kevent* currEvent)
 	{
 		if (iter->IsCGI())
 		{
+			if (mCGIClientMap.find(clientFD) == mCGIClientMap.end())
+				continue;
 			int pipeFD = mCGIClientMap[clientFD].first;
 			pid_t pid = mCGIClientMap[clientFD].second;
 			close(pipeFD); // pipe event 삭제
