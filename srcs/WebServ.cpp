@@ -311,7 +311,6 @@ char *const *WebServ::makeArgvList(const std::string& CGIPath, const std::string
 char *const *WebServ::makeCGIEnvList(Response& response)
 {
 	std::map<std::string, std::string> params = response.GetParams();
-	// printMap(params); // debug => why error occured?
 	char **envp = new char*[mEnvList.size() + params.size() + 1];
 	size_t i = 0;
 	for (; i < mEnvList.size(); ++i)
@@ -329,7 +328,7 @@ char *const *WebServ::makeCGIEnvList(Response& response)
 	envp[mEnvList.size() + params.size()] = NULL;
 	return (envp);
 }
-#include <stdio.h>
+
 void	WebServ::sendPipeData(struct kevent* currEvent)
 {
 	int pipeFD = currEvent->ident;
@@ -343,7 +342,6 @@ void	WebServ::sendPipeData(struct kevent* currEvent)
 	}
 	else if (n == -1)
 		throw std::runtime_error("pipe read error");
-
 	mCGIPipeMap[pipeFD].first->AppendCGIBody(std::string(buf, n));
 }
 
@@ -356,6 +354,11 @@ void	WebServ::writeToCGIPipe(struct kevent* currEvent)
 	ssize_t written = write(pipeFD, response.GetRequestBody().c_str() + pos, toWrite);
 	if (written == -1)
 		throw std::runtime_error("write error");
+	else if (written == 0 && (currEvent->fflags & EV_EOF))
+	{
+		close(pipeFD);
+		return ;
+	}
 	mCGIPostPipeMap[pipeFD].second = pos + written;
 	if (mCGIPostPipeMap[pipeFD].second == response.GetRequestBody().size())
 	{
