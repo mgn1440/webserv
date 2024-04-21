@@ -256,7 +256,12 @@ void Response::processDELETE()
 		return ;
 	}
     mbFile = true;
-    std::remove(mABSPath.c_str());
+    if (std::remove(mABSPath.c_str()))
+	{
+		mStatCode = 403;
+		mBody = "";
+		return ;
+	}
     mHeaderMap["Content-Type"] = "application/json";
 	mBody = "{\n \"message\": \"Item deleted successfully.\"\n}";
 }
