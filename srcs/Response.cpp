@@ -161,7 +161,6 @@ void Response::processGET(struct Resource& res)
 	struct stat statBuf;
 	if (stat(res.ABSPath.c_str(), &statBuf) == -1)
 	{
-		std::cout << "Stat Error: " <<  mABSPath << std::endl; // debug
 		SetStatusOf(404, "");
 		return ;
 	}
@@ -373,7 +372,7 @@ void Response::createResponseBody(int statCode)
 	else
 		mStatCode = 200;
 	// std::cerr << "mStatus: " << mStatCode << ", Status: " << statCode << std::endl;
-    char buf[16384];
+    char buf[65535];
     do
     {
 		ifs.read(buf, sizeof(buf));
