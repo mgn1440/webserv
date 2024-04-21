@@ -103,9 +103,6 @@ Response::Response()
 void Response::MakeResponse(struct Request& req)
 {
     struct Resource res = ConfigHandler::GetConfigHandler().GetResource(req.Port, req.URI);
-    mParams = req.Params;
-	mbConnectionStop = req.ConnectionStop;
-	mRequestBody = req.Body;
 	if (res.RedirCode)
 	{
 		SetStatusOf(res.RedirCode, res.Location);
@@ -121,9 +118,9 @@ void Response::MakeResponse(struct Request& req)
         return ;
 	}
 	if (req.Method == "GET" || req.Method == "HEAD")
-		processGET(res);
+		processGET(res, req);
 	else if (req.Method == "POST")
-		processPOST(res);
+		processPOST(res, req);
 	else if (req.Method == "DELETE")
 		processDELETE();
 }
@@ -137,6 +134,9 @@ void Response::PrintResponse()
 	ret += mHeader;
 	ret += mBody.substr(0, 50);
 	std::cout << "\033[1;32m" << ret << "\033[0m" << "\n\n";
+	for (std::map<std::string, std::string>::iterator it = mParams.begin(); it != mParams.end(); it++){
+		std::cout << "\033[1;32m" << it->first << ": " << it->second << "\033[0m" << "\n";
+	}
 	// [HTTP version] [stat code] [status]
 }
 
@@ -156,7 +156,7 @@ bool Response::isValidMethod(struct Request& req, struct Resource& res)
 // if (Dir)
 // std::set<std::string> index를 순회하면서 파일이 존재하는지 확인 (URL + index)
 //
-void Response::processGET(struct Resource& res)
+void Response::processGET(struct Resource& res, struct Request& req)
 {
 	struct stat statBuf;
 	if (stat(res.ABSPath.c_str(), &statBuf) == -1)
@@ -199,7 +199,7 @@ void Response::processGET(struct Resource& res)
 		{
 			mbCGI = true;
 			mCGIPath = res.CGIBinaryPath[mCGIExtension];
-			// setCGIParam(req); request 여기까지 끌고 와야함
+			setCGIParam(req); //request 여기까지 끌고 와야함
 		}
 		else
 			mCGIPath = "";
@@ -213,7 +213,7 @@ void Response::processGET(struct Resource& res)
 		mStatCode = 200;
 }
 
-void Response::processPOST(struct Resource& res)
+void Response::processPOST(struct Resource& res, struct Request& req)
 {
 	struct stat statBuf;
 	if (stat(mABSPath.c_str(), &statBuf) == -1)
@@ -236,7 +236,7 @@ void Response::processPOST(struct Resource& res)
 		{
 			mbCGI = true;
 			mCGIPath = res.CGIBinaryPath[mCGIExtension];
-			// setCGIParam(req); request 여기까지 끌고 와야함
+			setCGIParam(req); //request 여기까지 끌고 와야함
 		}
 		else
 			mCGIPath = "";
@@ -397,7 +397,6 @@ void Response::setFromResource(struct Resource& res)
 
 void Response::setFromRequest(struct Request& req)
 {
-    mParams = req.Params;
 	mbConnectionStop = req.ConnectionStop;
 	mRequestBody = req.Body;
 	mMethod = req.Method;
@@ -493,8 +492,7 @@ void Response::setCGIParam(struct Request& req)
 	mParams["GATEWAY_INTERFACE"] = "CGI/1.1";
 	mParams["PATH_INFO"] = req.URI; // after scirpt file, not full path
 	// mParams["PATH_TRANSLATED"] = mABSPath; // root path + PATH_INFO, nowdays not use
-	if (req.URI.find('?') != std::string::npos)
-		mParams["QUERY_STRING"] = req.URI.substr(req.URI.find('?'));
+	mParams["QUERY_STRING"] = req.query;
 	// mParams["REMOTE_ADDR"] = // client 의 ip 주소, getaddrinfo 사용
 	// mParams["REMOTE_HOST"] =  // domain name
 	// mParams["REMOTE_IDENT"] = // ident protocal
@@ -502,7 +500,7 @@ void Response::setCGIParam(struct Request& req)
 	mParams["REQUEST_METHOD"] = req.Method;
 	// mParams["SCRIPT_NAME"] =  //before scirpt file
 	mParams["SERVER_NAME"] = req.Domain;
-	mParams["SERVER_PORT"] = req.Port;
+	mParams["SERVER_PORT"] = intToString(req.Port);
 	mParams["SERVER_PROTOCOL"] = "HTTP/1.1";
 	mParams["SERVER_SOFTWARE"] = "webserv";
 	for (std::map<std::string, std::string>::iterator it = req.Headers.begin(); it != req.Headers.end(); it++){
