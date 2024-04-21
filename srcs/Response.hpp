@@ -34,8 +34,8 @@ public:
     void TestMethod(); // debug
 private:
     bool isValidMethod(struct Request& req, struct Resource& res);
-    void processGET(struct Resource& res);
-    void processPOST(struct Resource& res);
+    void processGET(struct Resource& res, struct Request& req);
+    void processPOST(struct Resource& res, struct Request& req);
     void processDELETE();
     void createResponseBody(int statCode);
 	void respectiveSend(int clientFD, const std::string& toSend, int checkCond, int setCond);

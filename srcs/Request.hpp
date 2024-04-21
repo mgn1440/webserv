@@ -14,13 +14,13 @@ struct Request
 	std::string URI;
 	std::string Domain;
 	int Port;
-	std::map<std::string, std::string> Params;
 	std::string HTTPVersion;
 	std::map<std::string, std::string> Headers; // header is sorted?
 	std::string Body;
 	bool ConnectionStop;
 	bool ChunkedStatus;
 	size_t ChunkedNum;
+	std::string query;
 };
 
 enum eParsedFlags

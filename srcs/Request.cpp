@@ -9,11 +9,11 @@ void initRequest(struct Request& request)
 	request.URI = "";
 	request.Domain = "";
 	request.Port = 0;
-	request.Params.clear();
 	request.HTTPVersion = "";
 	request.Headers.clear();
 	request.Body = "";
 	request.ConnectionStop = false;
 	request.ChunkedStatus = false;
 	request.ChunkedNum = 0;
+	request.query = "";
 }
