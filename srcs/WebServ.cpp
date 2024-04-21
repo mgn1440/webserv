@@ -70,8 +70,21 @@ void	WebServ::addEvents(uintptr_t ident, int16_t filter, uint16_t flags, uint32_
 	struct kevent newEvent;
 
 	EV_SET(&newEvent, ident, filter, flags, fflags, data, udata);
+	std::cout << "ident: " << ident << ", filter: " << filter << ", flags: " << flags << std::endl; 
 	if (kevent(mKq, &newEvent, 1, NULL, 0, NULL) == -1)
-		perror("addEventError: ");
+	{
+		if (errno == EBADF)
+		{
+			eraseClientMaps(ident);
+			if (mTimerMap[ident])
+			{
+				addEvents(ident, EVFILT_TIMER, EV_DELETE, 0, 0, NULL);
+				mTimerMap[ident] = false;
+			}
+		}
+		else
+			perror("addEventError: ");
+	}
 }
 
 bool	WebServ::isFatalKeventError(void)
