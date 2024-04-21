@@ -20,7 +20,7 @@
 
 //  TODO: Static이라고 가정 후 Response init을 돌린다.
 //        추후 cgi를 돌릴 때 실제 ContentType과 ContentLength, status code 등을 설정한다.
-std::string getIndexListOf(const std::string& path);
+std::string getIndexListOf(const std::string& URI, const std::string& absPath);
 
 Response::~Response()
 {}
@@ -180,7 +180,7 @@ void Response::processGET(struct Resource& res)
 		}
 		if (!mbFile){
 			if (mbAutoIndex){
-				mBody = getIndexListOf(mABSPath);
+				mBody = getIndexListOf(res.URI, mABSPath);
 				mHeaderMap["Content-Type"] = "text/html";
 			}
 			else if (!mbAutoIndex)
