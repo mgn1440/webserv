@@ -154,6 +154,7 @@ struct Resource Server::GetResource(std::string URI)
 	res.Root = mRoot;
 	res.RedirCode = mRedirCode;
 	res.Location = mLocation;
+	res.ErrorPage = mErrorPage;
 	std::string locationPath = searchLocationPath(URI);
 	if (locationPath != "")
 		mLocationMap[locationPath].SetResource(res);

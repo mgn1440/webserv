@@ -67,6 +67,7 @@ struct Resource	ConfigHandler::GetResource(int port, const std::string& URI)
 	Server& server = mServerMap[port];
 	struct Resource resource = server.GetResource(URI);
 	resource.ABSPath = server.GetABSPath(URI);
+	resource.URI = URI;
 	return resource;
 }
 

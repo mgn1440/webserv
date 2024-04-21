@@ -153,7 +153,7 @@ void HttpHandler::parseHeader(std::istringstream& input)
 	mReq += header; // debug
 	std::cout << "\033[1;33m" << "~~Print Request~~\n" <<  mReq << "\033[0m" << "\n\n";
 	procHost();
-	procReferer();
+	// procReferer();
 }
 
 void HttpHandler::setHeader(const std::string& str)

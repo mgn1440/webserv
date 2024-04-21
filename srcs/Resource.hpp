@@ -16,6 +16,7 @@ struct Resource
 	std::map<int, std::string> ErrorPage;
 	std::map<std::string, std::string> CGIBinaryPath;
 	std::string ABSPath;
+	std::string URI;
 	int RedirCode;
 	std::string Location;
 };

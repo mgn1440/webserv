@@ -54,3 +54,16 @@ Transfer-Encoding: chunked
 Content-Type: test/file
 X-Secret-Header-For-Test: 0
 Accept-Encoding: gzip
+
+
+# 평가표 점검
+- socket fd를 통한 read/write 오류시 클라이언트 제거
+- 모든 fd의 read/write eturn 값이 0이랑 -1 모두 체크하기
+- 사제 error page 설정하기
+- delete 실패시 403 forbidden 처리하기
+- 쿼리문 실제 테스트 해보기
+- wordpres/loop.php 돌리다가 중간에 창 닫았을 때 이하 에러 발생(클라이언트에서 먼저 끊었을 때)
+	addEventError: : Bad file descriptor
+	- 같은 port로 접근시 0x10f5445e3 in WebServ::writeHttpResponse WebServ.cpp:358 에서 seg falut
+- autoindex referer의 경로를 앞에 붙일 때 에러 발생(referer 처리유무에 대한 토론 필요)
+- autoindex 위에 절대경로 root로부터의 상대경로로 바꾸기

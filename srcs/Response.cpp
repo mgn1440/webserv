@@ -20,7 +20,7 @@
 
 //  TODO: Static이라고 가정 후 Response init을 돌린다.
 //        추후 cgi를 돌릴 때 실제 ContentType과 ContentLength, status code 등을 설정한다.
-std::string getIndexListOf(const std::string& path);
+std::string getIndexListOf(const std::string& URI, const std::string& absPath);
 
 Response::~Response()
 {}
@@ -161,7 +161,6 @@ void Response::processGET(struct Resource& res)
 	struct stat statBuf;
 	if (stat(res.ABSPath.c_str(), &statBuf) == -1)
 	{
-		std::cout << "Stat Error: " <<  mABSPath << std::endl; // debug
 		SetStatusOf(404, "");
 		return ;
 	}
@@ -181,7 +180,7 @@ void Response::processGET(struct Resource& res)
 		}
 		if (!mbFile){
 			if (mbAutoIndex){
-				mBody = getIndexListOf(mABSPath);
+				mBody = getIndexListOf(res.URI, mABSPath);
 				mHeaderMap["Content-Type"] = "text/html";
 			}
 			else if (!mbAutoIndex)
@@ -257,7 +256,12 @@ void Response::processDELETE()
 		return ;
 	}
     mbFile = true;
-    std::remove(mABSPath.c_str());
+    if (std::remove(mABSPath.c_str()))
+	{
+		mStatCode = 403;
+		mBody = "";
+		return ;
+	}
     mHeaderMap["Content-Type"] = "application/json";
 	mBody = "{\n \"message\": \"Item deleted successfully.\"\n}";
 }
@@ -373,7 +377,7 @@ void Response::createResponseBody(int statCode)
 	else
 		mStatCode = 200;
 	// std::cerr << "mStatus: " << mStatCode << ", Status: " << statCode << std::endl;
-    char buf[16384];
+    char buf[65535];
     do
     {
 		ifs.read(buf, sizeof(buf));
