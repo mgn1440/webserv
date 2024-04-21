@@ -50,7 +50,6 @@ class WebServ
 		void waitCGIProc(struct kevent* currEvent);
 		void handleTimeOut(struct kevent* currEvent);
 		bool isFatalKeventError(void);
-		std::string readFDData(int clientFD);
 		char *const *makeCGIEnvList(Response& response);
 		char *const *makeArgvList(const std::string& CGIPath, const std::string& ABSPath);
 		void sendPipeData(struct kevent* currEvent);

@@ -218,19 +218,20 @@ void	WebServ::acceptNewClientSocket(struct kevent* currEvent)
 
 void	WebServ::processHttpRequest(struct kevent* currEvent)
 {
-	int clientFD = currEvent->ident;
-
-	if (currEvent->flags & EV_EOF)
+	int clientFD = currEvent->ident;;
+	char buf[65535];
+	int n = read(clientFD, buf, sizeof(buf));
+	if (n == 0 && (currEvent->flags & EV_EOF))
 	{
 		close(clientFD);
 		eraseClientMaps(clientFD);
-		return;
+		return ;
 	}
-	std::string httpRequest = readFDData(clientFD);
-
+	else if (n == -1)
+		throw std::runtime_error("http request read error");
 	addEvents(clientFD, EVFILT_TIMER, EV_ADD | EV_ENABLE, 0, 10000, NULL); // 10초 타임아웃 (write event가 발생하면 timeout event를 삭제해줘야 함)
 	mTimerMap[clientFD] = true;
-	std::deque<Response> responseList = mRequestMap[clientFD].MakeResponseOf(httpRequest);
+	std::deque<Response> responseList = mRequestMap[clientFD].MakeResponseOf(std::string(buf, n));
 	std::deque<Response>::iterator responseIt = responseList.begin();
 	for(; responseIt != responseList.end(); ++responseIt)
 	{
@@ -328,11 +329,22 @@ char *const *WebServ::makeCGIEnvList(Response& response)
 	envp[mEnvList.size() + params.size()] = NULL;
 	return (envp);
 }
-
+#include <stdio.h>
 void	WebServ::sendPipeData(struct kevent* currEvent)
 {
 	int pipeFD = currEvent->ident;
-	mCGIPipeMap[pipeFD].first->AppendCGIBody(readFDData(pipeFD));
+	char buf[65535];
+
+	int n = read(pipeFD, buf, sizeof(buf));
+	if (n == 0 && (currEvent->flags & EV_EOF))
+	{
+		close(pipeFD);
+		return ;
+	}
+	else if (n == -1)
+		throw std::runtime_error("pipe read error");
+
+	mCGIPipeMap[pipeFD].first->AppendCGIBody(std::string(buf, n));
 }
 
 void	WebServ::writeToCGIPipe(struct kevent* currEvent)
@@ -382,18 +394,6 @@ void	WebServ::writeHttpResponse(struct kevent* currEvent)
 		// 	eraseClientMaps(clientFD);
 		// }
 	}
-}
-
-std::string	WebServ::readFDData(int clientFD)
-{
-	char buf[65535];
-	int n = read(clientFD, buf, 65535);
-	if (n < 0)
-	{
-		close(clientFD);
-		throw std::runtime_error("read error");
-	}
-	return (std::string(buf, n));
 }
 
 void WebServ::eraseClientMaps(int clientFD)
