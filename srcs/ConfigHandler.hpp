@@ -21,12 +21,9 @@ public:
 
     size_t GetMaxSize(int port, std::string& URI);
     std::set<int>& GetPorts();
-    std::deque<Response> GetResponseOf(std::vector<struct Request> requests);
     std::string GetContentType(const std::string& URI);
     std::string GetABSPath(int port, const std::string& URI);
-    std::string IsCGI(const std::string& ContentType);
     struct Resource GetResource(int port, const std::string& URI);
-    std::string GetServerName(const std::string& URI);
 
     // for DEBUG
     void PrintAll();

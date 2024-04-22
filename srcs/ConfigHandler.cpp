@@ -55,15 +55,8 @@ std::string ConfigHandler::GetABSPath(int port, const std::string& URI)
 	return (server.GetABSPath(URI));
 }
 
-
-std::string ConfigHandler::IsCGI(const std::string& URI)
-{
-	return (URI);
-}
-
 struct Resource	ConfigHandler::GetResource(int port, const std::string& URI)
 {
-	// std::cout << "port = " << port << '\n'; // debug
 	Server& server = mServerMap[port];
 	struct Resource resource = server.GetResource(URI);
 	resource.ABSPath = server.GetABSPath(URI);
@@ -188,22 +181,6 @@ void ConfigHandler::createServer(std::stringstream& ss, std::ifstream& confFile)
 	}
 	else
 		throw std::runtime_error("invalid server bracket");
-}
-
-// for DEBUG
-void ConfigHandler::PrintAll()
-{
-	std::cout << "~~ typesInfo ~~" << std::endl;
-	// for (std::map<std::string, std::string>::iterator it = mTypeMap.begin(); it != mTypeMap.end(); it ++)
-	// 	std::cout << it->first << " : " << it->second << std::endl;
-	printMap(mTypeMap);
-	std::cout << "~~ serverInfo ~~" << std::endl;
-	for (std::map<int, Server>::iterator it = mServerMap.begin(); it != mServerMap.end(); it ++)
-	{
-		it->second.PrintInfo();
-		std::cout << std::endl;
-	}
-	printSet(mPortSet);
 }
 
 void ConfigHandler::PrintServInfo(int port)
