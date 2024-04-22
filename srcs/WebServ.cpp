@@ -245,7 +245,7 @@ void	WebServ::processHttpRequest(struct kevent* currEvent)
 		eraseClientMaps(clientFD);
 		return ;
 	}
-	else if (n == -1)
+	else if (n == -1) // 1. first request read return -1 is fatal error
 		throw std::runtime_error("http request read error");
 	addEvents(clientFD, EVFILT_TIMER, EV_ADD | EV_ENABLE, 0, 10000, NULL); // 10초 타임아웃 (write event가 발생하면 timeout event를 삭제해줘야 함)
 	mTimerMap[clientFD] = true;
@@ -266,7 +266,7 @@ void	WebServ::processCGI(Response& response, int clientFD)
 	int readFD[2];
 	int writeFD[2];
 
-	if (pipe(readFD) == -1 || pipe(writeFD))
+	if (pipe(readFD) == -1 || pipe(writeFD) == -1)
 		throw std::runtime_error("pipe error");
 	if (fcntl(readFD[0], F_SETFL, O_NONBLOCK, FD_CLOEXEC) == -1 || fcntl(writeFD[1], F_SETFL, O_NONBLOCK, FD_CLOEXEC) == -1)
 		throw std::runtime_error("fcntl error");
@@ -370,16 +370,20 @@ void	WebServ::writeToCGIPipe(struct kevent* currEvent)
 	size_t pos = mCGIPostPipeMap[pipeFD].second;
 	size_t toWrite = response.GetRequestBody().size() - pos;
 	ssize_t written = write(pipeFD, response.GetRequestBody().c_str() + pos, toWrite);
-	if (written == -1)
-		throw std::runtime_error("write error");
-	else if (written == 0 && (currEvent->fflags & EV_EOF))
+	std::cout << "pipeFD = " << pipeFD << ", " << "written = " << written << std::endl;
+	if ((written == 0 && (currEvent->fflags & EV_EOF)) || written == -1)
 	{
 		close(pipeFD);
+		mCGIPostPipeMap.erase(pipeFD);
+		if (written == -1)
+			perror("write error");
 		return ;
 	}
 	mCGIPostPipeMap[pipeFD].second = pos + written;
+	std::cout << "second = " << mCGIPostPipeMap[pipeFD].second  << ", " << "size = " << response.GetRequestBody().size() << std::endl; 
 	if (mCGIPostPipeMap[pipeFD].second == response.GetRequestBody().size())
 	{
+		std::cout << "hi" << std::endl;
 		close(pipeFD);
 		mCGIPostPipeMap.erase(pipeFD);
 	}
@@ -408,12 +412,12 @@ void	WebServ::writeHttpResponse(struct kevent* currEvent)
 			addEvents(clientFD, EVFILT_TIMER, EV_DELETE, 0, 0, NULL);
 			mTimerMap[clientFD] = false;
 		}
-		// if (response.IsConnectionStop())
-		// {
-		// 	close(clientFD);
-		// 	eraseClientMaps(clientFD);
-		// }
 	}
+	// if (response.IsConnectionStop())
+	// {
+	// 	close(clientFD);
+	// 	eraseClientMaps(clientFD);
+	// }
 }
 
 void WebServ::eraseClientMaps(int clientFD)
