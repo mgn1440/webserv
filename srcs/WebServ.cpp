@@ -249,7 +249,7 @@ void	WebServ::processHttpRequest(struct kevent* currEvent)
 		close(clientFD);
 		std::cout << "02" << std::endl;
 		pid_t CGIPid = mResponseMap[clientFD].front().GetCGIPid();
-		kill (CGIPid, SIGTERM);
+		kill (CGIPid, SIGTERM); // 미완성
 		int writePipe =mResponseMap[clientFD].front().GetWritePipeFd(); 
 		mCGIPostPipeMap.erase(writePipe);
 		close(writePipe);
