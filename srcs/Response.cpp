@@ -324,17 +324,19 @@ std::string Response::GetCGIPath() const
 }
 
 
-void Response::WriteResponse(int clientFD)
+ssize_t Response::WriteResponse(int clientFD)
 {
-	respectiveSend(clientFD, mStartLine, SEND_NOT, SEND_START);
-	respectiveSend(clientFD, mHeader, SEND_START_DONE, SEND_HEADER);
-	respectiveSend(clientFD, mBody, SEND_HEADER_DONE, SEND_BODY);
+	ssize_t writeSize = 0;
+	writeSize += respectiveSend(clientFD, mStartLine, SEND_NOT, SEND_START);
+	writeSize += respectiveSend(clientFD, mHeader, SEND_START_DONE, SEND_HEADER);
+	writeSize += respectiveSend(clientFD, mBody, SEND_HEADER_DONE, SEND_BODY);
+	return (writeSize);
 }
 
-void Response::respectiveSend(int clientFD, const std::string& toSend, int checkCond, int setCond)
+ssize_t Response::respectiveSend(int clientFD, const std::string& toSend, int checkCond, int setCond)
 {
 	if (checkCond == SEND_HEADER_DONE && mMethod == "HEAD")
-		return ;
+		return (0);
 	if (mSendStatus == checkCond){
 		ssize_t writeSize = write(clientFD, toSend.c_str() + mSendPos, toSend.size() - mSendPos);
 		if (writeSize == -1)
@@ -344,7 +346,9 @@ void Response::respectiveSend(int clientFD, const std::string& toSend, int check
 			mSendStatus |= setCond;
 			mSendPos = 0;
 		}
+		return (writeSize);
 	}
+	return (0);
 }
 
 void Response::CreateResponseHeader()
