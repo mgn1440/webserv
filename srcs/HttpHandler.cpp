@@ -154,6 +154,7 @@ void HttpHandler::parseHeader(std::istringstream& input)
 	// std::cout << "\033[1;33m" << "~~Print Request~~\n" <<  mReq << "\033[0m" << "\n\n";
 	procHost();
 	// procReferer();
+	procConnection();
 }
 
 void HttpHandler::setHeader(const std::string& str)
@@ -379,6 +380,14 @@ void HttpHandler::procHost()
 	if (vec.size() == 2)
 		mParsedRequest.Port = convertNum(vec[1]);
 	getMaxSize();
+}
+
+void HttpHandler::procConnection()
+{
+	if (mParsedRequest.Headers.find("Connection") == mParsedRequest.Headers.end())
+		return;
+	if (mParsedRequest.Headers["Connection"] == "close")
+		mParsedRequest.ConnectionStop = true;
 }
 
 void HttpHandler::initHttpHandler()
