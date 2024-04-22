@@ -48,6 +48,8 @@ Response::Response(const Response& rhs)
 	mRequestBody = rhs.mRequestBody;
 	mSendStatus = rhs.mSendStatus;
 	mSendPos = rhs.mSendPos;
+	mWritePipeFd = rhs.mWritePipeFd;
+	mCGIPid = rhs.mCGIPid;
 }
 
 Response& Response::operator=(const Response& rhs)
@@ -76,6 +78,8 @@ Response& Response::operator=(const Response& rhs)
 	mRequestBody = rhs.mRequestBody;
 	mSendStatus = rhs.mSendStatus;
 	mSendPos = rhs.mSendPos;
+	mWritePipeFd = rhs.mWritePipeFd;
+	mCGIPid = rhs.mCGIPid;
     return *this;
 }
 
@@ -89,6 +93,8 @@ Response::Response()
     , mBody()
 	, mBodySize(0)
     , mParams()
+	, mCGIPid(-1)
+	, mWritePipeFd(-1)
     , mHttpVer("HTTP/1.1")
     , mStatCode()
     , mStat()
@@ -334,6 +340,26 @@ ssize_t Response::WriteResponse(int clientFD)
 	writeSize += respectiveSend(clientFD, mHeader, SEND_START_DONE, SEND_HEADER);
 	writeSize += respectiveSend(clientFD, mBody, SEND_HEADER_DONE, SEND_BODY);
 	return (writeSize);
+}
+
+void Response::SetCGIPid(pid_t pid)
+{
+	mCGIPid = pid;
+}
+
+pid_t Response::GetCGIPid()
+{
+	return (mCGIPid);
+}
+
+void Response::SetWritePipeFd(int fd)
+{
+	mWritePipeFd = fd;
+}
+
+int Response::GetWritePipeFd()
+{
+	return (mWritePipeFd);
 }
 
 ssize_t Response::respectiveSend(int clientFD, const std::string& toSend, int checkCond, int setCond)

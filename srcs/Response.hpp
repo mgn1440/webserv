@@ -32,6 +32,10 @@ public:
 	int GetSendStatus();
     void CreateResponseHeader();
     void TestMethod(); // debug
+    void SetCGIPid(pid_t pid);
+    pid_t GetCGIPid();
+    void SetWritePipeFd(int fd);
+    int GetWritePipeFd();
 private:
     bool isValidMethod(struct Request& req, struct Resource& res);
     void processGET(struct Resource& res, struct Request& req);
@@ -57,6 +61,8 @@ private:
 	std::map<std::string, std::string> mParams;
     std::map<std::string, std::string> mHeaderMap;
 
+    pid_t mCGIPid;
+    int mWritePipeFd;
     std::string mHttpVer;
     int mStatCode;
     std::string mStat;
