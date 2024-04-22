@@ -44,6 +44,7 @@ Response::Response(const Response& rhs)
     mABSPath = rhs.mABSPath;
 	mHeaderMap = rhs.mHeaderMap;
     mbContentLen = rhs.mbContentLen;
+    mbConnectionStop = rhs.mbConnectionStop;
 	mRequestBody = rhs.mRequestBody;
 	mSendStatus = rhs.mSendStatus;
 	mSendPos = rhs.mSendPos;
@@ -71,6 +72,7 @@ Response& Response::operator=(const Response& rhs)
     mABSPath = rhs.mABSPath;
 	mHeaderMap = rhs.mHeaderMap;
     mbContentLen = rhs.mbContentLen;
+    mbConnectionStop = rhs.mbConnectionStop;
 	mRequestBody = rhs.mRequestBody;
 	mSendStatus = rhs.mSendStatus;
 	mSendPos = rhs.mSendPos;
@@ -94,6 +96,7 @@ Response::Response()
     , mbDir()
     , mbContentLen()
     , mABSPath()
+    , mbConnectionStop()
     , mSendStatus()
     , mSendPos(0)
 {
@@ -269,12 +272,14 @@ void Response::processDELETE()
 void Response::SetStatusOf(int statusCode, std::string str)
 {
     mStatCode = statusCode;
+	if (mbConnectionStop)
+		mHeaderMap["Connection"] = "close";
 	if (mStatCode == 204)
 	{
 		mHeaderMap["Content-Type"] = "text/html";
 		mBody = "";
 	}
-	if (mStatCode / 100 == 3)
+	else if (mStatCode / 100 == 3)
 	{
 		mHeaderMap["Location"] = str;
 		mBody = "";
@@ -283,14 +288,12 @@ void Response::SetStatusOf(int statusCode, std::string str)
 		mABSPath = mErrorPage[statusCode];
 		createResponseBody(statusCode);
 		// std::cerr << "Set status: " << statusCode << std::endl;
-		// createResponseHeader();
 	}
 	else{
 		// TODO: 204 같은 NO Content도 body를 만들어 주는가?
 		mStatCode = statusCode;
 		mHeaderMap["Content-Type"] = "text/html";
 		mBody = StatusPage::GetInstance()->GetStatusPageOf(statusCode);
-		// createResponseHeader();
 	}
 }
 
