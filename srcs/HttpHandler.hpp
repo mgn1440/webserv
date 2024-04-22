@@ -51,6 +51,7 @@ private:
 	// process method
 	void procHost();
 	void procReferer();
+	void procConnection();
 
 
 	// debug
