@@ -21,7 +21,7 @@ public:
     void PrintResponse();
 	void AppendCGIBody(const std::string& CGIBody);
     void SetStatusOf(int statusCode, std::string str);
-	void WriteResponse(int clientFD);
+	ssize_t WriteResponse(int clientFD);
     const char* GetABSPath() const;
     std::map<std::string, std::string> GetParams();
     void GenCGIBody();
@@ -38,7 +38,7 @@ private:
     void processPOST(struct Resource& res);
     void processDELETE();
     void createResponseBody(int statCode);
-	void respectiveSend(int clientFD, const std::string& toSend, int checkCond, int setCond);
+	ssize_t respectiveSend(int clientFD, const std::string& toSend, int checkCond, int setCond);
 	void setFromResource(struct Resource& res);
 	void setFromRequest(struct Request& req);
     void setDate();
@@ -68,7 +68,7 @@ private:
 	std::map<int, std::string> mErrorPage;
 	bool mbConnectionStop;
 
-	int mSendStatus;	
+	int mSendStatus;
 	size_t mSendPos;
 };
 

@@ -372,14 +372,13 @@ void	WebServ::writeHttpResponse(struct kevent* currEvent)
 	int clientFD = currEvent->ident;
 	Response &response = mResponseMap[clientFD].front();
 
-	if (currEvent->fflags & EV_EOF)
+	response.CreateResponseHeader();
+	if (response.WriteResponse(clientFD) == 0 && currEvent->fflags & EV_EOF)
 	{
 		close(clientFD);
 		eraseClientMaps(clientFD);
 		return ;
 	}
-	response.CreateResponseHeader();
-	response.WriteResponse(clientFD);
 	if (response.GetSendStatus() != SEND_ALL)
 		return;
 	mResponseMap[clientFD].pop_front();
