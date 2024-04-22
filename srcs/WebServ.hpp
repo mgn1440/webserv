@@ -11,6 +11,8 @@
 # include "Response.hpp"
 # include "HttpHandler.hpp"
 
+# define KQ_EVENT_SIZE 10000
+
 // system call error 인해 webserv 프로그램이 종료되는 건 말이 안된다
 // runKqueue 내부에서 throw catch 하는 구조로 만들어야 함
 // TODO: clientFD read에서 Error랑, pipeFD read에서 Error는 어떻게 분기 처리를 해줘야 하는가?ㅂ
@@ -32,7 +34,7 @@ class WebServ
 		std::map<pid_t, std::pair<Response*,int> > mCGIPidMap; // key: pid, value: Response, pipeFD
 		std::map<int, std::pair<Response*, size_t> > mCGIPostPipeMap; // key: pipe(CGI STDIN_FILENO), value: Response, 이미 write 된 문자열 길이
 		std::map<int, bool> mTimerMap; // key: clientFD, value: TimerOn Off;
-		struct kevent mEventList[30];
+		struct kevent mEventList[KQ_EVENT_SIZE];
 
 		WebServ();
 		WebServ& operator=(const WebServ&);

@@ -70,7 +70,7 @@ void	WebServ::addEvents(uintptr_t ident, int16_t filter, uint16_t flags, uint32_
 	struct kevent newEvent;
 
 	EV_SET(&newEvent, ident, filter, flags, fflags, data, udata);
-	std::cout << "ident: " << ident << ", filter: " << filter << ", flags: " << flags << std::endl; 
+	// std::cout << "ident: " << ident << ", filter: " << filter << ", flags: " << flags << std::endl; 
 	if (kevent(mKq, &newEvent, 1, NULL, 0, NULL) == -1)
 	{
 		if (errno == EBADF)
@@ -120,7 +120,7 @@ void	WebServ::runKqueueLoop(void)
 	{
 		try
 		{
-			numOfNewEvent = kevent(mKq, NULL, 0, mEventList, 30, &timeout);
+			numOfNewEvent = kevent(mKq, NULL, 0, mEventList, KQ_EVENT_SIZE, &timeout);
 			if (numOfNewEvent == -1)
 			{
 				if (isFatalKeventError())
@@ -218,6 +218,9 @@ void	WebServ::waitCGIProc(struct kevent* currEvent)
 
 void	WebServ::acceptNewClientSocket(struct kevent* currEvent)
 {
+	struct linger _linger;
+	_linger.l_onoff = 1;
+	_linger.l_linger = 0;
 	int servSocket = currEvent->ident;
 	int clientSocket = accept(servSocket, NULL, NULL);
 	if (clientSocket == -1)
@@ -225,6 +228,8 @@ void	WebServ::acceptNewClientSocket(struct kevent* currEvent)
 	if (fcntl(clientSocket, F_SETFL, O_NONBLOCK, FD_CLOEXEC) == -1)
 		throw std::runtime_error("fcntl error");
 	addEvents(clientSocket, EVFILT_READ, EV_ADD | EV_ENABLE, 0, 0, NULL);
+	if (setsockopt(clientSocket, SOL_SOCKET, SO_LINGER, &_linger, sizeof(_linger)))
+		throw std::runtime_error("setsockopt error");
 	mRequestMap.insert(std::make_pair(clientSocket, HttpHandler(mServSockPortMap[servSocket])));
 	mResponseMap.insert(std::make_pair(clientSocket, std::deque<Response>()));
 }
