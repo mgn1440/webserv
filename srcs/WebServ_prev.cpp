@@ -243,7 +243,7 @@ void	WebServ::acceptNewClientSocket(struct kevent* currEvent)
 	int servSocket = currEvent->ident;
 	int clientSocket = accept(servSocket, NULL, NULL);
 	addEvents(clientSocket, EVFILT_TIMER, EV_DELETE, 0, 0, NULL);
-	addEvents(clientSocket, EVFILT_TIMER, EV_ADD | EV_ENABLE | EV_ONESHOT, 0, TIMEOUT_SIZE, NULL);
+	addEvents(clientSocket, EVFILT_TIMER, EV_ADD | EV_ENABLE, 0, TIMEOUT_SIZE, NULL);
 	std::cout <<  "make cli sock: " << clientSocket << std::endl; // suro3
 	if (clientSocket == -1)
 		throw std::runtime_error("accept error");
@@ -272,7 +272,7 @@ void	WebServ::processHttpRequest(struct kevent* currEvent)
 	else if (n == -1) // 1. first request read return -1 is fatal error
 		throw std::runtime_error("http request read error");
 	addEvents(clientFD, EVFILT_TIMER, EV_DELETE, 0, 0, NULL);
-	addEvents(clientFD, EVFILT_TIMER, EV_ADD | EV_ENABLE | EV_ONESHOT, 0, TIMEOUT_SIZE, NULL); // 100초 타임아웃 (write event가 발생하면 timeout event를 삭제해줘야 함)
+	addEvents(clientFD, EVFILT_TIMER, EV_ADD | EV_ENABLE, 0, TIMEOUT_SIZE, NULL); // 100초 타임아웃 (write event가 발생하면 timeout event를 삭제해줘야 함)
 	mTimerMap[clientFD] = true;
 	std::deque<Response> responseList = mRequestMap[clientFD].MakeResponseOf(std::string(buf, n));
 	std::deque<Response>::iterator responseIt = responseList.begin();
@@ -439,7 +439,7 @@ void	WebServ::writeHttpResponse(struct kevent* currEvent)
 	if (response.GetSendStatus() != SEND_ALL)
 		return;
 	addEvents(clientFD, EVFILT_TIMER, EV_DELETE, 0, 0, NULL);
-	addEvents(clientFD, EVFILT_TIMER, EV_ADD | EV_ENABLE | EV_ONESHOT, 0, TIMEOUT_SIZE, NULL);
+	addEvents(clientFD, EVFILT_TIMER, EV_ADD | EV_ENABLE, 0, TIMEOUT_SIZE, NULL);
 	response.PrintResponse(); // suro3
 	mResponseMap[clientFD].pop_front();
 	if (mResponseMap[clientFD].size() == 0)
@@ -449,7 +449,7 @@ void	WebServ::writeHttpResponse(struct kevent* currEvent)
 	// if (mTimerMap[clientFD])
 	// {
 	// 	addEvents(clientFD, EVFILT_TIMER, EV_DELETE, 0, 0, NULL);
-	// 	addEvents(clientFD, EVFILT_TIMER, EV_ADD | EV_ENABLE | EV_ONESHOT, 0, TIMEOUT_SIZE, NULL);
+	// 	addEvents(clientFD, EVFILT_TIMER, EV_ADD | EV_ENABLE, 0, TIMEOUT_SIZE, NULL);
 	// }
 	// if (response.IsConnectionStop())
 	// {

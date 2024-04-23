@@ -12,6 +12,7 @@
 # include "HttpHandler.hpp"
 
 # define KQ_EVENT_SIZE 10000
+# define TIMEOUT_SIZE 100000
 
 // system call error 인해 webserv 프로그램이 종료되는 건 말이 안된다
 // runKqueue 내부에서 throw catch 하는 구조로 만들어야 함
