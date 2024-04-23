@@ -70,7 +70,7 @@ void	WebServ::addEvents(uintptr_t ident, int16_t filter, uint16_t flags, uint32_
 	struct kevent newEvent;
 
 	EV_SET(&newEvent, ident, filter, flags, fflags, data, udata);
-	// std::cout << "ident: " << ident << ", filter: " << filter << ", flags: " << flags << std::endl; 
+	// std::cout << "ident: " << ident << ", filter: " << filter << ", flags: " << flags << std::endl;
 	if (kevent(mKq, &newEvent, 1, NULL, 0, NULL) == -1)
 	{
 		if (errno == EBADF)
@@ -198,16 +198,11 @@ void	WebServ::handleTimeOut(struct kevent* currEvent)
 		iter->SetStatusOf(504, "");
 	}
 	std::cout << "addevent is in?" << std::endl;
-	if (mResponseMap[clientFD].empty())
-	{
-		Response response;
-		Request request;
-		initRequest(request);
-		request.StatusCode = 504;
-		response.MakeResponse(request);
-		mResponseMap[clientFD].push_back(response);
-	}
-	addEvents(clientFD, EVFILT_WRITE, EV_ADD | EV_ENABLE, 0, 0, NULL);
+	if (!mResponseMap[clientFD].empty())
+		addEvents(clientFD, EVFILT_WRITE, EV_ADD | EV_ENABLE, 0, 0, NULL);
+	else
+		close(clientFD);
+
 	std::cout << "addevent is out?" << std::endl;
 }
 
@@ -263,7 +258,7 @@ void	WebServ::processHttpRequest(struct kevent* currEvent)
 	int n = read(clientFD, buf, sizeof(buf));
 	if (n == 0 && (currEvent->flags & EV_EOF))
 	{
-		std::cout << "close cli FD1: " << clientFD << std::endl; 
+		std::cout << "close cli FD1: " << clientFD << std::endl;
 		close(clientFD);
 		std::cout << "02" << ", " << clientFD << std::endl; // debug
 		eraseClientMaps(clientFD); // suro 범인
@@ -337,7 +332,7 @@ void	WebServ::processCGI(Response& response, int clientFD)
 		addEvents(pid, EVFILT_PROC, EV_ADD | EV_ONESHOT, NOTE_EXIT, 0, NULL);
 		close(readFD[1]);
 		close(writeFD[0]);
-		mCGIClientMap[clientFD] = &response; 
+		mCGIClientMap[clientFD] = &response;
 		mCGIPipeMap[readFD[0]] = &response;
 		mCGIPidMap[pid] = &response;
 	}
@@ -431,7 +426,7 @@ void	WebServ::writeHttpResponse(struct kevent* currEvent)
 	response.CreateResponseHeader();
 	if (response.WriteResponse(clientFD) == 0 && currEvent->fflags & EV_EOF)
 	{
-		std::cout << "close cli FD2: " << clientFD << std::endl; 
+		std::cout << "close cli FD2: " << clientFD << std::endl;
 		close(clientFD);
 		std::cout << "03 " << ", " << clientFD << std::endl; // debug
 		eraseClientMaps(clientFD);
@@ -445,10 +440,7 @@ void	WebServ::writeHttpResponse(struct kevent* currEvent)
 	{
 		addEvents(clientFD, EVFILT_WRITE, EV_DELETE, 0, 0, NULL);
 		if (mTimerMap[clientFD])
-		{
-			addEvents(clientFD, EVFILT_TIMER, EV_DELETE, 0, 0, NULL);
-			mTimerMap[clientFD] = false;
-		}
+			addEvents(clientFD, EVFILT_TIMER, EV_ADD | EV_ENABLE, 0, 10000, NULL);
 	}
 	// if (response.IsConnectionStop())
 	// {
