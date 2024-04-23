@@ -152,9 +152,9 @@ void Response::PrintResponse()
 	ret += mHeader;
 	ret += mBody.substr(0, 50);
 	std::cout << "\033[1;32m" << ret << "\033[0m" << "\n\n";
-	for (std::map<std::string, std::string>::iterator it = mParams.begin(); it != mParams.end(); it++){
-		std::cout << "\033[1;32m" << it->first << ": " << it->second << "\033[0m" << "\n";
-	}
+	// for (std::map<std::string, std::string>::iterator it = mParams.begin(); it != mParams.end(); it++){
+	// 	std::cout << "\033[1;32m" << it->first << ": " << it->second << "\033[0m" << "\n";
+	// }
 	// [HTTP version] [stat code] [status]
 }
 

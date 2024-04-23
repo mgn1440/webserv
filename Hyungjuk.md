@@ -71,19 +71,23 @@ Accept-Encoding: gzip
 
 # Seg Fault Fix
 - Response에 clientFD, pipeRead, pipeWrite, pid 값을 가지도록 한다.
-	## 구성
-		std::map<int, int> mServSockPortMap; // key: servSocket, val: port
-		std::map<int, HttpHandler> mRequestMap; // key: clientFD, value: HttpHandler
-		std::map<int, std::deque<Response> > mResponseMap; // key: clientFD, value: Response
+## 구성
+	std::map<int, int> mServSockPortMap; // key: servSocket, val: port
+	std::map<int, HttpHandler> mRequestMap; // key: clientFD, value: HttpHandler
+	std::map<int, std::deque<Response> > mResponseMap; // key: clientFD, value: Response
 
-		std::map<int, Response*> mCGIPipeMap; // key: readPipeFD, value: Response pointer
-		std::map<int, Response*> mCGIClientMap;  // key: clientFD, value: Response pointer  
-		std::map<int, Response*> mCGIPidMap; // key: pid, value: Response pointer
-		std::map<int, Response*> mCGIPostPipeMap; // key: writePipeFD, value: Response pointer
+	std::map<int, Response*> mCGIPipeMap; // key: readPipeFD, value: Response pointer
+	std::map<int, Response*> mCGIClientMap;  // key: clientFD, value: Response pointer  
+	std::map<int, Response*> mCGIPidMap; // key: pid, value: Response pointer
+	std::map<int, Response*> mCGIPostPipeMap; // key: writePipeFD, value: Response pointer
 
-		mClientFd;
-		mPipeFd[2];
-		mPid;
-		mWritten;
-	## 제언
-		- deque를 없애는 구조로 가는 것
+	mClientFd;
+	mPipeFd[2];
+	mPid;
+	mWritten;
+
+## Case 1
+	
+
+## 제언
+	- deque를 없애는 구조로 가는 것
