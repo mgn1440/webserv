@@ -132,7 +132,7 @@ void Response::MakeResponse(struct Request& req)
 	setCGIParam(req);
     if (req.StatusCode || !isValidMethod(req, res)) // TODO: http ver, method, abs path
  	{
-		std::cout << "~~statCode~~: " <<  req.StatusCode << std::endl;
+		// std::cout << "~~statCode~~: " <<  req.StatusCode << std::endl; // debug 
 		SetStatusOf(req.StatusCode, "");
         return ;
 	}
@@ -566,9 +566,11 @@ bool Response::IsConnectionStop() const
 	return (mbConnectionStop);
 }
 
-void Response::TestMethod()
+
+void Response::TestMethod() // debug
 {
-	std::cout << "Request Body size: " << mRequestBody.size() << std::endl;
+	if (mBody.size() > 10000000)
+		std::cout << "Write OK = " << mClientFd << std::endl;
 }
 
 int Response::GetSendStatus()

@@ -84,7 +84,7 @@ void	WebServ::addEvents(uintptr_t ident, int16_t filter, uint16_t flags, uint32_
 			}
 		}
 		else
-			perror("addEventError: ");
+			perror("addEventError: "); // debug 
 	}
 }
 
@@ -181,7 +181,7 @@ void	WebServ::handleTimeOut(struct kevent* currEvent)
 	std::deque<Response>::iterator iter = mResponseMap[clientFD].begin();
 	for (; iter != mResponseMap[clientFD].end(); ++iter)
 	{
-		std::cout << "timeout is in?" << std::endl;
+		// std::cout << "timeout is in?" << std::endl; // debug
 		if (iter->IsCGI())
 		{
 			if (mCGIClientMap.find(clientFD) == mCGIClientMap.end())
@@ -204,6 +204,7 @@ void	WebServ::handleTimeOut(struct kevent* currEvent)
 	else
 	{
 		std::cout << "close in" << std::endl;
+		addEvents(clientFD, EVFILT_TIMER, EV_DELETE, 0, 0, NULL);
 		close(clientFD);
 	}
 
@@ -263,7 +264,7 @@ void	WebServ::processHttpRequest(struct kevent* currEvent)
 	int n = read(clientFD, buf, sizeof(buf));
 	if (n == 0 && (currEvent->flags & EV_EOF))
 	{
-		std::cout << "close cli FD1: " << clientFD << std::endl;
+		addEvents(clientFD, EVFILT_TIMER, EV_DELETE, 0, 0, NULL);
 		close(clientFD);
 		std::cout << "02" << ", " << clientFD << std::endl; // debug
 		eraseClientMaps(clientFD); // suro 범인
@@ -431,6 +432,7 @@ void	WebServ::writeHttpResponse(struct kevent* currEvent)
 	if (response.WriteResponse(clientFD) == 0 && currEvent->fflags & EV_EOF)
 	{
 		std::cout << "close cli FD2: " << clientFD << std::endl;
+		addEvents(clientFD, EVFILT_TIMER, EV_DELETE, 0, 0, NULL);
 		close(clientFD);
 		std::cout << "03 " << ", " << clientFD << std::endl; // debug
 		eraseClientMaps(clientFD);
