@@ -45,14 +45,16 @@ class WebServ
 		void processCGI(Response& response, int clinetFD);
 		void writeHttpResponse(struct kevent* currEvent);
 		void writeToCGIPipe(struct kevent* currEvent);
-		void waitCGIProc(struct kevent* currEvent);
-		void handleTimeOut(struct kevent* currEvent);
+		void retrieveCGIEvent(struct kevent* currEvent);
+		void retrieveTimeOutEvent(struct kevent* currEvent);
 		bool isFatalKeventError(void);
 		char *const *makeCGIEnvList(Response& response);
 		char *const *makeArgvList(const std::string& CGIPath, const std::string& ABSPath);
 		void sendPipeData(struct kevent* currEvent);
 		void eraseCGIMaps(Response* res);
 		void eraseClientMaps(int clientFD);
+		void retrieveReadEvent(struct kevent *currEvent);
+		void retrieveWriteEvent(struct kevent *currEvent);
 };
 
 #endif

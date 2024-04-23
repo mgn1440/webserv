@@ -15,6 +15,8 @@
 #include "STLUtils.hpp"
 
 WebServ::WebServ(const std::set<int>& portList, const std::vector<std::string>& envList)
+	: mKq(0)
+	, mEventList()
 {
 	mEnvList = envList;
 	createServerSocket(portList);
@@ -33,16 +35,13 @@ void WebServ::createServerSocket(const std::set<int>& portList)
 		int listenFd = socket(AF_INET, SOCK_STREAM, 0);
 		if (listenFd == -1)
 			throw std::runtime_error("socket error");
-
 		const int REUSE_ADDR_ON = 1;
 		if (setsockopt(listenFd, SOL_SOCKET, SO_REUSEADDR, &REUSE_ADDR_ON, sizeof(REUSE_ADDR_ON)))
 			throw std::runtime_error("setsockopt error");
-
 		struct sockaddr_in addr;
 		addr.sin_family = AF_INET;
 		addr.sin_addr.s_addr = htonl(INADDR_ANY);
 		addr.sin_port = htons(*iter);
-
 		if (bind(listenFd, (struct sockaddr*)&addr, sizeof(addr)) < 0)
 			throw std::runtime_error("bind error");
 		if (listen(listenFd, SOMAXCONN) < 0)
@@ -54,18 +53,17 @@ void WebServ::createServerSocket(const std::set<int>& portList)
 	}
 }
 
-void	WebServ::setKqueue(void)
+void WebServ::setKqueue(void)
 {
 	mKq = kqueue();
 	if (mKq < 0)
 		throw std::runtime_error("kqueue error");
-
 	std::vector<int>::iterator iter = mServSockList.begin();
 	for (; iter != mServSockList.end(); iter++)
 		addEvents(*iter, EVFILT_READ, EV_ADD | EV_ENABLE, 0, 0, NULL);
 }
 
-void	WebServ::addEvents(uintptr_t ident, int16_t filter, uint16_t flags, uint32_t fflags, intptr_t data, void *udata)
+void WebServ::addEvents(uintptr_t ident, int16_t filter, uint16_t flags, uint32_t fflags, intptr_t data, void *udata)
 {
 	struct kevent newEvent;
 
@@ -74,7 +72,6 @@ void	WebServ::addEvents(uintptr_t ident, int16_t filter, uint16_t flags, uint32_
 	{
 		if (errno == EBADF)
 		{
-			std::cout << "01" << " addEvent" << std::endl;
 			eraseClientMaps(ident);
 			addEvents(ident, EVFILT_TIMER, EV_DELETE, 0, 0, NULL);
 		}
@@ -83,7 +80,6 @@ void	WebServ::addEvents(uintptr_t ident, int16_t filter, uint16_t flags, uint32_
 
 bool	WebServ::isFatalKeventError(void)
 {
-	std::cerr << errno << std::endl;
 	switch (errno)
 	{
 		case ENOENT:
@@ -102,75 +98,71 @@ bool	WebServ::isFatalKeventError(void)
 	return (false);
 }
 
-void	WebServ::runKqueueLoop(void)
+void WebServ::runKqueueLoop(void)
 {
 	int numOfNewEvent;
-	struct kevent* currEvent;
-
+	struct kevent *currEvent;
 	struct timespec timeout;
 	timeout.tv_nsec = 0;
 	timeout.tv_sec = 0;
+
 	while (1)
 	{
-		try
+		numOfNewEvent = kevent(mKq, NULL, 0, mEventList, KQ_EVENT_SIZE, &timeout);
+		if (numOfNewEvent == -1)
 		{
-			numOfNewEvent = kevent(mKq, NULL, 0, mEventList, KQ_EVENT_SIZE, &timeout);
-			if (numOfNewEvent == -1)
-			{
-				if (isFatalKeventError())
-					break ;
-				else
-					continue ;
-			}
-			for (int i = 0; i < numOfNewEvent; i++)
-			{
-				try
-				{
-					currEvent = &mEventList[i];
-					if (currEvent->fflags & EV_ERROR)
-						throw std::runtime_error("kevent error");
-					else if (currEvent->filter == EVFILT_READ)
-					{
-						if (std::find(mServSockList.begin(), mServSockList.end(), currEvent->ident) != mServSockList.end())
-							acceptNewClientSocket(currEvent);
-						else if (mRequestMap.find(currEvent->ident) != mRequestMap.end())
-							processHttpRequest(currEvent);
-						else if (mCGIPipeMap.find(currEvent->ident) != mCGIPipeMap.end())
-							sendPipeData(currEvent);
-					}
-					else if (currEvent->filter == EVFILT_WRITE)
-					{
-						if (mResponseMap.find(currEvent->ident) != mResponseMap.end())
-							writeHttpResponse(currEvent);
-						else if (mCGIPostPipeMap.find(currEvent->ident) != mCGIPostPipeMap.end())
-							writeToCGIPipe(currEvent);
-					}
-					else if (currEvent->filter == EVFILT_PROC)
-						waitCGIProc(currEvent);
-					else if (currEvent->filter == EVFILT_TIMER)
-						handleTimeOut(currEvent);
-				}
-				catch(const std::exception& e)
-				{
-					perror(e.what());
-					continue;
-				}
-			}
+			if (isFatalKeventError())
+				break;
+			else
+				continue;
 		}
-		catch(const std::exception& e)
+		for (int i = 0; i < numOfNewEvent; i++)
 		{
-			perror(e.what());
-			continue;
+			try
+			{
+				currEvent = &mEventList[i];
+				if (currEvent->fflags & EV_ERROR)
+					throw std::runtime_error("kevent error");
+				else if (currEvent->filter == EVFILT_READ)
+					retrieveReadEvent(currEvent);
+				else if (currEvent->filter == EVFILT_WRITE)
+					retrieveWriteEvent(currEvent);
+				else if (currEvent->filter == EVFILT_PROC)
+					retrieveCGIEvent(currEvent);
+				else if (currEvent->filter == EVFILT_TIMER)
+					retrieveTimeOutEvent(currEvent);
+			}
+			catch (const std::exception &e)
+			{
+				perror(e.what());
+				continue;
+			}
 		}
 	}
-
 }
 
-void	WebServ::handleTimeOut(struct kevent* currEvent)
+void WebServ::retrieveReadEvent(struct kevent* currEvent)
+{
+	if (std::find(mServSockList.begin(), mServSockList.end(), currEvent->ident) != mServSockList.end())
+		acceptNewClientSocket(currEvent);
+	else if (mRequestMap.find(currEvent->ident) != mRequestMap.end())
+		processHttpRequest(currEvent);
+	else if (mCGIPipeMap.find(currEvent->ident) != mCGIPipeMap.end())
+		sendPipeData(currEvent);
+}
+
+void WebServ::retrieveWriteEvent(struct kevent* currEvent)
+{
+	if (mResponseMap.find(currEvent->ident) != mResponseMap.end())
+		writeHttpResponse(currEvent);
+	else if (mCGIPostPipeMap.find(currEvent->ident) != mCGIPostPipeMap.end())
+		writeToCGIPipe(currEvent);
+}
+
+void	WebServ::retrieveTimeOutEvent(struct kevent* currEvent)
 {
 	int clientFD = currEvent->ident;
 
-	std::cout << "timeout clientFD: " << clientFD << std::endl;
 	std::deque<Response>::iterator iter = mResponseMap[clientFD].begin();
 	for (; iter != mResponseMap[clientFD].end(); ++iter)
 	{
@@ -179,7 +171,7 @@ void	WebServ::handleTimeOut(struct kevent* currEvent)
 			if (mCGIClientMap.find(clientFD) == mCGIClientMap.end())
 				continue;
 			eraseCGIMaps(&(*iter));
-			addEvents(iter->GetPid(), EVFILT_PROC, EV_DELETE, 0, 0, NULL); // pid 이벤트 삭제
+			addEvents(iter->GetPid(), EVFILT_PROC, EV_DELETE, 0, 0, NULL);
 			if (kill(iter->GetPid(), SIGTERM) == -1)
 				throw std::runtime_error("kill");
 			waitpid(iter->GetPid(), NULL, 0);
@@ -198,10 +190,11 @@ void	WebServ::handleTimeOut(struct kevent* currEvent)
 	}
 }
 
-void	WebServ::waitCGIProc(struct kevent* currEvent)
+void	WebServ::retrieveCGIEvent(struct kevent* currEvent)
 {
 	int pid = currEvent->ident;
 	int status;
+
 	if (mCGIPidMap.find(pid) == mCGIPidMap.end())
 	{
 		kill (pid, SIGTERM);
@@ -228,6 +221,7 @@ void	WebServ::acceptNewClientSocket(struct kevent* currEvent)
 	_linger.l_linger = 0;
 	int servSocket = currEvent->ident;
 	int clientSocket = accept(servSocket, NULL, NULL);
+
 	addEvents(clientSocket, EVFILT_TIMER, EV_ADD | EV_ENABLE | EV_ONESHOT, 0, TIMEOUT_SIZE, NULL);
 	if (clientSocket == -1)
 		throw std::runtime_error("accept error");
@@ -245,17 +239,16 @@ void	WebServ::processHttpRequest(struct kevent* currEvent)
 	int clientFD = currEvent->ident;
 	char buf[65535];
 	int n = read(clientFD, buf, sizeof(buf));
+
 	if (n == 0 && (currEvent->flags & EV_EOF))
 	{
-		std::cout << "close cli FD1: " << clientFD << std::endl;
 		addEvents(clientFD, EVFILT_TIMER, EV_DELETE, 0, 0, NULL);
 		close(clientFD);
-		eraseClientMaps(clientFD); // suro 범인
 		return ;
 	}
 	else if (n == -1) 
 		throw std::runtime_error("http request read error");
-	addEvents(clientFD, EVFILT_TIMER, EV_ADD | EV_ENABLE | EV_ONESHOT, 0, TIMEOUT_SIZE, NULL); // 100초 타임아웃 (write event가 발생하면 timeout event를 삭제해줘야 함)
+	addEvents(clientFD, EVFILT_TIMER, EV_ADD | EV_ENABLE | EV_ONESHOT, 0, TIMEOUT_SIZE, NULL);
 	std::deque<Response> responseList = mRequestMap[clientFD].MakeResponseOf(std::string(buf, n));
 	std::deque<Response>::iterator responseIt = responseList.begin();
 	for(; responseIt != responseList.end(); ++responseIt)
@@ -295,7 +288,7 @@ void	WebServ::processCGI(Response& response, int clientFD)
 			perror("dup2 error for stdin");
 			exit(EXIT_FAILURE);
 		}
-		char *const *argv = makeArgvList(response.GetCGIPath(), response.GetABSPath()); // 인자는 또 없나?
+		char *const *argv = makeArgvList(response.GetCGIPath(), response.GetABSPath());
 		char *const *envp = makeCGIEnvList(response);
 		if (execve(argv[0], argv, envp) == -1)
 		{
@@ -346,12 +339,13 @@ char *const *WebServ::makeCGIEnvList(Response& response)
 		envp[i] = new char[mEnvList[i].length() + 1];
 		std::strcpy(envp[i], mEnvList[i].c_str());
 	}
-	for (std::map<std::string, std::string>::iterator iter = params.begin(); iter != params.end(); ++iter)
+	std::map<std::string, std::string>::iterator iter = params.begin();
+	for (; iter != params.end(); ++iter)
 	{
 		std::string s = iter->first + "=" + iter->second;
 		envp[i] = new char[s.length() + 1];
 		std::strcpy(envp[i], s.c_str());
-		i ++;
+		i++;
 	}
 	envp[mEnvList.size() + params.size()] = NULL;
 	return (envp);
@@ -364,9 +358,7 @@ void	WebServ::sendPipeData(struct kevent* currEvent)
 
 	int n = read(pipeFD, buf, sizeof(buf));
 	if (n == 0 && (currEvent->flags & EV_EOF))
-	{
 		return ;
-	}
 	else if (n == -1)
 		throw std::runtime_error("pipe read error");
 	mCGIPipeMap[pipeFD]->AppendCGIBody(std::string(buf, n));
@@ -379,8 +371,9 @@ void	WebServ::writeToCGIPipe(struct kevent* currEvent)
 		return ;
 	Response &response = *mCGIPostPipeMap[pipeFD];
 	size_t pos = response.Written;
-	size_t toWrite = response.GetRequestBody().size() - pos; // error: seg fault heap-use-after-free
+	size_t toWrite = response.GetRequestBody().size() - pos;
 	ssize_t written = write(pipeFD, response.GetRequestBody().c_str() + pos, toWrite);
+
 	if ((written == 0 && (currEvent->fflags & EV_EOF)) || written == -1)
 	{
 		close(pipeFD);
@@ -401,7 +394,7 @@ void	WebServ::writeHttpResponse(struct kevent* currEvent)
 {
 	int clientFD = currEvent->ident;
 	if (mResponseMap[clientFD].size() == 0)
-		return ;
+		return;
 	Response &response = mResponseMap[clientFD].front();
 
 	response.CreateResponseHeader();
@@ -411,16 +404,14 @@ void	WebServ::writeHttpResponse(struct kevent* currEvent)
 		addEvents(clientFD, EVFILT_TIMER, EV_DELETE, 0, 0, NULL);
 		close(clientFD);
 		eraseClientMaps(clientFD);
-		return ;
+		return;
 	}
 	if (response.GetSendStatus() != SEND_ALL)
 		return;
 	addEvents(clientFD, EVFILT_TIMER, EV_ADD | EV_ENABLE | EV_ONESHOT, 0, TIMEOUT_SIZE, NULL);
 	mResponseMap[clientFD].pop_front();
 	if (mResponseMap[clientFD].size() == 0)
-	{
 		addEvents(clientFD, EVFILT_WRITE, EV_DELETE, 0, 0, NULL);
-	}
 	// if (response.IsConnectionStop())
 	// {
 	// 	close(clientFD);
@@ -431,11 +422,7 @@ void	WebServ::writeHttpResponse(struct kevent* currEvent)
 void WebServ::eraseClientMaps(int clientFD)
 {
 	if (mCGIClientMap.find(clientFD) != mCGIClientMap.end())
-	{
-		std::cout << "erase Pipe fd start" << std::endl;
 		eraseCGIMaps(mCGIClientMap[clientFD]);
-		std::cout << "erase Pipe fd end" << std::endl;
-	}
 	if (mRequestMap.find(clientFD) != mRequestMap.end())
 		mRequestMap.erase(clientFD);
 	if (mResponseMap.find(clientFD) != mResponseMap.end())
@@ -455,13 +442,13 @@ void WebServ::eraseCGIMaps(Response* res)
 	if (mCGIPipeMap.find(toFind) != mCGIPipeMap.end())
 	{
 		mCGIPipeMap.erase(toFind);
-		close(toFind); // readFd; debug: 감싸는게 좋을까?
+		close(toFind);
 	}
 	toFind = res->GetWritePipeFd();
 	if (mCGIPostPipeMap.find(toFind) != mCGIPostPipeMap.end())
 	{
 		mCGIPostPipeMap.erase(toFind);
-		close(toFind); // writeFd;
+		close(toFind);
 	}
 }
 
