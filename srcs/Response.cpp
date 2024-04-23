@@ -132,6 +132,7 @@ void Response::MakeResponse(struct Request& req)
 	setCGIParam(req);
     if (req.StatusCode || !isValidMethod(req, res)) // TODO: http ver, method, abs path
  	{
+		std::cout << "~~statCode~~: " <<  req.StatusCode << std::endl;
 		SetStatusOf(req.StatusCode, "");
         return ;
 	}

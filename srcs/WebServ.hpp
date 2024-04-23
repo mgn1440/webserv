@@ -58,6 +58,7 @@ class WebServ
 		void sendPipeData(struct kevent* currEvent);
 		void eraseCGIMaps(Response* res);
 		void eraseClientMaps(int clientFD);
+		
 };
 
 #endif

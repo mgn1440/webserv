@@ -75,7 +75,7 @@ void	WebServ::addEvents(uintptr_t ident, int16_t filter, uint16_t flags, uint32_
 	{
 		if (errno == EBADF)
 		{
-			std::cout << "01" << std::endl;
+			std::cout << "01" << " addEvent" << std::endl;
 			eraseClientMaps(ident);
 			if (mTimerMap[ident])
 			{
@@ -198,6 +198,15 @@ void	WebServ::handleTimeOut(struct kevent* currEvent)
 		iter->SetStatusOf(504, "");
 	}
 	std::cout << "addevent is in?" << std::endl;
+	if (mResponseMap[clientFD].empty())
+	{
+		Response response;
+		Request request;
+		initRequest(request);
+		request.StatusCode = 504;
+		response.MakeResponse(request);
+		mResponseMap[clientFD].push_back(response);
+	}
 	addEvents(clientFD, EVFILT_WRITE, EV_ADD | EV_ENABLE, 0, 0, NULL);
 	std::cout << "addevent is out?" << std::endl;
 }
@@ -234,7 +243,7 @@ void	WebServ::acceptNewClientSocket(struct kevent* currEvent)
 	_linger.l_linger = 0;
 	int servSocket = currEvent->ident;
 	int clientSocket = accept(servSocket, NULL, NULL);
-	// addEvents(clientSocket, EVFILT_TIMER, EV_ADD | EV_ENABLE, 0, 10000, NULL); // 100초 타임아웃 (write event가 발생하면 timeout event를 삭제해줘야 함)
+	addEvents(clientSocket, EVFILT_TIMER, EV_ADD | EV_ENABLE, 0, 10000, NULL);
 	std::cout <<  "make cli sock: " << clientSocket << std::endl; // suro3
 	if (clientSocket == -1)
 		throw std::runtime_error("accept error");
@@ -256,7 +265,7 @@ void	WebServ::processHttpRequest(struct kevent* currEvent)
 	{
 		std::cout << "close cli FD1: " << clientFD << std::endl; 
 		close(clientFD);
-		// std::cout << "02" << std::endl; // debug
+		std::cout << "02" << ", " << clientFD << std::endl; // debug
 		eraseClientMaps(clientFD); // suro 범인
 		return ;
 	}
@@ -334,7 +343,6 @@ void	WebServ::processCGI(Response& response, int clientFD)
 	}
 }
 
-
 char *const *WebServ::makeArgvList(const std::string& CGIPath, const std::string& ABSPath)
 {
 	char **argv = new char*[3]; // v + ABSPath;
@@ -375,9 +383,8 @@ void	WebServ::sendPipeData(struct kevent* currEvent)
 	int n = read(pipeFD, buf, sizeof(buf));
 	if (n == 0 && (currEvent->flags & EV_EOF))
 	{
-		close(pipeFD);
 		// std::cout << "4" << std::endl; // debug
-		mCGIPostPipeMap.erase(pipeFD); // suro
+		eraseCGIMaps(mCGIPipeMap[pipeFD]);
 		return ;
 	}
 	else if (n == -1)
@@ -417,6 +424,8 @@ void	WebServ::writeHttpResponse(struct kevent* currEvent)
 {
 	// std::cout << "11" << std::endl; // debug
 	int clientFD = currEvent->ident;
+	if (mResponseMap[clientFD].size() == 0)
+		return ;
 	Response &response = mResponseMap[clientFD].front();
 
 	response.CreateResponseHeader();
@@ -424,7 +433,7 @@ void	WebServ::writeHttpResponse(struct kevent* currEvent)
 	{
 		std::cout << "close cli FD2: " << clientFD << std::endl; 
 		close(clientFD);
-		// std::cout << "03" << std::endl; // debug
+		std::cout << "03 " << ", " << clientFD << std::endl; // debug
 		eraseClientMaps(clientFD);
 		return ;
 	}
@@ -452,7 +461,9 @@ void WebServ::eraseClientMaps(int clientFD)
 {
 	if (mCGIClientMap.find(clientFD) != mCGIClientMap.end())
 	{
+		std::cout << "erase Pipe fd start" << std::endl;
 		eraseCGIMaps(mCGIClientMap[clientFD]);
+		std::cout << "erase Pipe fd end" << std::endl;
 	}
 	if (mRequestMap.find(clientFD) != mRequestMap.end())
 		mRequestMap.erase(clientFD);
@@ -472,12 +483,14 @@ void WebServ::eraseCGIMaps(Response* res)
 	toFind = res->GetReadPipeFd();
 	if (mCGIPipeMap.find(toFind) != mCGIPipeMap.end())
 	{
+		std::cout << "ReadPipeClose" << std::endl;
 		mCGIPipeMap.erase(toFind);
 		close(toFind); // readFd; debug: 감싸는게 좋을까?
 	}
 	toFind = res->GetWritePipeFd();
 	if (mCGIPostPipeMap.find(toFind) != mCGIPostPipeMap.end())
 	{
+		std::cout << "PostPipeClose" << std::endl;
 		mCGIPostPipeMap.erase(toFind);
 		close(toFind); // writeFd;
 	}
