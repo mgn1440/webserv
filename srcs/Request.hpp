@@ -15,7 +15,7 @@ struct Request
 	std::string Domain;
 	int Port;
 	std::string HTTPVersion;
-	std::map<std::string, std::string> Headers; // header is sorted?
+	std::map<std::string, std::string> Headers;
 	std::string Body;
 	bool ConnectionStop;
 	bool ChunkedStatus;

@@ -1,5 +1,3 @@
-#pragma once
-
 #ifndef  RESPONSE_HPP
 # define RESPONSE_HPP
 
@@ -31,7 +29,13 @@ public:
     bool IsConnectionStop() const;
 	int GetSendStatus();
     void CreateResponseHeader();
-    void TestMethod(); // debug
+    void SetCGIInfo(int clientFd, int pipeRdFd, int pipeWrFd, int pid);
+    pid_t GetPid();
+    int GetClientFd();
+    int GetWritePipeFd();
+    int GetReadPipeFd();
+    
+    size_t Written;
 private:
     bool isValidMethod(struct Request& req, struct Resource& res);
     void processGET(struct Resource& res, struct Request& req);
@@ -57,6 +61,9 @@ private:
 	std::map<std::string, std::string> mParams;
     std::map<std::string, std::string> mHeaderMap;
 
+    int mClientFd;
+    int mPipeFd[2];
+    pid_t mPid;
     std::string mHttpVer;
     int mStatCode;
     std::string mStat;

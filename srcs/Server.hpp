@@ -1,5 +1,3 @@
-#pragma once
-
 #ifndef SERVER_HPP
 # define SERVER_HPP
 
@@ -7,11 +5,9 @@
 # include <map>
 # include <set>
 # include <vector>
-
 # include "Location.hpp"
 # include "AConfParser.hpp"
 # include "Resource.hpp"
-
 
 class Server : public AConfParser
 {
@@ -23,7 +19,6 @@ public:
 	Server&	operator=(const Server& rhs);
 	~Server();
 	void PrintInfo();
-	void ParseLine(std::string  line);
 	void PutIn(std::map<int, Server>& rhs);
 	size_t GetMaxSize(std::string &URI);
 	std::set<int>& GetPorts();
@@ -32,7 +27,6 @@ public:
 private:
 	Server(const Server& rhs);
 	void parse(std::ifstream& confFile);
-	void parseServer(std::stringstream& ss, std::string& word);
 	void parseLocation(std::ifstream& confFile, std::stringstream& ss, std::string& word);
 	void parseListen(std::stringstream& ss, std::string& word);
 	void parseServerName(std::stringstream& ss, std::string& word);

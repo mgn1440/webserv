@@ -70,20 +70,14 @@ void	WebServ::addEvents(uintptr_t ident, int16_t filter, uint16_t flags, uint32_
 	struct kevent newEvent;
 
 	EV_SET(&newEvent, ident, filter, flags, fflags, data, udata);
-	// std::cout << "ident: " << ident << ", filter: " << filter << ", flags: " << flags << std::endl; 
 	if (kevent(mKq, &newEvent, 1, NULL, 0, NULL) == -1)
 	{
 		if (errno == EBADF)
 		{
+			std::cout << "01" << " addEvent" << std::endl;
 			eraseClientMaps(ident);
-			if (mTimerMap[ident])
-			{
-				addEvents(ident, EVFILT_TIMER, EV_DELETE, 0, 0, NULL);
-				mTimerMap[ident] = false;
-			}
+			addEvents(ident, EVFILT_TIMER, EV_DELETE, 0, 0, NULL);
 		}
-		else
-			perror("addEventError: ");
 	}
 }
 
@@ -176,6 +170,7 @@ void	WebServ::handleTimeOut(struct kevent* currEvent)
 {
 	int clientFD = currEvent->ident;
 
+	std::cout << "timeout clientFD: " << clientFD << std::endl;
 	std::deque<Response>::iterator iter = mResponseMap[clientFD].begin();
 	for (; iter != mResponseMap[clientFD].end(); ++iter)
 	{
@@ -183,26 +178,37 @@ void	WebServ::handleTimeOut(struct kevent* currEvent)
 		{
 			if (mCGIClientMap.find(clientFD) == mCGIClientMap.end())
 				continue;
-			int pipeFD = mCGIClientMap[clientFD].first;
-			pid_t pid = mCGIClientMap[clientFD].second;
-			close(pipeFD); // pipe event 삭제
-			eraseCGIMaps(pid, clientFD, pipeFD);
-			addEvents(pid, EVFILT_PROC, EV_DELETE, 0, 0, NULL); // pid 이벤트 삭제
-			if (kill(pid, SIGTERM) == -1)
+			eraseCGIMaps(&(*iter));
+			addEvents(iter->GetPid(), EVFILT_PROC, EV_DELETE, 0, 0, NULL); // pid 이벤트 삭제
+			if (kill(iter->GetPid(), SIGTERM) == -1)
 				throw std::runtime_error("kill");
+			waitpid(iter->GetPid(), NULL, 0);
 		}
 		iter->SetStatusOf(504, "");
 	}
-	addEvents(clientFD, EVFILT_WRITE, EV_ADD | EV_ENABLE, 0, 0, NULL);
+	if (!mResponseMap[clientFD].empty())
+	{
+		addEvents(clientFD, EVFILT_WRITE, EV_ADD | EV_ENABLE, 0, 0, NULL);
+		addEvents(clientFD, EVFILT_TIMER, EV_DELETE, 0, 0, NULL);
+	}
+	else
+	{
+		addEvents(clientFD, EVFILT_TIMER, EV_DELETE, 0, 0, NULL);
+		close(clientFD);
+	}
 }
 
 void	WebServ::waitCGIProc(struct kevent* currEvent)
 {
 	int pid = currEvent->ident;
-	int pipeFD = mCGIPidMap[pid].second;
-	int clientFD = mCGIPipeMap[pipeFD].second;
 	int status;
-	Response* response = mCGIPidMap[pid].first;
+	if (mCGIPidMap.find(pid) == mCGIPidMap.end())
+	{
+		kill (pid, SIGTERM);
+		waitpid(pid, NULL, 0);
+		return ;
+	}
+	Response* response = mCGIPidMap[pid];
 	if (currEvent->fflags & NOTE_EXIT)
 	{
 		waitpid(pid, &status, 0);
@@ -210,9 +216,8 @@ void	WebServ::waitCGIProc(struct kevent* currEvent)
 			response->SetStatusOf(502, "");
 		else
 			response->GenCGIBody();
-		addEvents(clientFD, EVFILT_WRITE, EV_ADD | EV_ENABLE, 0, 0, NULL);
-		close(pipeFD);
-		eraseCGIMaps(pid, clientFD, pipeFD);
+		addEvents(response->GetClientFd(), EVFILT_WRITE, EV_ADD | EV_ENABLE, 0, 0, NULL);
+		eraseCGIMaps(response);
 	}
 }
 
@@ -223,6 +228,7 @@ void	WebServ::acceptNewClientSocket(struct kevent* currEvent)
 	_linger.l_linger = 0;
 	int servSocket = currEvent->ident;
 	int clientSocket = accept(servSocket, NULL, NULL);
+	addEvents(clientSocket, EVFILT_TIMER, EV_ADD | EV_ENABLE | EV_ONESHOT, 0, TIMEOUT_SIZE, NULL);
 	if (clientSocket == -1)
 		throw std::runtime_error("accept error");
 	if (fcntl(clientSocket, F_SETFL, O_NONBLOCK, FD_CLOEXEC) == -1)
@@ -236,19 +242,20 @@ void	WebServ::acceptNewClientSocket(struct kevent* currEvent)
 
 void	WebServ::processHttpRequest(struct kevent* currEvent)
 {
-	int clientFD = currEvent->ident;;
+	int clientFD = currEvent->ident;
 	char buf[65535];
 	int n = read(clientFD, buf, sizeof(buf));
 	if (n == 0 && (currEvent->flags & EV_EOF))
 	{
+		std::cout << "close cli FD1: " << clientFD << std::endl;
+		addEvents(clientFD, EVFILT_TIMER, EV_DELETE, 0, 0, NULL);
 		close(clientFD);
-		eraseClientMaps(clientFD);
+		eraseClientMaps(clientFD); // suro 범인
 		return ;
 	}
-	else if (n == -1)
+	else if (n == -1) 
 		throw std::runtime_error("http request read error");
-	addEvents(clientFD, EVFILT_TIMER, EV_ADD | EV_ENABLE, 0, 10000, NULL); // 10초 타임아웃 (write event가 발생하면 timeout event를 삭제해줘야 함)
-	mTimerMap[clientFD] = true;
+	addEvents(clientFD, EVFILT_TIMER, EV_ADD | EV_ENABLE | EV_ONESHOT, 0, TIMEOUT_SIZE, NULL); // 100초 타임아웃 (write event가 발생하면 timeout event를 삭제해줘야 함)
 	std::deque<Response> responseList = mRequestMap[clientFD].MakeResponseOf(std::string(buf, n));
 	std::deque<Response>::iterator responseIt = responseList.begin();
 	for(; responseIt != responseList.end(); ++responseIt)
@@ -266,7 +273,7 @@ void	WebServ::processCGI(Response& response, int clientFD)
 	int readFD[2];
 	int writeFD[2];
 
-	if (pipe(readFD) == -1 || pipe(writeFD))
+	if (pipe(readFD) == -1 || pipe(writeFD) == -1)
 		throw std::runtime_error("pipe error");
 	if (fcntl(readFD[0], F_SETFL, O_NONBLOCK, FD_CLOEXEC) == -1 || fcntl(writeFD[1], F_SETFL, O_NONBLOCK, FD_CLOEXEC) == -1)
 		throw std::runtime_error("fcntl error");
@@ -301,19 +308,22 @@ void	WebServ::processCGI(Response& response, int clientFD)
 		if (response.GetRequestBody().size() != 0) // post
 		{
 			addEvents(writeFD[1], EVFILT_WRITE, EV_ADD | EV_ENABLE, 0, 0, NULL);
-			mCGIPostPipeMap.insert(std::make_pair(writeFD[1], std::make_pair(&response, 0)));
+			response.SetCGIInfo(clientFD, readFD[0], writeFD[1], pid);
+			mCGIPostPipeMap[writeFD[1]] = &response;
 		}
 		else
+		{
 			close(writeFD[1]);
+			response.SetCGIInfo(clientFD, readFD[0], -1, pid);
+		}
 		addEvents(pid, EVFILT_PROC, EV_ADD | EV_ONESHOT, NOTE_EXIT, 0, NULL);
 		close(readFD[1]);
 		close(writeFD[0]);
-		mCGIClientMap[clientFD] = std::make_pair(readFD[0], pid);
-		mCGIPipeMap[readFD[0]] = std::make_pair(&response, clientFD);
-		mCGIPidMap[pid] = std::make_pair(&response, readFD[0]);
+		mCGIClientMap[clientFD] = &response;
+		mCGIPipeMap[readFD[0]] = &response;
+		mCGIPidMap[pid] = &response;
 	}
 }
-
 
 char *const *WebServ::makeArgvList(const std::string& CGIPath, const std::string& ABSPath)
 {
@@ -355,30 +365,32 @@ void	WebServ::sendPipeData(struct kevent* currEvent)
 	int n = read(pipeFD, buf, sizeof(buf));
 	if (n == 0 && (currEvent->flags & EV_EOF))
 	{
-		close(pipeFD);
 		return ;
 	}
 	else if (n == -1)
 		throw std::runtime_error("pipe read error");
-	mCGIPipeMap[pipeFD].first->AppendCGIBody(std::string(buf, n));
+	mCGIPipeMap[pipeFD]->AppendCGIBody(std::string(buf, n));
 }
 
 void	WebServ::writeToCGIPipe(struct kevent* currEvent)
 {
 	int pipeFD = currEvent->ident;
-	Response &response = *(mCGIPostPipeMap[pipeFD].first);
-	size_t pos = mCGIPostPipeMap[pipeFD].second;
-	size_t toWrite = response.GetRequestBody().size() - pos;
+	if (mCGIPostPipeMap.find(pipeFD) == mCGIPostPipeMap.end())
+		return ;
+	Response &response = *mCGIPostPipeMap[pipeFD];
+	size_t pos = response.Written;
+	size_t toWrite = response.GetRequestBody().size() - pos; // error: seg fault heap-use-after-free
 	ssize_t written = write(pipeFD, response.GetRequestBody().c_str() + pos, toWrite);
-	if (written == -1)
-		throw std::runtime_error("write error");
-	else if (written == 0 && (currEvent->fflags & EV_EOF))
+	if ((written == 0 && (currEvent->fflags & EV_EOF)) || written == -1)
 	{
 		close(pipeFD);
+		mCGIPostPipeMap.erase(pipeFD);
+		if (written == -1)
+			perror("write error");
 		return ;
 	}
-	mCGIPostPipeMap[pipeFD].second = pos + written;
-	if (mCGIPostPipeMap[pipeFD].second == response.GetRequestBody().size())
+	response.Written += written;
+	if (response.Written == response.GetRequestBody().size())
 	{
 		close(pipeFD);
 		mCGIPostPipeMap.erase(pipeFD);
@@ -388,60 +400,69 @@ void	WebServ::writeToCGIPipe(struct kevent* currEvent)
 void	WebServ::writeHttpResponse(struct kevent* currEvent)
 {
 	int clientFD = currEvent->ident;
+	if (mResponseMap[clientFD].size() == 0)
+		return ;
 	Response &response = mResponseMap[clientFD].front();
 
 	response.CreateResponseHeader();
 	if (response.WriteResponse(clientFD) == 0 && currEvent->fflags & EV_EOF)
 	{
+		std::cout << "close cli FD2: " << clientFD << std::endl;
+		addEvents(clientFD, EVFILT_TIMER, EV_DELETE, 0, 0, NULL);
 		close(clientFD);
 		eraseClientMaps(clientFD);
 		return ;
 	}
 	if (response.GetSendStatus() != SEND_ALL)
 		return;
+	addEvents(clientFD, EVFILT_TIMER, EV_ADD | EV_ENABLE | EV_ONESHOT, 0, TIMEOUT_SIZE, NULL);
 	mResponseMap[clientFD].pop_front();
 	if (mResponseMap[clientFD].size() == 0)
 	{
 		addEvents(clientFD, EVFILT_WRITE, EV_DELETE, 0, 0, NULL);
-		if (mTimerMap[clientFD])
-		{
-			addEvents(clientFD, EVFILT_TIMER, EV_DELETE, 0, 0, NULL);
-			mTimerMap[clientFD] = false;
-		}
-		// if (response.IsConnectionStop())
-		// {
-		// 	close(clientFD);
-		// 	eraseClientMaps(clientFD);
-		// }
 	}
+	// if (response.IsConnectionStop())
+	// {
+	// 	close(clientFD);
+	// 	eraseClientMaps(clientFD);
+	// }
 }
 
 void WebServ::eraseClientMaps(int clientFD)
 {
+	if (mCGIClientMap.find(clientFD) != mCGIClientMap.end())
+	{
+		std::cout << "erase Pipe fd start" << std::endl;
+		eraseCGIMaps(mCGIClientMap[clientFD]);
+		std::cout << "erase Pipe fd end" << std::endl;
+	}
 	if (mRequestMap.find(clientFD) != mRequestMap.end())
 		mRequestMap.erase(clientFD);
 	if (mResponseMap.find(clientFD) != mResponseMap.end())
 		mResponseMap.erase(clientFD);
-	if (mCGIClientMap.find(clientFD) != mCGIClientMap.end())
-	{
-		int pipeFD = mCGIClientMap[clientFD].first;
-		pid_t PID = mCGIClientMap[clientFD].second;
-		if (mCGIPidMap.find(PID) != mCGIPidMap.end())
-			mCGIPidMap.erase(PID);
-		if (mCGIPipeMap.find(pipeFD) != mCGIPipeMap.end())
-			mCGIPipeMap.erase(pipeFD);
-		mCGIClientMap.erase(clientFD);
-	}
 }
 
-void WebServ::eraseCGIMaps(int PID, int clientFD, int pipeFD)
+void WebServ::eraseCGIMaps(Response* res)
 {
-	if (mCGIPidMap.find(PID) != mCGIPidMap.end())
-		mCGIPidMap.erase(PID);
-	if (mCGIClientMap.find(clientFD) != mCGIClientMap.end())
-		mCGIClientMap.erase(clientFD);
-	if (mCGIPipeMap.find(pipeFD) != mCGIPipeMap.end())
-		mCGIPipeMap.erase(pipeFD);
+	int	toFind;
+	toFind = res->GetPid();
+	if (mCGIPidMap.find(toFind) != mCGIPidMap.end())
+		mCGIPidMap.erase(toFind);
+	toFind = res->GetClientFd();
+	if (mCGIClientMap.find(toFind) != mCGIClientMap.end())
+		mCGIClientMap.erase(toFind);
+	toFind = res->GetReadPipeFd();
+	if (mCGIPipeMap.find(toFind) != mCGIPipeMap.end())
+	{
+		mCGIPipeMap.erase(toFind);
+		close(toFind); // readFd; debug: 감싸는게 좋을까?
+	}
+	toFind = res->GetWritePipeFd();
+	if (mCGIPostPipeMap.find(toFind) != mCGIPostPipeMap.end())
+	{
+		mCGIPostPipeMap.erase(toFind);
+		close(toFind); // writeFd;
+	}
 }
 
 

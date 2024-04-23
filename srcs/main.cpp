@@ -1,4 +1,3 @@
-#include <unordered_map>
 #include <iostream>
 #include <signal.h>
 #include "ConfigHandler.hpp"
@@ -22,9 +21,7 @@ int main(int argc, char *argv[], char *envp[])
 			ConfigHandler::MakeConfigHandler("./conf/default.conf");
 		std::vector<std::string> envList;
 		for (char **env = envp; *env != 0; env++)
-		{
 			envList.push_back(*env);
-		}
 		WebServ webServ(ConfigHandler::GetConfigHandler().GetPorts(), envList);
 	}
 	catch(const std::exception& e)

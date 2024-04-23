@@ -7,7 +7,7 @@
 
 Server::Server()
 	: AConfParser()
-{ }
+{}
 
 Server::Server(std::ifstream& confFile)
 	: AConfParser()
@@ -27,7 +27,7 @@ Server::Server(std::ifstream& confFile)
 }
 
 Server::~Server()
-{ }
+{}
 
 Server&	Server::operator=(const Server& rhs)
 {
@@ -73,7 +73,7 @@ void Server::parse(std::ifstream& confFile)
 		else if (word == "limit_except")
 			parseLimitExcept(ss, word);
 		else if (word == "index")
-			parseIndex(ss, word); // TODO: why couldn't saved?
+			parseIndex(ss, word);
 		else if (word == "cgi")
 			parseCGI(ss, word);
 		else if (word == "upload")
@@ -109,7 +109,8 @@ void Server::PrintInfo()
 	std::cout << "AutoIndex: " << mbAutoIndex << std::endl;
 	std::cout << "CGI: ";
 	printMap(mCGI);
-	for (std::map<std::string, Location>::iterator it = mLocationMap.begin(); it != mLocationMap.end(); it++){
+	for (std::map<std::string, Location>::iterator it = mLocationMap.begin(); it != mLocationMap.end(); it++)
+	{
 		std::cout << "location ";
 		std::cout << it->first;
 		std::cout << " {" << std::endl;
@@ -168,14 +169,12 @@ std::string Server::searchLocationPath(const std::string& URI)
 
 	for (std::map<std::string, Location>::iterator it = mLocationMap.begin(); it != mLocationMap.end(); it ++)
 	{
-		// std::cout << "path: " <<it->first << ", URI:  " << URI << std::endl; // debug
 		if (URI.find(it->first) == 0 && locationPath.length() < it->first.length())
 			locationPath = it->first;
 	}
 	return (locationPath);
 }
 
-// TODO: request에서 URI의 맨 마지막에 slash 다 제거
 std::string Server::GetABSPath(const std::string& URI)
 {
 	std::string path = mRoot;
@@ -183,10 +182,8 @@ std::string Server::GetABSPath(const std::string& URI)
 
 	if (locationPath != "")
 		mLocationMap[locationPath].GetRoot(path);
-	if (URI == locationPath) //TODO:: Referer header logic need
+	if (URI == locationPath)
 		return path;
-	// std::cout << "ABSPath: " << path + URI.substr(URI.find_first_not_of(locationPath)) << std::endl; // debug
-	// std::cout << "URI: " << URI << ", location path: " << path << std::endl; // debug
 	path += URI.substr(locationPath.size());
 	if (path[path.size() - 1] == '/')
 		path.erase(path.size() - 1);
@@ -255,7 +252,6 @@ void Server::parseErrorPage(std::stringstream& ss, std::string& word)
 		errNum.push_back(atoi(word.c_str()));
 	if (errNum.empty())
 		throw std::runtime_error("Wrong error page format");
-	// TODO: make function that chk word is valid URI(character, valid...)
 	for (std::vector<int>::iterator it = errNum.begin(); it != errNum.end(); it ++)
 	{
 		if (mErrorPage.find(*it) == mErrorPage.end())
@@ -284,4 +280,3 @@ void Server::parseUpload(std::stringstream& ss, std::string& word)
 	}
 	throw std::runtime_error("bad end logic");
 }
-

@@ -10,7 +10,7 @@
 static void addOneLine(std::string& ret, const std::string& fileName);
 std::string timespecToString(const timespec ts);
 
-std::string getIndexListOf(const std::string& URI, const std::string& absPath) //TODO: find index.html
+std::string getIndexListOf(const std::string& URI, const std::string& absPath)
 {
 	DIR* dir;
 	struct dirent* file;
@@ -18,11 +18,10 @@ std::string getIndexListOf(const std::string& URI, const std::string& absPath) /
 	ret += "<!DOCTYPE html><html><head>";
 	ret += "<style> td.detailsColumn{padding-inline-start: 2em; text-align: end; white-space; nowrap;} </style>";
 	ret += "<title>Index of ";
-	ret += URI.substr(0, 10); // URI
+	ret += URI.substr(0, 10);
 	ret += "</title></head><body><h1>Index of ";
-	ret += URI; // URI
+	ret += URI;
 	ret += "</h1><hr><pre><table>";
-	//std::cout << path << std::endl;
 	dir = opendir(absPath.c_str());
 	if (dir == NULL) throw std::runtime_error("directory not opend");
 	std::vector<std::string> dirVec;

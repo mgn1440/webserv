@@ -12,10 +12,8 @@
 # include "HttpHandler.hpp"
 
 # define KQ_EVENT_SIZE 10000
+# define TIMEOUT_SIZE 100000
 
-// system call error 인해 webserv 프로그램이 종료되는 건 말이 안된다
-// runKqueue 내부에서 throw catch 하는 구조로 만들어야 함
-// TODO: clientFD read에서 Error랑, pipeFD read에서 Error는 어떻게 분기 처리를 해줘야 하는가?ㅂ
 class WebServ
 {
 	public:
@@ -29,11 +27,10 @@ class WebServ
 		std::vector<int> mServSockList;
 		std::vector<struct kevent> mChangeList;
 		std::vector<std::string> mEnvList;
-		std::map<int, std::pair<Response*, int> > mCGIPipeMap; // key: pipeFD, value: Response, clientFD
-		std::map<int, std::pair<int,pid_t> > mCGIClientMap; // key: clientFD, value: pipeFD, PID
-		std::map<pid_t, std::pair<Response*,int> > mCGIPidMap; // key: pid, value: Response, pipeFD
-		std::map<int, std::pair<Response*, size_t> > mCGIPostPipeMap; // key: pipe(CGI STDIN_FILENO), value: Response, 이미 write 된 문자열 길이
-		std::map<int, bool> mTimerMap; // key: clientFD, value: TimerOn Off;
+		std::map<int, Response*> mCGIPipeMap; // key: readPipeFD, value: Response pointer
+		std::map<int, Response*> mCGIClientMap;  // key: clientFD, value: Response pointer  
+		std::map<int, Response*> mCGIPidMap; // key: pid, value: Response pointer
+		std::map<int, Response*> mCGIPostPipeMap; // key: writePipeFD, value: Response pointer
 		struct kevent mEventList[KQ_EVENT_SIZE];
 
 		WebServ();
@@ -46,7 +43,6 @@ class WebServ
 		void acceptNewClientSocket(struct kevent* currEvent);
 		void processHttpRequest(struct kevent* currEvent);
 		void processCGI(Response& response, int clinetFD);
-		//void sendCGIResource(struct kevent* currEvent);
 		void writeHttpResponse(struct kevent* currEvent);
 		void writeToCGIPipe(struct kevent* currEvent);
 		void waitCGIProc(struct kevent* currEvent);
@@ -55,7 +51,7 @@ class WebServ
 		char *const *makeCGIEnvList(Response& response);
 		char *const *makeArgvList(const std::string& CGIPath, const std::string& ABSPath);
 		void sendPipeData(struct kevent* currEvent);
-		void eraseCGIMaps(int pid, int clientFD, int pipeFD);
+		void eraseCGIMaps(Response* res);
 		void eraseClientMaps(int clientFD);
 };
 

@@ -67,3 +67,27 @@ Accept-Encoding: gzip
 	- 같은 port로 접근시 0x10f5445e3 in WebServ::writeHttpResponse WebServ.cpp:358 에서 seg falut
 - autoindex referer의 경로를 앞에 붙일 때 에러 발생(referer 처리유무에 대한 토론 필요)
 - autoindex 위에 절대경로 root로부터의 상대경로로 바꾸기
+
+
+# Seg Fault Fix
+- Response에 clientFD, pipeRead, pipeWrite, pid 값을 가지도록 한다.
+## 구성
+	std::map<int, int> mServSockPortMap; // key: servSocket, val: port
+	std::map<int, HttpHandler> mRequestMap; // key: clientFD, value: HttpHandler
+	std::map<int, std::deque<Response> > mResponseMap; // key: clientFD, value: Response
+
+	std::map<int, Response*> mCGIPipeMap; // key: readPipeFD, value: Response pointer
+	std::map<int, Response*> mCGIClientMap;  // key: clientFD, value: Response pointer  
+	std::map<int, Response*> mCGIPidMap; // key: pid, value: Response pointer
+	std::map<int, Response*> mCGIPostPipeMap; // key: writePipeFD, value: Response pointer
+
+	mClientFd;
+	mPipeFd[2];
+	mPid;
+	mWritten;
+
+## Case 1
+	
+
+## 제언
+	- deque를 없애는 구조로 가는 것
