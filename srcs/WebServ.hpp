@@ -29,10 +29,11 @@ class WebServ
 		std::vector<int> mServSockList;
 		std::vector<struct kevent> mChangeList;
 		std::vector<std::string> mEnvList;
-		std::map<int, std::pair<Response*, int> > mCGIPipeMap; // key: pipeFD, value: Response, clientFD
-		std::map<int, std::pair<int,pid_t> > mCGIClientMap; // key: clientFD, value: pipeFD, PID
-		std::map<pid_t, std::pair<Response*,int> > mCGIPidMap; // key: pid, value: Response, pipeFD
-		std::map<int, std::pair<Response*, size_t> > mCGIPostPipeMap; // key: pipe(CGI STDIN_FILENO), value: Response, 이미 write 된 문자열 길이
+		std::map<int, Response*> mCGIPipeMap; // key: readPipeFD, value: Response pointer
+		std::map<int, Response*> mCGIClientMap;  // key: clientFD, value: Response pointer  
+		std::map<int, Response*> mCGIPidMap; // key: pid, value: Response pointer
+		std::map<int, Response*> mCGIPostPipeMap; // key: writePipeFD, value: Response pointer
+
 		std::map<int, bool> mTimerMap; // key: clientFD, value: TimerOn Off;
 		struct kevent mEventList[KQ_EVENT_SIZE];
 
@@ -55,7 +56,7 @@ class WebServ
 		char *const *makeCGIEnvList(Response& response);
 		char *const *makeArgvList(const std::string& CGIPath, const std::string& ABSPath);
 		void sendPipeData(struct kevent* currEvent);
-		void eraseCGIMaps(int pid, int clientFD, int pipeFD);
+		void eraseCGIMaps(Response* res);
 		void eraseClientMaps(int clientFD);
 };
 

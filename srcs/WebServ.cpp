@@ -184,14 +184,12 @@ void	WebServ::handleTimeOut(struct kevent* currEvent)
 		{
 			if (mCGIClientMap.find(clientFD) == mCGIClientMap.end())
 				continue;
-			int pipeFD = mCGIClientMap[clientFD].first;
-			pid_t pid = mCGIClientMap[clientFD].second;
-			close(pipeFD); // pipe event 삭제
+			// close(pipeFD); // pipe event 삭제
 			std::cout << "1" << std::endl; // debug
-			mCGIPostPipeMap.erase(pipeFD); // suro1
-			eraseCGIMaps(pid, clientFD, pipeFD);
-			addEvents(pid, EVFILT_PROC, EV_DELETE, 0, 0, NULL); // pid 이벤트 삭제
-			if (kill(pid, SIGTERM) == -1)
+			// mCGIPostPipeMap.erase(pipeFD); // suro1
+			eraseCGIMaps(&(*iter));
+			addEvents(iter->GetPid(), EVFILT_PROC, EV_DELETE, 0, 0, NULL); // pid 이벤트 삭제
+			if (kill(iter->GetPid(), SIGTERM) == -1)
 				throw std::runtime_error("kill");
 		}
 		iter->SetStatusOf(504, "");
@@ -202,10 +200,14 @@ void	WebServ::handleTimeOut(struct kevent* currEvent)
 void	WebServ::waitCGIProc(struct kevent* currEvent)
 {
 	int pid = currEvent->ident;
-	int pipeFD = mCGIPidMap[pid].second;
-	int clientFD = mCGIPipeMap[pipeFD].second;
 	int status;
-	Response* response = mCGIPidMap[pid].first;
+	if (mCGIPidMap.find(pid) == mCGIPidMap.end())
+	{
+		std::cout << "03" << std::endl; // debug
+		kill (pid, SIGTERM);
+		return ;
+	}
+	Response* response = mCGIPidMap[pid];
 	if (currEvent->fflags & NOTE_EXIT)
 	{
 		waitpid(pid, &status, 0);
@@ -213,11 +215,9 @@ void	WebServ::waitCGIProc(struct kevent* currEvent)
 			response->SetStatusOf(502, "");
 		else
 			response->GenCGIBody();
-		addEvents(clientFD, EVFILT_WRITE, EV_ADD | EV_ENABLE, 0, 0, NULL);
-		close(pipeFD);
+		addEvents(response->GetClientFd(), EVFILT_WRITE, EV_ADD | EV_ENABLE, 0, 0, NULL);
 		std::cout << "2" << std::endl; // debug
-		mCGIPostPipeMap.erase(pipeFD); // suro1
-		eraseCGIMaps(pid, clientFD, pipeFD);
+		eraseCGIMaps(response);
 	}
 }
 
@@ -241,24 +241,20 @@ void	WebServ::acceptNewClientSocket(struct kevent* currEvent)
 
 void	WebServ::processHttpRequest(struct kevent* currEvent)
 {
-	int clientFD = currEvent->ident;;
+	int clientFD = currEvent->ident;
 	char buf[65535];
 	int n = read(clientFD, buf, sizeof(buf));
 	if (n == 0 && (currEvent->flags & EV_EOF))
 	{
 		close(clientFD);
 		std::cout << "02" << std::endl;
-		pid_t CGIPid = mResponseMap[clientFD].front().GetCGIPid();
-		kill (CGIPid, SIGTERM); // 미완성
-		int writePipe =mResponseMap[clientFD].front().GetWritePipeFd(); 
-		mCGIPostPipeMap.erase(writePipe);
-		close(writePipe);
+		// kill (CGIPid, SIGTERM); // 미완성
 		eraseClientMaps(clientFD); // suro 범인
 		return ;
 	}
 	else if (n == -1) // 1. first request read return -1 is fatal error
 		throw std::runtime_error("http request read error");
-	addEvents(clientFD, EVFILT_TIMER, EV_ADD | EV_ENABLE, 0, 10000, NULL); // 10초 타임아웃 (write event가 발생하면 timeout event를 삭제해줘야 함)
+	addEvents(clientFD, EVFILT_TIMER, EV_ADD | EV_ENABLE, 0, 100000, NULL); // 100초 타임아웃 (write event가 발생하면 timeout event를 삭제해줘야 함)
 	mTimerMap[clientFD] = true;
 	std::deque<Response> responseList = mRequestMap[clientFD].MakeResponseOf(std::string(buf, n));
 	std::deque<Response>::iterator responseIt = responseList.begin();
@@ -313,17 +309,20 @@ void	WebServ::processCGI(Response& response, int clientFD)
 		if (response.GetRequestBody().size() != 0) // post
 		{
 			addEvents(writeFD[1], EVFILT_WRITE, EV_ADD | EV_ENABLE, 0, 0, NULL);
-			mCGIPostPipeMap.insert(std::make_pair(writeFD[1], std::make_pair(&response, 0)));
+			response.SetCGIInfo(clientFD, readFD[0], writeFD[1], pid);
+			mCGIPostPipeMap[writeFD[1]] = &response;
 		}
 		else
+		{
 			close(writeFD[1]);
+			response.SetCGIInfo(clientFD, readFD[0], -1, pid);
+		}
 		addEvents(pid, EVFILT_PROC, EV_ADD | EV_ONESHOT, NOTE_EXIT, 0, NULL);
-		response.SetCGIPid(writeFD[1]);
 		close(readFD[1]);
 		close(writeFD[0]);
-		mCGIClientMap[clientFD] = std::make_pair(readFD[0], pid);
-		mCGIPipeMap[readFD[0]] = std::make_pair(&response, clientFD);
-		mCGIPidMap[pid] = std::make_pair(&response, readFD[0]);
+		mCGIClientMap[clientFD] = &response; 
+		mCGIPipeMap[readFD[0]] = &response;
+		mCGIPidMap[pid] = &response;
 	}
 }
 
@@ -375,7 +374,7 @@ void	WebServ::sendPipeData(struct kevent* currEvent)
 	}
 	else if (n == -1)
 		throw std::runtime_error("pipe read error");
-	mCGIPipeMap[pipeFD].first->AppendCGIBody(std::string(buf, n));
+	mCGIPipeMap[pipeFD]->AppendCGIBody(std::string(buf, n));
 }
 
 void	WebServ::writeToCGIPipe(struct kevent* currEvent)
@@ -383,8 +382,8 @@ void	WebServ::writeToCGIPipe(struct kevent* currEvent)
 	int pipeFD = currEvent->ident;
 	if (mCGIPostPipeMap.find(pipeFD) == mCGIPostPipeMap.end())
 		return ;
-	Response &response = *(mCGIPostPipeMap[pipeFD].first);
-	size_t pos = mCGIPostPipeMap[pipeFD].second;
+	Response &response = *mCGIPostPipeMap[pipeFD];
+	size_t pos = response.Written;
 	size_t toWrite = response.GetRequestBody().size() - pos; // error: seg fault heap-use-after-free
 	ssize_t written = write(pipeFD, response.GetRequestBody().c_str() + pos, toWrite);
 	std::cout << "pipeFD = " << pipeFD << ", " << "written = " << written << std::endl;
@@ -397,9 +396,8 @@ void	WebServ::writeToCGIPipe(struct kevent* currEvent)
 			perror("write error");
 		return ;
 	}
-	mCGIPostPipeMap[pipeFD].second = pos + written;
-	std::cout << "second = " << mCGIPostPipeMap[pipeFD].second  << ", " << "size = " << response.GetRequestBody().size() << std::endl; 
-	if (mCGIPostPipeMap[pipeFD].second == response.GetRequestBody().size())
+	response.Written += written;
+	if (response.Written == response.GetRequestBody().size())
 	{
 		close(pipeFD);
 		std::cout << "10" << std::endl; // debug
@@ -423,6 +421,7 @@ void	WebServ::writeHttpResponse(struct kevent* currEvent)
 	}
 	if (response.GetSendStatus() != SEND_ALL)
 		return;
+	response.PrintResponse();
 	mResponseMap[clientFD].pop_front();
 	if (mResponseMap[clientFD].size() == 0)
 	{
@@ -442,33 +441,33 @@ void	WebServ::writeHttpResponse(struct kevent* currEvent)
 
 void WebServ::eraseClientMaps(int clientFD)
 {
+	if (mCGIClientMap.find(clientFD) != mCGIClientMap.end())
+	{
+		eraseCGIMaps(mCGIClientMap[clientFD]);
+	}
 	if (mRequestMap.find(clientFD) != mRequestMap.end())
 		mRequestMap.erase(clientFD);
 	if (mResponseMap.find(clientFD) != mResponseMap.end())
 		mResponseMap.erase(clientFD);
-	if (mCGIClientMap.find(clientFD) != mCGIClientMap.end())
-	{
-		int pipeFD = mCGIClientMap[clientFD].first;
-		close(pipeFD); // suro1
-		std::cout << "11" << std::endl; // debug
-		mCGIPostPipeMap.erase(pipeFD); // suro1
-		pid_t PID = mCGIClientMap[clientFD].second;
-		if (mCGIPidMap.find(PID) != mCGIPidMap.end())
-			mCGIPidMap.erase(PID);
-		if (mCGIPipeMap.find(pipeFD) != mCGIPipeMap.end())
-			mCGIPipeMap.erase(pipeFD);
-		mCGIClientMap.erase(clientFD);
-	}
 }
 
-void WebServ::eraseCGIMaps(int PID, int clientFD, int pipeFD)
+void WebServ::eraseCGIMaps(Response* res)
 {
-	if (mCGIPidMap.find(PID) != mCGIPidMap.end())
-		mCGIPidMap.erase(PID);
-	if (mCGIClientMap.find(clientFD) != mCGIClientMap.end())
-		mCGIClientMap.erase(clientFD);
-	if (mCGIPipeMap.find(pipeFD) != mCGIPipeMap.end())
-		mCGIPipeMap.erase(pipeFD);
+	int	toFind;
+	toFind = res->GetPid();
+	if (mCGIPidMap.find(toFind) != mCGIPidMap.end())
+		mCGIPidMap.erase(toFind);
+	toFind = res->GetClientFd();
+	if (mCGIClientMap.find(toFind) != mCGIClientMap.end())
+		mCGIClientMap.erase(toFind);
+	toFind = res->GetReadPipeFd();
+	if (mCGIPipeMap.find(toFind) != mCGIPipeMap.end())
+		mCGIPipeMap.erase(toFind);
+	close(toFind); // readFd;
+	toFind = res->GetWritePipeFd();
+	if (mCGIPostPipeMap.find(toFind) != mCGIPostPipeMap.end())
+		mCGIPostPipeMap.erase(toFind);
+	close(toFind); // writeFd;
 	// close(pipeFD); // suro 1
 }
 

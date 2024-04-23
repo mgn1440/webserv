@@ -48,8 +48,11 @@ Response::Response(const Response& rhs)
 	mRequestBody = rhs.mRequestBody;
 	mSendStatus = rhs.mSendStatus;
 	mSendPos = rhs.mSendPos;
-	mWritePipeFd = rhs.mWritePipeFd;
-	mCGIPid = rhs.mCGIPid;
+	mClientFd = rhs.mClientFd;
+	mPipeFd[0] = rhs.mPipeFd[0];
+	mPipeFd[1] = rhs.mPipeFd[1];
+	mPid = rhs.mPid;
+	Written = rhs.Written;
 }
 
 Response& Response::operator=(const Response& rhs)
@@ -78,13 +81,17 @@ Response& Response::operator=(const Response& rhs)
 	mRequestBody = rhs.mRequestBody;
 	mSendStatus = rhs.mSendStatus;
 	mSendPos = rhs.mSendPos;
-	mWritePipeFd = rhs.mWritePipeFd;
-	mCGIPid = rhs.mCGIPid;
+	mClientFd = rhs.mClientFd;
+	mPipeFd[0] = rhs.mPipeFd[0];
+	mPipeFd[1] = rhs.mPipeFd[1];
+	mPid = rhs.mPid;
+	Written = rhs.Written;
     return *this;
 }
 
 Response::Response()
-    : mbCGI()
+	: Written(0)
+    , mbCGI()
     , mbAutoIndex()
     , mCGIPath()
     , mCGIExtension()
@@ -93,8 +100,8 @@ Response::Response()
     , mBody()
 	, mBodySize(0)
     , mParams()
-	, mCGIPid(-1)
-	, mWritePipeFd(-1)
+	, mClientFd(-1)
+	, mPid(-1)
     , mHttpVer("HTTP/1.1")
     , mStatCode()
     , mStat()
@@ -106,6 +113,8 @@ Response::Response()
     , mSendStatus()
     , mSendPos(0)
 {
+	mPipeFd[0] = -1;
+	mPipeFd[1] = -1;
 	mHeaderMap["Server"] = "Webserv";
 }
 
@@ -342,24 +351,32 @@ ssize_t Response::WriteResponse(int clientFD)
 	return (writeSize);
 }
 
-void Response::SetCGIPid(pid_t pid)
+void Response::SetCGIInfo(int clientFd, int pipeRdFd, int pipeWrFd, int pid)
 {
-	mCGIPid = pid;
+	mClientFd = clientFd;
+	mPipeFd[0] = pipeRdFd;
+	mPipeFd[1] = pipeWrFd;
+	mPid = pid;
 }
 
-pid_t Response::GetCGIPid()
+pid_t Response::GetPid()
 {
-	return (mCGIPid);
+	return (mPid);
 }
 
-void Response::SetWritePipeFd(int fd)
+int Response::GetClientFd()
 {
-	mWritePipeFd = fd;
+	return (mClientFd);
+}
+
+int Response::GetReadPipeFd()
+{
+	return (mPipeFd[0]);
 }
 
 int Response::GetWritePipeFd()
 {
-	return (mWritePipeFd);
+	return (mPipeFd[1]);
 }
 
 ssize_t Response::respectiveSend(int clientFD, const std::string& toSend, int checkCond, int setCond)
