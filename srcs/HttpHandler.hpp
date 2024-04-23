@@ -11,20 +11,14 @@
 class HttpHandler
 {
 public:
-	// occf
-	HttpHandler(int port); // ConfFile is class;
+	HttpHandler(int port);
 	~HttpHandler();
 	HttpHandler& operator=(const HttpHandler& rhs);
 	HttpHandler(const HttpHandler& src);
 	HttpHandler();
 
-	// interface
-	// std::vector<struct Request> MakeResponseOf(const std::string& data);
 	std::deque<Response> MakeResponseOf(const std::string& data);
-	void TestMethod(); // debug
 private:
-	// occf not used
-	// member var
 	int mPort;
 	std::string mRequestBuffer;
 	Request mParsedRequest;
@@ -33,7 +27,6 @@ private:
 	size_t mConsumeBufferSize;
 	size_t mMaxbodySize;
 
-	// method
 	void parseHttpRequest(void);
 	void parseStartLine(std::istringstream& input);
 	void parseHeader(std::istringstream& input);
@@ -48,11 +41,9 @@ private:
 	void checkHTTP(std::string http);
 	void initHttpHandler();
 
-	// process method
 	void procHost();
 	void procReferer();
 	void procConnection();
-
 
 	// debug
 	void	printParsedHttpRequest(const struct Request& r);

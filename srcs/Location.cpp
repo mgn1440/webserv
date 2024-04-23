@@ -1,12 +1,11 @@
 #include <fstream>
 #include <sstream>
-
 #include "Location.hpp"
 #include "parseUtils.hpp"
 
 Location::Location()
 	: AConfParser()
-{ }
+{}
 
 Location::Location(std::ifstream& confFile)
 	: AConfParser()
@@ -29,7 +28,7 @@ Location& Location::operator=(const Location& rhs)
 }
 
 Location::~Location()
-{ }
+{}
 
 void Location::GetRoot(std::string& path)
 {
@@ -42,18 +41,6 @@ void Location::GetMaxSize(size_t& res)
 	if (mMaxSize)
 		res = mMaxSize;
 }
-
-// server {
-// 	root /var;
-// 	index index.html;
-// 	cgi php /usr/bin/php7.1;
-// 	location /html {
-// 		root /var/www;
-// 		index index.php;
-// 		cgi php /usr/bin/php8.1;
-// 	}
-// }
-// URI(입력): /html/index.php => ABSPath(결과): /var/www/html/index.php(8.1)
 
 void Location::SetResource(struct Resource& res)
 {
@@ -69,9 +56,7 @@ void Location::SetResource(struct Resource& res)
 		res.Location = mLocation;
 	}
 	for (std::map<std::string, std::string>::iterator it = mCGI.begin(); it != mCGI.end(); it ++)
-	{
 		res.CGIBinaryPath[it->first] = it->second;
-	}
 }
 
 void Location::parse(std::ifstream& confFile)
@@ -110,7 +95,7 @@ void Location::parse(std::ifstream& confFile)
 	}
 }
 
-void	Location::PrintInfo()
+void Location::PrintInfo()
 {
 	std::cout << "HttpMethod: ";
 	printVec(mHttpMethod);

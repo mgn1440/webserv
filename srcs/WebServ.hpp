@@ -14,9 +14,6 @@
 # define KQ_EVENT_SIZE 10000
 # define TIMEOUT_SIZE 100000
 
-// system call error 인해 webserv 프로그램이 종료되는 건 말이 안된다
-// runKqueue 내부에서 throw catch 하는 구조로 만들어야 함
-// TODO: clientFD read에서 Error랑, pipeFD read에서 Error는 어떻게 분기 처리를 해줘야 하는가?ㅂ
 class WebServ
 {
 	public:
@@ -34,8 +31,6 @@ class WebServ
 		std::map<int, Response*> mCGIClientMap;  // key: clientFD, value: Response pointer  
 		std::map<int, Response*> mCGIPidMap; // key: pid, value: Response pointer
 		std::map<int, Response*> mCGIPostPipeMap; // key: writePipeFD, value: Response pointer
-
-		std::map<int, bool> mTimerMap; // key: clientFD, value: TimerOn Off;
 		struct kevent mEventList[KQ_EVENT_SIZE];
 
 		WebServ();
@@ -48,7 +43,6 @@ class WebServ
 		void acceptNewClientSocket(struct kevent* currEvent);
 		void processHttpRequest(struct kevent* currEvent);
 		void processCGI(Response& response, int clinetFD);
-		//void sendCGIResource(struct kevent* currEvent);
 		void writeHttpResponse(struct kevent* currEvent);
 		void writeToCGIPipe(struct kevent* currEvent);
 		void waitCGIProc(struct kevent* currEvent);
@@ -59,7 +53,6 @@ class WebServ
 		void sendPipeData(struct kevent* currEvent);
 		void eraseCGIMaps(Response* res);
 		void eraseClientMaps(int clientFD);
-		
 };
 
 #endif

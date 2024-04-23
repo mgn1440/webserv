@@ -1,6 +1,6 @@
 #include "Request.hpp"
 
-void initRequest(struct Request& request)
+void initRequest(struct Request &request)
 {
 	request.StatusCode = 0;
 	request.ParsedStatus = PARSED_NOT;

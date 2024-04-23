@@ -1,5 +1,3 @@
-# pragma once
-
 #ifndef STL_UTILS_HPP
 # define STL_UTILS_HPP
 

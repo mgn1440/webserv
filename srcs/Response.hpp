@@ -1,5 +1,3 @@
-#pragma once
-
 #ifndef  RESPONSE_HPP
 # define RESPONSE_HPP
 
@@ -31,7 +29,6 @@ public:
     bool IsConnectionStop() const;
 	int GetSendStatus();
     void CreateResponseHeader();
-    void TestMethod(); // debug
     void SetCGIInfo(int clientFd, int pipeRdFd, int pipeWrFd, int pid);
     pid_t GetPid();
     int GetClientFd();

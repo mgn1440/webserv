@@ -1,5 +1,3 @@
-#pragma once
-
 #ifndef  CONFIG_HANDLER
 # define CONFIG_HANDLER
 
@@ -8,7 +6,6 @@
 # include <set>
 # include <deque>
 # include "Resource.hpp"
-
 
 class Server;
 class Response;

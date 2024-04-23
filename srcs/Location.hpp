@@ -1,14 +1,10 @@
-#pragma once
-
 #ifndef LOCATION_HPP
 # define LOCATION_HPP
 
 # include <iostream>
-
 # include <set>
 # include <map>
 # include <vector>
-
 # include "STLUtils.hpp" // to debug
 # include "AConfParser.hpp"
 # include "Resource.hpp"
@@ -29,8 +25,6 @@ public:
 	void ParseLocation(std::string& line);
 private:
 	void parse(std::ifstream& confFile);
-
-	// TODO: cgi var needed
 };
 
 #endif
