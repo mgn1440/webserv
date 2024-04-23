@@ -421,11 +421,12 @@ void	WebServ::writeHttpResponse(struct kevent* currEvent)
 	{
 		addEvents(clientFD, EVFILT_WRITE, EV_DELETE, 0, 0, NULL);
 	}
-	// if (response.IsConnectionStop())
-	// {
-	// 	close(clientFD);
-	// 	eraseClientMaps(clientFD);
-	// }
+	if (response.IsConnectionStop())
+	{
+		addEvents(clientFD, EVFILT_TIMER, EV_DELETE, 0, 0, NULL);
+		close(clientFD);
+		eraseClientMaps(clientFD);
+	}
 }
 
 void WebServ::eraseClientMaps(int clientFD)

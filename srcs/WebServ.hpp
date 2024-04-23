@@ -12,7 +12,7 @@
 # include "HttpHandler.hpp"
 
 # define KQ_EVENT_SIZE 10000
-# define TIMEOUT_SIZE 100000
+# define TIMEOUT_SIZE 10000
 
 class WebServ
 {
