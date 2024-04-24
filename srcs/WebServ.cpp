@@ -409,15 +409,16 @@ void	WebServ::writeHttpResponse(struct kevent* currEvent)
 	}
 	if (response.GetSendStatus() != SEND_ALL)
 		return;
+	// response.PrintResponse();
 	addEvents(clientFD, EVFILT_TIMER, EV_ADD | EV_ENABLE | EV_ONESHOT, 0, TIMEOUT_SIZE, NULL);
 	mResponseMap[clientFD].pop_front();
 	if (mResponseMap[clientFD].size() == 0)
 		addEvents(clientFD, EVFILT_WRITE, EV_DELETE, 0, 0, NULL);
-	// if (response.IsConnectionStop())
-	// {
-	// 	close(clientFD);
-	// 	eraseClientMaps(clientFD);
-	// }
+	if (response.IsConnectionStop())
+	{
+		close(clientFD);
+		eraseClientMaps(clientFD);
+	}
 }
 
 void WebServ::eraseClientMaps(int clientFD)
