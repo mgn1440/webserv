@@ -248,7 +248,7 @@ void	WebServ::processHttpRequest(struct kevent* currEvent)
 		return ;
 	}
 	else if (n == -1)
-		throw std::runtime_error("http request read error");
+		return ;
 	addEvents(clientFD, EVFILT_TIMER, EV_ADD | EV_ENABLE | EV_ONESHOT, 0, TIMEOUT_SIZE, NULL);
 	std::deque<Response> responseList = mRequestMap[clientFD].MakeResponseOf(std::string(buf, n));
 	std::deque<Response>::iterator responseIt = responseList.begin();
@@ -414,11 +414,6 @@ void	WebServ::writeHttpResponse(struct kevent* currEvent)
 	mResponseMap[clientFD].pop_front();
 	if (mResponseMap[clientFD].size() == 0)
 		addEvents(clientFD, EVFILT_WRITE, EV_DELETE, 0, 0, NULL);
-	if (response.IsConnectionStop())
-	{
-		close(clientFD);
-		eraseClientMaps(clientFD);
-	}
 }
 
 void WebServ::eraseClientMaps(int clientFD)
