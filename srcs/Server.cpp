@@ -156,6 +156,12 @@ struct Resource Server::GetResource(std::string URI)
 	res.RedirCode = mRedirCode;
 	res.Location = mLocation;
 	res.ErrorPage = mErrorPage;
+	std::map<int, std::string>::iterator it = res.ErrorPage.begin();
+	for (; it != res.ErrorPage.end(); it ++)
+	{
+		if (it->second[0] != '/')
+			it->second = mRoot + "/" + it->second;
+	}
 	std::string locationPath = searchLocationPath(URI);
 	if (locationPath != "")
 		mLocationMap[locationPath].SetResource(res);

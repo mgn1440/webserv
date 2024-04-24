@@ -108,9 +108,11 @@ void HttpHandler::parseStartLine(std::istringstream& input)
 		mReq = "\n";
 		return;
 	}
-	if (!checkCRLF(buf)){
+	if (!checkCRLF(buf))
+	{
 		return setHttpStatusCode(400); // bad request
 	}
+	mReq += buf + '\n';
 	mConsumeBufferSize += buf.size() + 1;
 	mParsedRequest.StartLine = buf;
 	splitStartLine();
@@ -208,6 +210,8 @@ void HttpHandler::parseContentLength(std::istringstream& input)
 		mParsedRequest.ParsedStatus |= PARSED_BODY;
 		return setHttpStatusCode(413);
 	}
+	if (mRequestBuffer.size() - mConsumeBufferSize < contentLength)
+		return;
 	int bufferSize = 1000;
 	char buf[bufferSize];
 	while (true)
@@ -223,10 +227,8 @@ void HttpHandler::parseContentLength(std::istringstream& input)
 			return setHttpStatusCode(413); // content too large
 		}
 		// TODO: why cnt compare with contentLength?
-		if (cnt != contentLength)
-		{
+		if (cnt != static_cast<unsigned long>(bufferSize))
 			break;
-		}
 	}
 	if (mParsedRequest.Body.size() == contentLength)
 		mParsedRequest.ParsedStatus |= PARSED_BODY;
