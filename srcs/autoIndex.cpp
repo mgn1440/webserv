@@ -7,7 +7,7 @@
 #include <vector>
 #include <string>
 
-static void addOneLine(std::string& ret, const std::string& fileName);
+static void addOneLine(std::string& ret, const std::string& fileName, const std::string& absPath);
 std::string timespecToString(const timespec ts);
 
 std::string getIndexListOf(const std::string& URI, const std::string& absPath)
@@ -39,10 +39,10 @@ std::string getIndexListOf(const std::string& URI, const std::string& absPath)
 		}
 	}
 	for (std::vector<std::string>::iterator it = dirVec.begin(); it != dirVec.end(); it++){
-		addOneLine(ret, *it);
+		addOneLine(ret, *it, absPath);
 	}
 	for (std::vector<std::string>::iterator it = fileVec.begin(); it != fileVec.end(); it++){
-		addOneLine(ret, *it);
+		addOneLine(ret, *it, absPath);
 	}
 	ret += "</table></pre><hr></body></html>";
 	return(ret);
@@ -58,7 +58,7 @@ std::string timespecToString(const timespec ts) {
     return buffer;
 }
 
-static void addOneLine(std::string& ret, const std::string& fileName)
+static void addOneLine(std::string& ret, const std::string& fileName, const std::string& absPath)
 {
 	ret += "<tr>";
 	ret += "<td>";
@@ -69,7 +69,8 @@ static void addOneLine(std::string& ret, const std::string& fileName)
 	ret += "</a>";
 	ret += "</td>";
 	struct stat st;
-	stat(fileName.c_str(), &st);
+	memset(&st, 0, sizeof(struct stat));
+	stat((absPath + "/" + fileName).c_str(), &st);
 	ret += "<td class=\"detailsColumn\">                ";
 	ret += timespecToString(st.st_mtimespec);
 	ret += "\n";
