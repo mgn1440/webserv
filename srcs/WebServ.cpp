@@ -243,10 +243,11 @@ void	WebServ::processHttpRequest(struct kevent* currEvent)
 	if (n == 0 && (currEvent->flags & EV_EOF))
 	{
 		addEvents(clientFD, EVFILT_TIMER, EV_DELETE, 0, 0, NULL);
+		eraseClientMaps(clientFD);
 		close(clientFD);
 		return ;
 	}
-	else if (n == -1) 
+	else if (n == -1)
 		throw std::runtime_error("http request read error");
 	addEvents(clientFD, EVFILT_TIMER, EV_ADD | EV_ENABLE | EV_ONESHOT, 0, TIMEOUT_SIZE, NULL);
 	std::deque<Response> responseList = mRequestMap[clientFD].MakeResponseOf(std::string(buf, n));
